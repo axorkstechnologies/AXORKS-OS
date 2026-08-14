@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUIStore } from "@/stores/ui-store";
+import { useAuthStore } from "@/stores/auth-store";
 import { cn } from "@/lib/utils";
+import { canAccessRoute } from "@/lib/user-repository";
 import {
   LayoutDashboard,
   Target,
@@ -26,37 +28,46 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+/** Each nav item knows which route prefix it maps to for RBAC checks */
 const NAV_ITEMS = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "User Management & IAM", href: "/iam", icon: ShieldCheck },
-  { name: "Leads", href: "/leads", icon: Target },
+  { name: "Dashboard", href: "/", icon: LayoutDashboard, routePrefix: "/" },
+  { name: "User Management & IAM", href: "/iam", icon: ShieldCheck, routePrefix: "/iam" },
+  { name: "Leads", href: "/leads", icon: Target, routePrefix: "/leads" },
   {
     name: "CRM",
     href: "/crm/companies",
     icon: Users,
+    routePrefix: "/crm",
     children: [
       { name: "Companies", href: "/crm/companies", icon: Building2 },
       { name: "Contacts", href: "/crm/contacts", icon: UserCheck },
       { name: "Deals", href: "/crm/deals", icon: Receipt },
     ],
   },
-  { name: "Email Center", href: "/email", icon: Mail },
-  { name: "Proposals", href: "/proposals", icon: FileText },
-  { name: "Projects", href: "/projects", icon: FolderKanban },
-  { name: "Dev Hub", href: "/dev", icon: Code2 },
-  { name: "Finance", href: "/finance", icon: Receipt },
-  { name: "Knowledge", href: "/knowledge", icon: BookOpen },
-  { name: "Marketing", href: "/marketing", icon: Megaphone },
-  { name: "Recruitment", href: "/recruitment", icon: UserCheck },
-  { name: "HR", href: "/hr", icon: Building2 },
-  { name: "Automations", href: "/automations", icon: Zap },
-  { name: "Analytics", href: "/analytics", icon: BarChart3 },
-  { name: "Integrations", href: "/integrations", icon: Plug },
+  { name: "Email Center", href: "/email", icon: Mail, routePrefix: "/email" },
+  { name: "Proposals", href: "/proposals", icon: FileText, routePrefix: "/proposals" },
+  { name: "Projects", href: "/projects", icon: FolderKanban, routePrefix: "/projects" },
+  { name: "Dev Hub", href: "/dev", icon: Code2, routePrefix: "/dev" },
+  { name: "Finance", href: "/finance", icon: Receipt, routePrefix: "/finance" },
+  { name: "Knowledge", href: "/knowledge", icon: BookOpen, routePrefix: "/knowledge" },
+  { name: "Marketing", href: "/marketing", icon: Megaphone, routePrefix: "/marketing" },
+  { name: "Recruitment", href: "/recruitment", icon: UserCheck, routePrefix: "/recruitment" },
+  { name: "HR", href: "/hr", icon: Building2, routePrefix: "/hr" },
+  { name: "Automations", href: "/automations", icon: Zap, routePrefix: "/automations" },
+  { name: "Analytics", href: "/analytics", icon: BarChart3, routePrefix: "/analytics" },
+  { name: "Integrations", href: "/integrations", icon: Plug, routePrefix: "/integrations" },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const { sidebarCollapsed, toggleSidebar } = useUIStore();
+  const user = useAuthStore((s) => s.user);
+  const userRole = user?.role || "Viewer";
+
+  // Filter nav items based on user's role permissions
+  const visibleItems = NAV_ITEMS.filter((item) =>
+    canAccessRoute(userRole, item.routePrefix)
+  );
 
   return (
     <aside
@@ -91,9 +102,9 @@ export function Sidebar() {
           </button>
         </div>
 
-        {/* Navigation Items */}
+        {/* Navigation Items — filtered by RBAC */}
         <nav className="p-2 space-y-1 overflow-y-auto max-h-[calc(100vh-8rem)]">
-          {NAV_ITEMS.map((item) => {
+          {visibleItems.map((item) => {
             const isActive =
               pathname === item.href ||
               (item.href !== "/" && pathname.startsWith(item.href));

@@ -12,6 +12,7 @@ import {
   Video,
   FileCheck2,
   Crown,
+  Activity,
 } from "lucide-react";
 
 const IAM_TABS = [
@@ -19,6 +20,7 @@ const IAM_TABS = [
   { name: "Employees", href: "/iam/users", icon: Users },
   { name: "Roles & Permissions", href: "/iam/roles", icon: KeyRound },
   { name: "Departments", href: "/iam/departments", icon: Building2 },
+  { name: "Activity Monitor", href: "/iam/activity", icon: Activity },
   { name: "Screen & Call Studio", href: "/iam/recordings", icon: Video },
   { name: "Audit Logs", href: "/iam/audit", icon: FileCheck2 },
 ];

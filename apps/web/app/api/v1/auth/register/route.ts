@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { registerNewUser, recordLoginSession } from "@/lib/user-repository";
+import {
+  registerNewUser,
+  recordLoginSession,
+  ConflictError,
+} from "@/lib/user-repository";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -7,7 +11,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // 1. Attempt FastAPI backend if available
+    // 1. Attempt FastAPI backend (Neon PostgreSQL) if available
     try {
       const backendRes = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
         method: "POST",
@@ -19,11 +23,20 @@ export async function POST(req: NextRequest) {
         const data = await backendRes.json();
         return NextResponse.json(data);
       }
-    } catch (err) {
-      // Fallback to local serverless handler
+
+      // If backend returned an error (e.g. 409 Conflict), forward it
+      if (backendRes.status === 409) {
+        const errorData = await backendRes.json().catch(() => ({}));
+        return NextResponse.json(
+          { errors: [{ message: errorData?.detail || "An account with this email already exists" }] },
+          { status: 409 }
+        );
+      }
+    } catch {
+      // Backend unreachable — fall through to in-memory fallback
     }
 
-    // 2. Register user in central repository
+    // 2. Fallback: register user in central in-memory repository
     const newUser = registerNewUser({
       email: body.email,
       password: body.password,
@@ -47,11 +60,21 @@ export async function POST(req: NextRequest) {
           last_name: newUser.last_name,
           role: newUser.role,
           department: newUser.department,
+          permissions: newUser.permissions,
+          avatar_url: newUser.avatar_url || null,
         },
         session,
       },
     });
   } catch (error: any) {
+    // Handle ConflictError from registerNewUser (duplicate email)
+    if (error instanceof ConflictError || error?.name === "ConflictError") {
+      return NextResponse.json(
+        { errors: [{ message: error.message }] },
+        { status: 409 }
+      );
+    }
+
     return NextResponse.json(
       { errors: [{ message: error.message || "Registration failed" }] },
       { status: 500 }

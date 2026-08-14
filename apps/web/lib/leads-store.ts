@@ -23,6 +23,13 @@ export interface LeadRecord {
   notes: string | null;
   tags: string[];
   custom_fields: Record<string, any>;
+  // ─── Pipeline Tracking Fields ───────────────────
+  first_contact_method: string | null;
+  result: string | null;
+  meeting_scheduled: boolean;
+  proposal_sent: boolean;
+  closed: boolean;
+  revenue: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -51,6 +58,12 @@ export const LEADS_STORE: LeadRecord[] = [
     notes: "Interested in custom AI workflow automation.",
     tags: ["enterprise", "ai"],
     custom_fields: {},
+    first_contact_method: "email",
+    result: "interested",
+    meeting_scheduled: false,
+    proposal_sent: false,
+    closed: false,
+    revenue: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
@@ -77,6 +90,12 @@ export const LEADS_STORE: LeadRecord[] = [
     notes: "Requires full-stack platform development.",
     tags: ["high-priority"],
     custom_fields: {},
+    first_contact_method: "phone",
+    result: "callback",
+    meeting_scheduled: true,
+    proposal_sent: false,
+    closed: false,
+    revenue: null,
     created_at: new Date(Date.now() - 86400000).toISOString(),
     updated_at: new Date().toISOString(),
   },
@@ -106,6 +125,12 @@ export function addLeadToStore(input: Partial<LeadRecord>): LeadRecord {
     notes: input.notes || null,
     tags: input.tags || [],
     custom_fields: input.custom_fields || {},
+    first_contact_method: input.first_contact_method || null,
+    result: input.result || null,
+    meeting_scheduled: input.meeting_scheduled || false,
+    proposal_sent: input.proposal_sent || false,
+    closed: input.closed || false,
+    revenue: input.revenue || null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };

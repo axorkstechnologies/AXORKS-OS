@@ -10,6 +10,7 @@ import { NotificationsPanel } from "@/components/shell/notifications-panel";
 import { KeyboardShortcuts } from "@/components/shell/keyboard-shortcuts";
 import { PWARegister } from "@/components/shell/pwa-register";
 import { MobileNav } from "@/components/shell/mobile-nav";
+import { InactivityMonitor } from "@/components/shell/inactivity-monitor";
 
 export default function AppLayout({
   children,
@@ -17,17 +18,27 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, _hasHydrated } = useAuthStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    if (!isAuthenticated) {
+  }, []);
+
+  // Only redirect AFTER Zustand has finished rehydrating from localStorage.
+  // This fixes the bug where a page refresh would always redirect to /login
+  // because isAuthenticated was still false during async hydration.
+  useEffect(() => {
+    if (_hasHydrated && !isAuthenticated) {
       router.replace("/login");
     }
-  }, [isAuthenticated, router]);
+  }, [_hasHydrated, isAuthenticated, router]);
 
-  if (!mounted || !isAuthenticated) {
+  // Show loading spinner while:
+  // 1. Component hasn't mounted (SSR mismatch prevention)
+  // 2. Zustand hasn't finished rehydrating from localStorage
+  // 3. After hydration, user is not authenticated (redirect is in progress)
+  if (!mounted || !_hasHydrated || !isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center">
         <div className="text-center space-y-3">
@@ -55,6 +66,8 @@ export default function AppLayout({
       <KeyboardShortcuts />
       <MobileNav />
       <PWARegister />
+      {/* Employee inactivity detection — monitors mouse/keyboard/focus activity */}
+      <InactivityMonitor />
     </div>
   );
 }

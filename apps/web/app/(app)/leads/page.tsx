@@ -6,12 +6,15 @@ import { apiClient } from "@/lib/api-client";
 import { LeadTableView } from "@/components/leads/lead-table-view";
 import { LeadKanbanBoard } from "@/components/leads/lead-kanban-board";
 import { LeadCreateDialog } from "@/components/leads/lead-create-dialog";
+import { LeadSourcesPanel } from "@/components/leads/lead-sources-panel";
+import { HunterPanel } from "@/components/leads/hunter-panel";
 import Link from "next/link";
 import { Plus, Upload, LayoutList, Kanban, Search } from "lucide-react";
 
 export default function LeadsPage() {
   const [viewMode, setViewMode] = useState<"table" | "board">("table");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [hunterPanelOpen, setHunterPanelOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
@@ -53,6 +56,9 @@ export default function LeadsPage() {
           </button>
         </div>
       </div>
+
+      {/* Lead Sources Panel — external links + Hunter API */}
+      <LeadSourcesPanel onOpenHunter={() => setHunterPanelOpen(true)} />
 
       {/* Filter & View Switcher Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 glass rounded-xl border border-slate-200 dark:border-slate-800">
@@ -122,6 +128,13 @@ export default function LeadsPage() {
         open={createDialogOpen}
         onClose={() => setCreateDialogOpen(false)}
         onSuccess={() => refetch()}
+      />
+
+      {/* Hunter API Integration Panel */}
+      <HunterPanel
+        open={hunterPanelOpen}
+        onClose={() => setHunterPanelOpen(false)}
+        onLeadSaved={() => refetch()}
       />
     </div>
   );

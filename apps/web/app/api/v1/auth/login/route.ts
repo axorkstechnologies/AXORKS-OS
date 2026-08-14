@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findUserByIdentifier, recordLoginSession, usersStore } from "@/lib/user-repository";
+import {
+  findUserByIdentifier,
+  recordLoginSession,
+  verifyPassword,
+} from "@/lib/user-repository";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -16,7 +20,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Try FastAPI backend first
+    // 1. Try FastAPI backend (Neon PostgreSQL) first
     try {
       const backendRes = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
         method: "POST",
@@ -28,19 +32,27 @@ export async function POST(req: NextRequest) {
         const data = await backendRes.json();
         return NextResponse.json(data);
       }
-    } catch (err) {
+    } catch {
       // Backend not running, use fallback auth handler
     }
 
-    // 2. Find user in central repository
-    let user = findUserByIdentifier(identifier);
+    // 2. Fallback: find user in central in-memory repository
+    const user = findUserByIdentifier(identifier);
 
     if (user) {
-      // Password match check
-      if (user.password && user.password !== password) {
+      // Verify password using bcrypt comparison
+      if (!verifyPassword(password, user.password_hash)) {
         return NextResponse.json(
           { errors: [{ message: "Invalid username/email or password" }] },
           { status: 401 }
+        );
+      }
+
+      // Check if account is active
+      if (user.status !== "active") {
+        return NextResponse.json(
+          { errors: [{ message: `Account is ${user.status}. Contact your administrator.` }] },
+          { status: 403 }
         );
       }
 
@@ -60,6 +72,8 @@ export async function POST(req: NextRequest) {
             last_name: user.last_name,
             role: user.role,
             department: user.department,
+            permissions: user.permissions,
+            avatar_url: user.avatar_url || null,
           },
           session,
         },
