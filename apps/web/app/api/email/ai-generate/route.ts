@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AIGenerateEmailSchema } from "@/lib/validators/email";
 
+const GOOGLE_AI_API_KEY = process.env.GOOGLE_AI_API_KEY;
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -15,6 +17,57 @@ export async function POST(req: NextRequest) {
 
     const { company, industry, decisionMaker, painPoints, interestedService, country, previousCommunication } = validation.data;
 
+    // If GOOGLE_AI_API_KEY is configured, use Gemini 1.5 Flash to generate custom email
+    if (GOOGLE_AI_API_KEY) {
+      try {
+        const prompt = `You are a principal software solution architect at Axorks. Write a professional, highly personalized cold outreach email to a prospect with the following details:
+- Target Company: ${company}
+- Industry: ${industry}
+- Contact Person: ${decisionMaker || "Engineering Leader"}
+- Country: ${country || "Global"}
+- Service Interested In: ${interestedService}
+- Pain Points to Address: ${painPoints || "scalability, technical debt, and modern architecture"}
+- Previous Context: ${previousCommunication || "None"}
+
+Return strictly valid JSON with no markdown formatting:
+{
+  "subject": "Compelling subject line",
+  "html": "<p>Professional HTML email body formatted with <p>, <strong>, <ul>, <li> tags</p>"
+}`;
+
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GOOGLE_AI_API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { temperature: 0.7, responseMimeType: "application/json" },
+            }),
+          }
+        );
+
+        if (res.ok) {
+          const data = await res.json();
+          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) {
+            const parsed = JSON.parse(text);
+            if (parsed.subject && parsed.html) {
+              return NextResponse.json({
+                success: true,
+                subject: parsed.subject,
+                html: parsed.html,
+                provider: "Gemini 1.5 Flash",
+              });
+            }
+          }
+        }
+      } catch {
+        // Fallback to template if Gemini API call fails
+      }
+    }
+
+    // Fallback template generator when Gemini key is missing or fails
     const recipientName = decisionMaker || "Team";
     const painText = painPoints ? `addressing challenges like ${painPoints}` : "building scalable cloud solutions";
     const countryText = country ? ` in ${country}` : "";
@@ -46,9 +99,9 @@ ${previousCommunication ? `<p><em>Reflecting on our prior discussions (${previou
       success: true,
       subject: generatedSubject,
       html: generatedHtml,
+      provider: "Axorks Template Engine",
     });
   } catch (error: any) {
-    console.error("Error in /api/email/ai-generate:", error);
     return NextResponse.json(
       { success: false, error: error.message || "Failed to generate AI email" },
       { status: 500 }
