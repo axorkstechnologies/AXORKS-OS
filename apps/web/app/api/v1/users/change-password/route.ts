@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findUserById, updateUser, verifyPassword, hashPassword } from "@/lib/user-repository";
+import { findUserByIdAsync, updateUserAsync, verifyPassword, hashPassword } from "@/lib/user-repository";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -49,13 +49,13 @@ export async function POST(req: NextRequest) {
 
       if (backendRes.ok) {
         const data = await backendRes.json();
-        return NextResponse.json(data);
+        if (data?.data) return NextResponse.json(data);
       }
     } catch {
       // Fallback
     }
 
-    const user = findUserById(requestingUserId);
+    const user = await findUserByIdAsync(requestingUserId);
     if (!user) {
       return NextResponse.json(
         { errors: [{ message: "User account not found" }] },
@@ -71,8 +71,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Update password
-    updateUser(user.id, { password_hash: hashPassword(new_password) });
+    // Update password in Neon DB
+    await updateUserAsync(user.id, { password_hash: hashPassword(new_password) });
 
     return NextResponse.json({
       success: true,

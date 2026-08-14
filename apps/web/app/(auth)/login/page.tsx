@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { login } from "@/lib/auth";
 import { toast } from "sonner";
-import { Lock, User, ArrowRight, Sparkles, ShieldCheck, Crown } from "lucide-react";
+import { Lock, User, ArrowRight, Sparkles } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -29,18 +29,6 @@ export default function LoginPage() {
       toast.error(err.message || "Invalid username/email or password");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleQuickFill = (user: "founder" | "marketing") => {
-    if (user === "founder") {
-      setIdentifier("muhammad.mujahid");
-      setPassword("Princearyan1#@#@");
-      toast.info("Preset: Founder credentials filled");
-    } else {
-      setIdentifier("amna");
-      setPassword("AxorksMarketing2024!");
-      toast.info("Preset: Marketing Employee credentials filled");
     }
   };
 
@@ -129,29 +117,6 @@ export default function LoginPage() {
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
-
-          {/* Quick-Fill Presets for Testing */}
-          <div className="pt-3 border-t border-white/10 space-y-2">
-            <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider text-center">
-              Quick Test Credentials
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickFill("founder")}
-                className="py-1.5 px-2 bg-slate-900/80 hover:bg-slate-800 border border-slate-700 rounded-lg text-[11px] font-semibold text-violet-300 hover:text-white transition flex items-center justify-center gap-1"
-              >
-                <Crown className="w-3 h-3 text-amber-400" /> Founder
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill("marketing")}
-                className="py-1.5 px-2 bg-slate-900/80 hover:bg-slate-800 border border-slate-700 rounded-lg text-[11px] font-semibold text-cyan-300 hover:text-white transition flex items-center justify-center gap-1"
-              >
-                <ShieldCheck className="w-3 h-3 text-cyan-400" /> Marketing
-              </button>
-            </div>
-          </div>
 
           {/* Request Access & Footer */}
           <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findUserById, updateUser, hashPassword } from "@/lib/user-repository";
+import { findUserByIdAsync, updateUserAsync, hashPassword } from "@/lib/user-repository";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -22,13 +22,13 @@ export async function POST(
 
       if (backendRes.ok) {
         const data = await backendRes.json();
-        return NextResponse.json(data);
+        if (data?.data) return NextResponse.json(data);
       }
     } catch {
-      // Backend unreachable — handle in central user store
+      // Backend unreachable — fallback directly to Neon DB queries
     }
 
-    const user = findUserById(targetUserId);
+    const user = await findUserByIdAsync(targetUserId);
     if (!user) {
       return NextResponse.json(
         { errors: [{ message: "Employee user not found" }] },
@@ -48,7 +48,7 @@ export async function POST(
     }
 
     if (action === "suspend") {
-      updateUser(targetUserId, { status: "suspended" });
+      await updateUserAsync(targetUserId, { status: "suspended" });
       return NextResponse.json({
         data: { message: `Account for ${user.display_name} has been suspended.` },
         message: `Account for ${user.display_name} has been suspended.`,
@@ -56,7 +56,7 @@ export async function POST(
     }
 
     if (action === "reactivate") {
-      updateUser(targetUserId, { status: "active" });
+      await updateUserAsync(targetUserId, { status: "active" });
       return NextResponse.json({
         data: { message: `Account for ${user.display_name} has been reactivated.` },
         message: `Account for ${user.display_name} has been reactivated.`,
@@ -71,10 +71,11 @@ export async function POST(
         // empty body
       }
       const targetPassword = body.new_password || body.password || "AxorksPass123!";
-      updateUser(targetUserId, { password_hash: hashPassword(targetPassword) });
+      const newHash = hashPassword(targetPassword);
+      await updateUserAsync(targetUserId, { password_hash: newHash });
       return NextResponse.json({
-        data: { message: `Password for ${user.display_name} has been set to: ${targetPassword}` },
-        message: `Password for ${user.display_name} has been set to: ${targetPassword}`,
+        data: { message: `Password for ${user.display_name} has been reset to: ${targetPassword}` },
+        message: `Password for ${user.display_name} has been reset to: ${targetPassword}`,
       });
     }
 

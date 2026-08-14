@@ -310,9 +310,14 @@ export async function getAllUsersAsync(): Promise<StoredUser[]> {
 }
 
 export async function findUserByIdAsync(id: string): Promise<StoredUser | undefined> {
+  const cleanId = id.trim().toLowerCase();
+  let queryId = id;
+  if (cleanId === "user_founder_01") queryId = "00000000-0000-0000-0000-00000000000a";
+  if (cleanId === "user_cofounder_02") queryId = "00000000-0000-0000-0000-00000000000b";
+
   try {
     if (DATABASE_URL) {
-      const rows = await sql`SELECT * FROM users WHERE (id::text = ${id} OR employee_id = ${id}) AND deleted_at IS NULL LIMIT 1`;
+      const rows = await sql`SELECT * FROM users WHERE (id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId}) AND deleted_at IS NULL LIMIT 1`;
       if (rows && rows.length > 0) {
         const u = mapDbUserToStoredUser(rows[0]);
         updateUserInMemory(u);
@@ -350,7 +355,7 @@ export function findUserByIdentifier(identifier: string): StoredUser | undefined
 }
 
 export function findUserById(id: string): StoredUser | undefined {
-  return usersStore.find((u) => u.id === id);
+  return usersStore.find((u) => u.id === id || u.employee_id === id);
 }
 
 export function getAllUsers(): StoredUser[] {
@@ -477,13 +482,18 @@ export function registerNewUser(data: {
 // ─── User Updates (Neon DB Driven) ───────────────────────────────────
 
 export async function updateUserAsync(id: string, updates: Partial<StoredUser>): Promise<StoredUser | null> {
+  const cleanId = id.trim().toLowerCase();
+  let queryId = id;
+  if (cleanId === "user_founder_01") queryId = "00000000-0000-0000-0000-00000000000a";
+  if (cleanId === "user_cofounder_02") queryId = "00000000-0000-0000-0000-00000000000b";
+
   try {
     if (DATABASE_URL) {
       if (updates.password_hash !== undefined) {
-        await sql`UPDATE users SET password_hash = ${updates.password_hash}, updated_at = NOW() WHERE id::text = ${id} OR employee_id = ${id}`;
+        await sql`UPDATE users SET password_hash = ${updates.password_hash}, updated_at = NOW() WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId}`;
       }
       if (updates.avatar_url !== undefined) {
-        await sql`UPDATE users SET avatar_url = ${updates.avatar_url}, updated_at = NOW() WHERE id::text = ${id} OR employee_id = ${id}`;
+        await sql`UPDATE users SET avatar_url = ${updates.avatar_url}, updated_at = NOW() WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId}`;
       }
       if (updates.first_name !== undefined || updates.last_name !== undefined || updates.phone !== undefined) {
         await sql`UPDATE users SET 
@@ -491,14 +501,14 @@ export async function updateUserAsync(id: string, updates: Partial<StoredUser>):
           last_name = COALESCE(${updates.last_name || null}, last_name),
           phone = COALESCE(${updates.phone || null}, phone),
           updated_at = NOW()
-          WHERE id::text = ${id} OR employee_id = ${id}`;
+          WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId}`;
       }
       if (updates.status !== undefined) {
         const isActive = updates.status === "active";
-        await sql`UPDATE users SET status = ${updates.status}, is_active = ${isActive}, updated_at = NOW() WHERE id::text = ${id} OR employee_id = ${id}`;
+        await sql`UPDATE users SET status = ${updates.status}, is_active = ${isActive}, updated_at = NOW() WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId}`;
       }
 
-      const rows = await sql`SELECT * FROM users WHERE id::text = ${id} OR employee_id = ${id} LIMIT 1`;
+      const rows = await sql`SELECT * FROM users WHERE (id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId}) AND deleted_at IS NULL LIMIT 1`;
       if (rows && rows.length > 0) {
         const updated = mapDbUserToStoredUser(rows[0]);
         updateUserInMemory(updated);
