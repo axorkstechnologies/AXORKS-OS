@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findUserById, updateUser, isFounderOrAdmin } from "@/lib/user-repository";
+import { findUserById, updateUser, hashPassword } from "@/lib/user-repository";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -36,6 +36,17 @@ export async function POST(
       );
     }
 
+    // Founder is never suspendable / lockable / modifiable
+    if (
+      user.role.toLowerCase() === "founder" &&
+      ["suspend", "lock", "deactivate", "delete"].includes(action)
+    ) {
+      return NextResponse.json(
+        { errors: [{ message: "Founder account cannot be suspended or modified" }] },
+        { status: 403 }
+      );
+    }
+
     if (action === "suspend") {
       updateUser(targetUserId, { status: "suspended" });
       return NextResponse.json({
@@ -53,10 +64,11 @@ export async function POST(
     }
 
     if (action === "reset-password") {
-      updateUser(targetUserId, { password_hash: "$2a$10$e8w.n..." }); // or default pass
+      const defaultPassword = "AxorksPass123!";
+      updateUser(targetUserId, { password_hash: hashPassword(defaultPassword) });
       return NextResponse.json({
-        data: { message: `Password for ${user.display_name} has been reset to: AxorksPass123!` },
-        message: `Password for ${user.display_name} has been reset to: AxorksPass123!`,
+        data: { message: `Password for ${user.display_name} has been reset to: ${defaultPassword}` },
+        message: `Password for ${user.display_name} has been reset to: ${defaultPassword}`,
       });
     }
 

@@ -90,8 +90,8 @@ export default function KnowledgeBasePage() {
       {showCreate && (
         <div className="p-5 rounded-xl bg-slate-900 border border-slate-800 max-w-md space-y-3">
           <h2 className="text-sm font-semibold text-white">Create New Page</h2>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Page title" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs" />
-          <select value={pageType} onChange={(e) => setPageType(e.target.value)} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs">
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Page title" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 placeholder-slate-500" />
+          <select value={pageType} onChange={(e) => setPageType(e.target.value)} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100">
             <option value="page">Page</option>
             <option value="sop">SOP (Standard Operating Procedure)</option>
             <option value="template">Template</option>

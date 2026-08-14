@@ -63,9 +63,9 @@ export default function DealsListPage() {
       {showCreate && (
         <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 max-w-md space-y-3">
           <h2 className="text-sm font-semibold text-white">Create Deal</h2>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Deal title" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs" />
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Deal title" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 placeholder-slate-500" />
           <div className="grid grid-cols-2 gap-2">
-            <input value={value} onChange={(e) => setValue(e.target.value)} placeholder="Value ($)" type="number" className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs" />
+            <input value={value} onChange={(e) => setValue(e.target.value)} placeholder="Value ($)" type="number" className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 placeholder-slate-500" />
             <select value={stage} onChange={(e) => setStage(e.target.value)} className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200">
               <option value="Discovery">Discovery</option>
               <option value="Proposal">Proposal</option>

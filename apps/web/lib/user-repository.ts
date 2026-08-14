@@ -163,7 +163,6 @@ const globalUserStore = globalThis as unknown as {
 if (!globalUserStore.__axorks_users_initialized) {
   const founderHash = hashPassword(FOUNDER_PASSWORD);
   const farhanaHash = hashPassword("AxorksFarii2024!");
-  const amnaHash = hashPassword("AxorksMarketing2024!");
 
   globalUserStore.__axorks_users = [
     {
@@ -211,28 +210,6 @@ if (!globalUserStore.__axorks_users_initialized) {
       permissions: ["*"],
       status: "active",
       last_login_at: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    {
-      // Real Marketing & Outreach employee
-      id: "user_emp_03",
-      organization_id: "00000000-0000-0000-0000-000000000001",
-      email: "amna@axorks.com",
-      username: "amna",
-      password_hash: amnaHash,
-      first_name: "Amna",
-      last_name: "Khan",
-      display_name: "Amna Khan",
-      employee_id: "EMP-003",
-      phone: "+92 (300) 123-4567",
-      department: "Marketing",
-      designation: "Marketing & Outreach Specialist",
-      joining_date: new Date().toISOString().split("T")[0],
-      employment_type: "full_time",
-      role: "Marketing & Outreach",
-      permissions: ROLE_PERMISSIONS["Marketing & Outreach"],
-      status: "active",
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     },

@@ -79,11 +79,11 @@ export default function ContactsListPage() {
         <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 max-w-md space-y-3">
           <h2 className="text-sm font-semibold text-white">Create Contact</h2>
           <div className="grid grid-cols-2 gap-2">
-            <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First name" className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs" />
-            <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Last name" className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs" />
+            <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First name" className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 placeholder-slate-500" />
+            <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Last name" className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 placeholder-slate-500" />
           </div>
-          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs" />
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Job title" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs" />
+          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 placeholder-slate-500" />
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Job title" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 placeholder-slate-500" />
           <div className="flex justify-end gap-2">
             <button onClick={() => setShowCreate(false)} className="px-4 py-1.5 rounded bg-slate-800 text-slate-400 text-xs">Cancel</button>
             <button onClick={() => createContact.mutate()} disabled={!firstName.trim() && !lastName.trim() && !email.trim()} className="px-4 py-1.5 rounded bg-violet-600 text-white text-xs disabled:opacity-50">Create</button>

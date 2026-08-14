@@ -20,7 +20,7 @@ import {
 export default function EmployeeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
 
-  const { data: user, isLoading } = useQuery({
+  const { data: user, isLoading, isError } = useQuery({
     queryKey: ["iam-user", id],
     queryFn: () => apiClient(`/api/v1/iam/users/${id}`),
   });
@@ -29,29 +29,29 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
     return <div className="text-center py-12 text-xs text-slate-400">Loading Employee Profile...</div>;
   }
 
-  const u = user || {
-    id,
-    first_name: "Sarah",
-    last_name: "Connor",
-    display_name: "Sarah Connor",
-    email: "sarah.c@axorks.com",
-    employee_id: "EMP-002",
-    phone: "+1 (555) 222-3333",
-    cnic: "42101-7654321-2",
-    department: "AI Department",
-    designation: "Senior AI Engineer",
-    joining_date: "2024-03-15",
-    employment_type: "full_time",
-    role: "AI Engineer",
-    status: "active",
-    address: "Austin, TX",
-    emergency_contact: "+1 (555) 888-1111",
-    notes: "Lead architect for Gemini & OpenAI LLM workflows.",
-    last_login_at: new Date().toISOString(),
-    last_login_ip: "10.0.0.45",
-    last_login_browser: "Safari",
-    last_login_device: "iPhone 15 Pro",
-  };
+  if (!user) {
+    return (
+      <div className="space-y-4">
+        <Link href="/iam/users" className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-100">
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to Employee Directory
+        </Link>
+        <div className="glass p-6 rounded-2xl border border-slate-200 dark:border-slate-800 text-center space-y-2">
+          <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Employee profile not found</p>
+          <p className="text-xs text-slate-500">
+            {isError ? "This profile could not be loaded." : "No employee exists with this ID."}
+          </p>
+          <Link
+            href="/iam/users"
+            className="inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold transition mt-2"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" /> Return to Directory
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const u = user;
 
   return (
     <div className="space-y-6">

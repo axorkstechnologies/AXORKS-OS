@@ -79,12 +79,12 @@ export default function PromptLibraryPage() {
       {showCreate && (
         <div className="p-5 rounded-xl bg-slate-900 border border-slate-800 max-w-lg space-y-3">
           <h2 className="text-sm font-semibold text-white">Add to Prompt Library</h2>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Prompt title" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs" />
-          <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs">
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Prompt title" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 placeholder-slate-500" />
+          <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100">
             {CATEGORIES.map((c) => <option key={c} value={c} className="capitalize">{c}</option>)}
           </select>
-          <textarea value={promptText} onChange={(e) => setPromptText(e.target.value)} placeholder="Prompt text..." rows={4} className="w-full p-3 bg-slate-950 border border-slate-800 rounded-lg text-xs resize-none font-mono" />
-          <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description (optional)" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs" />
+          <textarea value={promptText} onChange={(e) => setPromptText(e.target.value)} placeholder="Prompt text..." rows={4} className="w-full p-3 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 placeholder-slate-500 resize-none font-mono" />
+          <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description (optional)" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 placeholder-slate-500" />
           <div className="flex justify-end gap-2">
             <button onClick={() => setShowCreate(false)} className="px-4 py-1.5 rounded bg-slate-800 text-slate-400 text-xs">Cancel</button>
             <button onClick={() => createPrompt.mutate()} disabled={!title.trim() || !promptText.trim()} className="px-4 py-1.5 rounded bg-violet-600 text-white text-xs disabled:opacity-50">Save Prompt</button>

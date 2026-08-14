@@ -119,7 +119,7 @@ export default function IAMDepartmentsPage() {
                   value={deptName}
                   onChange={(e) => setDeptName(e.target.value)}
                   placeholder="e.g. AI Engineering"
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-none focus:border-violet-500"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500"
                 />
               </div>
 
@@ -130,7 +130,7 @@ export default function IAMDepartmentsPage() {
                   value={deptCode}
                   onChange={(e) => setDeptCode(e.target.value)}
                   placeholder="e.g. AIE"
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-none focus:border-violet-500 uppercase"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500 uppercase"
                 />
               </div>
 
@@ -141,7 +141,7 @@ export default function IAMDepartmentsPage() {
                   value={deptDesc}
                   onChange={(e) => setDeptDesc(e.target.value)}
                   placeholder="Responsibilities and domain..."
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-none focus:border-violet-500 font-sans"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500 font-sans"
                 />
               </div>
 

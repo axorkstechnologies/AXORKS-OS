@@ -110,7 +110,7 @@ export default function ProjectBoardPage({ params }: { params: Promise<{ id: str
             value={newTaskTitle}
             onChange={(e) => setNewTaskTitle(e.target.value)}
             placeholder="Task title"
-            className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs"
+            className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 placeholder-slate-500"
           />
           <select
             value={newTaskStatus}
@@ -137,7 +137,7 @@ export default function ProjectBoardPage({ params }: { params: Promise<{ id: str
             value={timeHours}
             onChange={(e) => setTimeHours(e.target.value)}
             placeholder="Hours (e.g. 2.5)"
-            className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs"
+            className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 placeholder-slate-500"
           />
           <div className="flex justify-end gap-2">
             <button onClick={() => setTimeTaskId(null)} className="px-3 py-1 rounded bg-slate-800 text-slate-400 text-xs">Cancel</button>

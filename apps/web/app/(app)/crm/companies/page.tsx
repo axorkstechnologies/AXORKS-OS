@@ -75,9 +75,9 @@ export default function CompaniesListPage() {
       {showCreate && (
         <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 max-w-md space-y-3">
           <h2 className="text-sm font-semibold text-white">Create Company</h2>
-          <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Company name" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs" />
-          <input value={newWebsite} onChange={(e) => setNewWebsite(e.target.value)} placeholder="Website (optional)" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs" />
-          <input value={newIndustry} onChange={(e) => setNewIndustry(e.target.value)} placeholder="Industry (optional)" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs" />
+          <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Company name" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 placeholder-slate-500" />
+          <input value={newWebsite} onChange={(e) => setNewWebsite(e.target.value)} placeholder="Website (optional)" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 placeholder-slate-500" />
+          <input value={newIndustry} onChange={(e) => setNewIndustry(e.target.value)} placeholder="Industry (optional)" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 placeholder-slate-500" />
           <div className="flex justify-end gap-2">
             <button onClick={() => setShowCreate(false)} className="px-4 py-1.5 rounded bg-slate-800 text-slate-400 text-xs">Cancel</button>
             <button onClick={() => createCompany.mutate()} disabled={!newName.trim()} className="px-4 py-1.5 rounded bg-violet-600 text-white text-xs disabled:opacity-50">Create</button>

@@ -255,7 +255,7 @@ export default function FounderRecordingsPage() {
                 value={recordingTitle}
                 onChange={(e) => setRecordingTitle(e.target.value)}
                 placeholder="Enter title for this recording..."
-                className="flex-1 px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs focus:outline-none focus:border-violet-500"
+                className="flex-1 px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500"
               />
               <button
                 onClick={handleSaveRecording}

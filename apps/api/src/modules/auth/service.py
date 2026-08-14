@@ -71,6 +71,10 @@ class AuthService:
         if not verify_password(password, user.password_hash):
             raise UnauthorizedError("Invalid email or password")
 
+        # Block suspended / inactive accounts from authenticating
+        if (getattr(user, "status", "active") or "active") != "active":
+            raise UnauthorizedError("Account is suspended or inactive")
+
         # Check if 2FA is required
         if user.two_factor_enabled:
             return {

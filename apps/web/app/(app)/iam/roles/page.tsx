@@ -190,7 +190,7 @@ export default function IAMRolesPage() {
                   value={roleName}
                   onChange={(e) => setRoleName(e.target.value)}
                   placeholder="e.g. Lead QA Architect"
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-none focus:border-violet-500"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500"
                 />
               </div>
 
@@ -201,7 +201,7 @@ export default function IAMRolesPage() {
                   value={roleDesc}
                   onChange={(e) => setRoleDesc(e.target.value)}
                   placeholder="Responsibilities and access scope..."
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-none focus:border-violet-500 font-sans"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500 font-sans"
                 />
               </div>
 

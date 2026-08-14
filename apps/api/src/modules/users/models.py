@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import TIMESTAMP, UUID, Boolean, String, Text, func
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.shared.base_model import Base
@@ -28,6 +28,7 @@ class User(Base):
     )
     email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     password_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+    username: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
     first_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     last_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     avatar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -37,6 +38,13 @@ class User(Base):
     preferences: Mapped[dict] = mapped_column(JSONB, default=dict)
     two_factor_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     two_factor_secret: Mapped[str | None] = mapped_column(Text, nullable=True)
+    role: Mapped[str] = mapped_column(String(100), default="member")
+    status: Mapped[str] = mapped_column(String(50), default="active")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    department: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    designation: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    employee_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    permissions: Mapped[list[str]] = mapped_column(ARRAY(Text), default=list)
     last_login_at: Mapped[datetime | None] = mapped_column(
         TIMESTAMP(timezone=True), nullable=True
     )

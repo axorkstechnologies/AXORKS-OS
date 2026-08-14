@@ -56,7 +56,7 @@ class IAMService:
             founder = User(
                 organization_id=target_org_id,
                 email=founder_email,
-                hashed_password=hashed,
+                password_hash=hashed,
                 first_name=first_name,
                 last_name=last_name,
                 role="founder",
@@ -122,7 +122,7 @@ class IAMService:
         user = User(
             organization_id=org_id,
             email=data.email.lower().strip(),
-            hashed_password=hashed,
+            password_hash=hashed,
             employee_id=emp_id,
             is_active=(data.status == "active"),
             **user_dict,
@@ -145,8 +145,8 @@ class IAMService:
     ) -> User:
         user = await self.get_user_by_id(user_id, org_id)
 
-        # Protect Founder
-        if user.role == "founder" and actor_user.role != "founder":
+        # Protect Founder (case-insensitive so "Founder" role is never modifiable)
+        if user.role.strip().lower() == "founder" and actor_user.role.strip().lower() != "founder":
             raise ForbiddenError("Cannot modify Founder account")
 
         update_data = data.model_dump(exclude_unset=True)
@@ -176,8 +176,8 @@ class IAMService:
     ) -> User:
         user = await self.get_user_by_id(user_id, org_id)
 
-        # Protect Founder
-        if user.role == "founder" and action_type in ["suspend", "lock", "deactivate", "delete"]:
+        # Protect Founder (case-insensitive so "Founder" role is never suspended)
+        if user.role.strip().lower() == "founder" and action_type in ["suspend", "lock", "deactivate", "delete"]:
             raise ForbiddenError("Founder account cannot be suspended, locked, or modified")
 
         old_status = user.status
@@ -199,7 +199,7 @@ class IAMService:
             user.failed_attempts = 0
         elif action_type == "reset-password":
             new_pass = f"Pass{int(datetime.now().timestamp())}!"
-            user.hashed_password = get_password_hash(new_pass)
+            user.password_hash = get_password_hash(new_pass)
 
         await self.db.flush()
 

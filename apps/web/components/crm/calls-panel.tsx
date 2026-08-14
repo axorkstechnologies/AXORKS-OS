@@ -56,12 +56,12 @@ export function CallsPanel({ entityType, entityId }: CallsPanelProps) {
       ) : (
         <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800 space-y-2 text-xs">
           <div className="grid grid-cols-3 gap-2">
-            <select value={direction} onChange={(e) => setDirection(e.target.value)} className="px-2 py-1.5 bg-slate-900 border border-slate-800 rounded text-xs">
+            <select value={direction} onChange={(e) => setDirection(e.target.value)} className="px-2 py-1.5 bg-slate-900 border border-slate-800 rounded text-xs text-slate-100">
               <option value="outbound">Outbound</option>
               <option value="inbound">Inbound</option>
             </select>
-            <input type="number" placeholder="Duration (sec)" value={duration} onChange={(e) => setDuration(e.target.value)} className="px-2 py-1.5 bg-slate-900 border border-slate-800 rounded text-xs" />
-            <input type="text" placeholder="Outcome" value={outcome} onChange={(e) => setOutcome(e.target.value)} className="px-2 py-1.5 bg-slate-900 border border-slate-800 rounded text-xs" />
+            <input type="number" placeholder="Duration (sec)" value={duration} onChange={(e) => setDuration(e.target.value)} className="px-2 py-1.5 bg-slate-900 border border-slate-800 rounded text-xs text-slate-100 placeholder-slate-500" />
+            <input type="text" placeholder="Outcome" value={outcome} onChange={(e) => setOutcome(e.target.value)} className="px-2 py-1.5 bg-slate-900 border border-slate-800 rounded text-xs text-slate-100 placeholder-slate-500" />
           </div>
           <div className="flex justify-end gap-2">
             <button onClick={() => setShowForm(false)} className="px-3 py-1 rounded bg-slate-800 text-slate-400 text-xs">Cancel</button>
