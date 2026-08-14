@@ -191,15 +191,15 @@ if (!globalUserStore.__axorks_users_initialized) {
       updated_at: new Date().toISOString(),
     },
     {
-      // Real Co-Founder Account (Farwa Bakht)
+      // Real Co-Founder Account
       id: "user_cofounder_02",
       organization_id: "00000000-0000-0000-0000-000000000001",
       email: "heyfarii@gmail.com",
-      username: "farwa",
+      username: "farhana",
       password_hash: farhanaHash,
-      first_name: "Farwa",
+      first_name: "Farhana",
       last_name: "Bakht",
-      display_name: "Farwa Bakht (Co-Founder)",
+      display_name: "Farhana Bakht (Co-Founder)",
       employee_id: "EMP-002",
       phone: "+1 (555) 888-9999",
       department: "Management",
@@ -226,9 +226,6 @@ export const sessionsStore = globalUserStore.__axorks_sessions!;
 
 export function findUserByIdentifier(identifier: string): StoredUser | undefined {
   const clean = identifier.trim().toLowerCase();
-  if (clean === "farhana" || clean === "farwa" || clean === "farwa@axorks.com") {
-    return usersStore.find((u) => u.id === "user_cofounder_02") || usersStore.find((u) => u.first_name.toLowerCase() === "farwa");
-  }
   return usersStore.find(
     (u) => u.username.toLowerCase() === clean || u.email.toLowerCase() === clean
   );
