@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
-import { ExternalLink, Zap, Sparkles } from "lucide-react";
+import { ExternalLink, Zap, Sparkles, MapPin } from "lucide-react";
 
 interface LeadSourcesPanelProps {
-  onOpenEnrichment: (provider: "hunter" | "tomba" | "prospeo" | "snov" | "unified") => void;
+  onOpenEnrichment: (provider: "hunter" | "tomba" | "prospeo" | "snov" | "unified", mode?: "domain" | "location") => void;
 }
 
 export function LeadSourcesPanel({ onOpenEnrichment }: LeadSourcesPanelProps) {
@@ -27,16 +27,24 @@ export function LeadSourcesPanel({ onOpenEnrichment }: LeadSourcesPanelProps) {
 
   return (
     <div className="glass rounded-xl p-5 space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h2 className="text-base font-bold tracking-tight text-white flex items-center gap-2">
           <Zap className="w-4 h-4 text-violet-400" /> LEAD SOURCES & ENRICHMENT TOOLS
         </h2>
-        <button
-          onClick={() => onOpenEnrichment("unified")}
-          className="px-3 py-1 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs flex items-center gap-1 shadow-md shadow-violet-600/30 transition"
-        >
-          <Sparkles className="w-3.5 h-3.5" /> Launch Multi-Tool Finder
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onOpenEnrichment("unified", "location")}
+            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 shadow-md shadow-emerald-600/20 transition"
+          >
+            <MapPin className="w-3.5 h-3.5" /> Search by Location + Industry
+          </button>
+          <button
+            onClick={() => onOpenEnrichment("unified", "domain")}
+            className="px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs flex items-center gap-1 shadow-md shadow-violet-600/30 transition"
+          >
+            <Sparkles className="w-3.5 h-3.5" /> Launch Multi-Tool Finder
+          </button>
+        </div>
       </div>
 
       {/* API Tools Bar */}
@@ -51,7 +59,7 @@ export function LeadSourcesPanel({ onOpenEnrichment }: LeadSourcesPanelProps) {
               <span>{tool.name}</span>
             </div>
             <button
-              onClick={() => onOpenEnrichment(tool.id as any)}
+              onClick={() => onOpenEnrichment(tool.id as any, "domain")}
               className="flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded bg-violet-600/20 text-violet-300 hover:bg-violet-600 hover:text-white transition"
             >
               <span>API</span>

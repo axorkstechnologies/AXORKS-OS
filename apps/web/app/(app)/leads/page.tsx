@@ -16,6 +16,7 @@ export default function LeadsPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [enrichmentOpen, setEnrichmentOpen] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<"hunter" | "tomba" | "prospeo" | "snov" | "unified">("unified");
+  const [selectedMode, setSelectedMode] = useState<"domain" | "location">("location");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
@@ -30,8 +31,12 @@ export default function LeadsPage() {
       }),
   });
 
-  const handleOpenEnrichment = (provider: "hunter" | "tomba" | "prospeo" | "snov" | "unified") => {
+  const handleOpenEnrichment = (
+    provider: "hunter" | "tomba" | "prospeo" | "snov" | "unified",
+    mode: "domain" | "location" = "location"
+  ) => {
     setSelectedProvider(provider);
+    setSelectedMode(mode);
     setEnrichmentOpen(true);
   };
 
@@ -140,6 +145,7 @@ export default function LeadsPage() {
       <EnrichmentModal
         open={enrichmentOpen}
         initialProvider={selectedProvider}
+        initialMode={selectedMode}
         onClose={() => setEnrichmentOpen(false)}
         onLeadSaved={() => refetch()}
       />
