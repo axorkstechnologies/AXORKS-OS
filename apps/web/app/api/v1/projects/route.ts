@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getLeadsAsync, createLeadAsync } from "@/lib/business-repository";
+import { getProjectsAsync, createProjectAsync } from "@/lib/business-repository";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const authHeader = req.headers.get("authorization");
-    const backendRes = await fetch(`${API_BASE_URL}/api/v1/leads?${searchParams.toString()}`, {
+    const backendRes = await fetch(`${API_BASE_URL}/api/v1/projects?${searchParams.toString()}`, {
       headers: { ...(authHeader ? { Authorization: authHeader } : {}) },
     });
 
@@ -22,11 +22,11 @@ export async function GET(req: NextRequest) {
     // Fallback directly to Neon DB
   }
 
-  const leads = await getLeadsAsync();
+  const projects = await getProjectsAsync();
   return NextResponse.json({
-    data: leads,
-    items: leads,
-    total: leads.length,
+    data: projects,
+    items: projects,
+    total: projects.length,
     page: 1,
     per_page: 100,
   });
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     try {
       const authHeader = req.headers.get("authorization");
-      const backendRes = await fetch(`${API_BASE_URL}/api/v1/leads`, {
+      const backendRes = await fetch(`${API_BASE_URL}/api/v1/projects`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -55,12 +55,23 @@ export async function POST(req: NextRequest) {
       // Fallback directly to Neon DB
     }
 
-    const newLead = await createLeadAsync(body);
+    const newProject = await createProjectAsync({
+      name: body.name || body.title || "New Project",
+      client_name: body.client_name || body.client || "Client",
+      budget: Number(body.budget || body.value || 0),
+      spent: Number(body.spent || 0),
+      deadline: body.deadline || body.due_date || "2026-12-31",
+      status: body.status || "in_progress",
+      health: body.health || "good",
+      description: body.description || "",
+      tech_stack: body.tech_stack || ["TypeScript", "Next.js"],
+      team_members: body.team_members || ["Muhammad Mujahid"],
+    });
 
-    return NextResponse.json({ data: newLead });
+    return NextResponse.json({ data: newProject });
   } catch (error: any) {
     return NextResponse.json(
-      { errors: [{ message: error.message || "Failed to create lead" }] },
+      { errors: [{ message: error.message || "Failed to create project" }] },
       { status: 500 }
     );
   }

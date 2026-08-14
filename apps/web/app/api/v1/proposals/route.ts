@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getLeadsAsync, createLeadAsync } from "@/lib/business-repository";
+import { getProposalsAsync, createProposalAsync } from "@/lib/business-repository";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const authHeader = req.headers.get("authorization");
-    const backendRes = await fetch(`${API_BASE_URL}/api/v1/leads?${searchParams.toString()}`, {
+    const backendRes = await fetch(`${API_BASE_URL}/api/v1/proposals?${searchParams.toString()}`, {
       headers: { ...(authHeader ? { Authorization: authHeader } : {}) },
     });
 
@@ -22,11 +22,11 @@ export async function GET(req: NextRequest) {
     // Fallback directly to Neon DB
   }
 
-  const leads = await getLeadsAsync();
+  const proposals = await getProposalsAsync();
   return NextResponse.json({
-    data: leads,
-    items: leads,
-    total: leads.length,
+    data: proposals,
+    items: proposals,
+    total: proposals.length,
     page: 1,
     per_page: 100,
   });
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     try {
       const authHeader = req.headers.get("authorization");
-      const backendRes = await fetch(`${API_BASE_URL}/api/v1/leads`, {
+      const backendRes = await fetch(`${API_BASE_URL}/api/v1/proposals`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -55,12 +55,12 @@ export async function POST(req: NextRequest) {
       // Fallback directly to Neon DB
     }
 
-    const newLead = await createLeadAsync(body);
+    const newProposal = await createProposalAsync(body);
 
-    return NextResponse.json({ data: newLead });
+    return NextResponse.json({ data: newProposal });
   } catch (error: any) {
     return NextResponse.json(
-      { errors: [{ message: error.message || "Failed to create lead" }] },
+      { errors: [{ message: error.message || "Failed to create proposal" }] },
       { status: 500 }
     );
   }
