@@ -12,19 +12,20 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
     id: "cold-outreach",
     name: "Cold Outreach",
     category: "sales",
-    subject: "Scaling {{company}}'s software infrastructure with Axorks",
+    subject: "Scaling {{company}}'s engineering roadmap with Axorks",
     description: "Personalized cold outreach template for target decision makers.",
     html: `<p>Hi {{decision_maker}},</p>
-<p>I hope this email finds you well. I was following {{company}}'s growth in the {{industry}} space and was really impressed by your recent milestones.</p>
-<p>At <strong>Axorks</strong>, we partner with growing tech organizations to design, build, and scale high-performance web and mobile applications.</p>
-<p>We've helped software consultancies and tech brands solve critical engineering bottlenecks, including:</p>
-<ul>
-  <li>Custom Cloud & SaaS Product Development</li>
-  <li>AI Infrastructure & Workflow Automation</li>
-  <li>Legacy Code Modernization & API Integration</li>
+<p>I hope this email finds you well. I've been following {{company}}'s momentum in the {{industry}} sector and was really impressed by your team's recent developments.</p>
+<p>At <strong>Axorks Technologies</strong>, we partner with growth-focused tech organizations to build, optimize, and scale high-performance web, mobile, and cloud applications.</p>
+<p>Our core capabilities include:</p>
+<ul style="line-height: 1.6;">
+  <li><strong>Custom Cloud & SaaS Engineering:</strong> Scalable microservices & modern frontend architectures</li>
+  <li><strong>AI Integration & Automation:</strong> Enterprise AI workflows & agentic integration</li>
+  <li><strong>Infrastructure Optimization:</strong> High-availability DevOps, security, and performance tuning</li>
 </ul>
-<p>Would you be open to a quick 15-minute intro call next Tuesday to explore if there's alignment?</p>
-<p>Best regards,<br/><strong>The Axorks Team</strong><br/>hello@axorks.com</p>`
+<p>Would you be open to a quick 15-minute discovery call next week to explore potential technical alignment?</p>
+<p style="margin-top:18px;"><a href="https://axorks.com" target="_blank" style="background:#7c3aed;color:#ffffff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">Schedule Intro Call</a></p>
+<p style="margin-top:20px;">Best regards,<br/><strong>The Axorks Engineering Team</strong><br/><a href="mailto:hello@axorks.com">hello@axorks.com</a></p>`
   },
   {
     id: "proposal",
@@ -33,16 +34,17 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
     subject: "Project Proposal & Scope of Work for {{company}}",
     description: "Formal proposal presentation email with attached proposal document.",
     html: `<p>Dear {{decision_maker}},</p>
-<p>Thank you for taking the time to discuss {{company}}'s upcoming software initiative with us.</p>
-<p>We have synthesized your technical requirements into a comprehensive <strong>Project Proposal & Scope of Work</strong>. The detailed document is attached to this email for your review.</p>
-<p><strong>Executive Summary Highlights:</strong></p>
-<ul>
-  <li>Architecture & Technology Stack Strategy</li>
-  <li>Phased Sprint Breakdown & Milestones</li>
-  <li>Deliverables, SLA, and Investment Breakdown</li>
+<p>Thank you for taking the time to discuss {{company}}'s upcoming software initiative with our architecture team.</p>
+<p>We have synthesized your requirements into a detailed <strong>Project Proposal & Technical Scope of Work</strong> document, attached to this email for your review.</p>
+<p><strong>Proposal Executive Summary:</strong></p>
+<ul style="line-height: 1.6;">
+  <li><strong>Target Architecture:</strong> Resilient Cloud-native stack designed for high throughput</li>
+  <li><strong>Milestone Roadmap:</strong> Phased sprint timeline with weekly deliverable reviews</li>
+  <li><strong>SLA & Deliverables:</strong> Turnkey delivery including QA, docs, and deployment setup</li>
 </ul>
-<p>Please let us know if you would like to schedule a walk-through call to discuss the proposal details.</p>
-<p>Warm regards,<br/><strong>Axorks Solutions Team</strong></p>`
+<p>Please let us know if you would like to schedule a walk-through session with our lead architect to discuss the proposal details.</p>
+<p style="margin-top:18px;"><a href="https://axorks.com" target="_blank" style="background:#7c3aed;color:#ffffff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">Review & Approve Proposal</a></p>
+<p style="margin-top:20px;">Warm regards,<br/><strong>Axorks Solutions Team</strong><br/>hello@axorks.com</p>`
   },
   {
     id: "quotation",
@@ -51,10 +53,11 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
     subject: "Official Quotation #QT-{{quote_number}} for {{company}}",
     description: "Itemized cost estimate and pricing quotation delivery.",
     html: `<p>Hi {{decision_maker}},</p>
-<p>Following our recent discovery session, please find attached the official cost quotation <strong>#QT-{{quote_number}}</strong> for your project.</p>
-<p>This quotation is valid for 30 days from today and includes all development, quality assurance, and initial cloud deployment setup.</p>
-<p>If you have any questions regarding line items or payment terms, feel free to reply directly to this email.</p>
-<p>Best regards,<br/><strong>Axorks Finance & Accounts</strong></p>`
+<p>Following our discovery session, please find attached official quotation <strong>#QT-{{quote_number}}</strong> for your project.</p>
+<p>This quotation is valid for 30 days and encompasses complete end-to-end development, automated testing, security audit, and deployment.</p>
+<p>If you have any questions regarding specific line items or milestone billing, feel free to reply directly to this email.</p>
+<p style="margin-top:18px;"><a href="https://axorks.com" target="_blank" style="background:#059669;color:#ffffff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">View Itemized Quotation</a></p>
+<p style="margin-top:20px;">Best regards,<br/><strong>Axorks Finance & Accounts</strong><br/>hello@axorks.com</p>`
   },
   {
     id: "meeting-request",
@@ -63,15 +66,16 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
     subject: "Meeting Invitation: Axorks & {{company}} Technical Alignment",
     description: "Request for calendar scheduling and discovery call.",
     html: `<p>Hi {{decision_maker}},</p>
-<p>We would love to get a 30-minute discovery call on the calendar to discuss {{company}}'s software requirements in detail.</p>
-<p>Please let us know which of the following times works best for you (or share your preferred calendar link):</p>
-<ul>
+<p>We would love to schedule a 30-minute alignment call to review {{company}}'s software requirements in detail.</p>
+<p>Please let us know which of the following times works best for your schedule:</p>
+<ul style="line-height: 1.6;">
   <li>Option 1: Tuesday at 10:00 AM EST</li>
   <li>Option 2: Wednesday at 2:00 PM EST</li>
   <li>Option 3: Thursday at 11:30 AM EST</li>
 </ul>
-<p>Looking forward to speaking with you!</p>
-<p>Best regards,<br/><strong>Axorks Team</strong></p>`
+<p>Alternatively, feel free to select a slot directly on our calendar link below:</p>
+<p style="margin-top:18px;"><a href="https://axorks.com" target="_blank" style="background:#7c3aed;color:#ffffff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">Book Calendar Time Slot</a></p>
+<p style="margin-top:20px;">Looking forward to speaking with you!<br/><strong>Axorks Team</strong></p>`
   },
   {
     id: "follow-up",
@@ -80,10 +84,11 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
     subject: "Following up on our conversation — {{company}}",
     description: "Polite check-in follow up for pending leads.",
     html: `<p>Hi {{decision_maker}},</p>
-<p>I wanted to quickly follow up on my previous message regarding {{company}}'s technical roadmap.</p>
-<p>I understand things get busy. If you're still looking into solving {{pain_point}}, I'd be glad to share how our engineering team recently addressed a similar challenge for another client.</p>
-<p>Shall we connect for 10 minutes later this week?</p>
-<p>Best regards,<br/><strong>Axorks Sales Team</strong></p>`
+<p>I wanted to quickly follow up on my previous note regarding {{company}}'s engineering roadmap.</p>
+<p>I know how busy things get. If you are still exploring solutions for {{pain_point}}, I would be glad to share how our team resolved a similar challenge for another client in your domain.</p>
+<p>Would 10 minutes later this week work for a brief update?</p>
+<p style="margin-top:18px;"><a href="https://axorks.com" target="_blank" style="background:#7c3aed;color:#ffffff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">Connect with Engineering Team</a></p>
+<p style="margin-top:20px;">Best regards,<br/><strong>Axorks Sales & Engineering</strong></p>`
   },
   {
     id: "project-kickoff",
@@ -93,15 +98,15 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
     description: "Onboarding email sent at project inception.",
     html: `<p>Dear {{company}} Team,</p>
 <p>We are thrilled to officially launch the <strong>{{project_name}}</strong> project!</p>
-<p>Our engineering leads have set up your dedicated workspace in <strong>Axorks OS</strong>. You can log into your Client Portal to track real-time progress, view sprint backlogs, and share assets.</p>
-<p><strong>Next Steps:</strong></p>
-<ul>
-  <li>Kickoff Meeting: {{kickoff_date}}</li>
-  <li>Client Portal Credentials Sent</li>
-  <li>First Sprint Planning Commences</li>
+<p>Our engineering leads have set up your dedicated workspace in <strong>Axorks OS</strong>. You can log into your Client Portal to track real-time sprint progress, view design mockups, and inspect builds.</p>
+<p><strong>Kickoff Overview:</strong></p>
+<ul style="line-height: 1.6;">
+  <li><strong>Kickoff Meeting Date:</strong> {{kickoff_date}}</li>
+  <li><strong>Client Portal Access:</strong> Credentials activated</li>
+  <li><strong>Sprint 1 Planning:</strong> Commences immediately</li>
 </ul>
-<p>Welcome aboard!</p>
-<p>Best regards,<br/><strong>Axorks Project Management Office</strong></p>`
+<p style="margin-top:18px;"><a href="https://axorks.com" target="_blank" style="background:#7c3aed;color:#ffffff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">Access Client Portal Workspace</a></p>
+<p style="margin-top:20px;">Welcome aboard!<br/><strong>Axorks Project Management Office</strong></p>`
   },
   {
     id: "project-delivery",
@@ -110,10 +115,10 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
     subject: "🎉 Milestone Handover: {{project_name}} is Ready for Review",
     description: "Delivery notice for project milestone or final release.",
     html: `<p>Hi {{decision_maker}},</p>
-<p>We are excited to inform you that milestone <strong>{{milestone_title}}</strong> for <strong>{{project_name}}</strong> has been successfully built, tested, and deployed to staging.</p>
-<p>Please review the release notes attached and test the build at your earliest convenience.</p>
-<p>Thank you for your ongoing partnership!</p>
-<p>Best regards,<br/><strong>Axorks Engineering Team</strong></p>`
+<p>We are excited to inform you that milestone <strong>{{milestone_title}}</strong> for <strong>{{project_name}}</strong> has been successfully built, verified, and deployed to your staging environment.</p>
+<p>Please review the attached release notes and test the build at your convenience.</p>
+<p style="margin-top:18px;"><a href="https://axorks.com" target="_blank" style="background:#2563eb;color:#ffffff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">View Staging Build & Notes</a></p>
+<p style="margin-top:20px;">Thank you for your ongoing partnership!<br/><strong>Axorks Engineering Team</strong></p>`
   },
   {
     id: "invoice",
@@ -124,14 +129,14 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
     html: `<p>Hi {{decision_maker}},</p>
 <p>Please find attached Invoice <strong>#INV-{{invoice_number}}</strong> for services rendered on <strong>{{project_name}}</strong>.</p>
 <p><strong>Invoice Summary:</strong></p>
-<ul>
-  <li>Invoice Date: {{invoice_date}}</li>
-  <li>Amount Due: {{amount_due}}</li>
-  <li>Due Date: {{due_date}}</li>
+<ul style="line-height: 1.6;">
+  <li><strong>Invoice Date:</strong> {{invoice_date}}</li>
+  <li><strong>Amount Due:</strong> {{amount_due}}</li>
+  <li><strong>Due Date:</strong> {{due_date}}</li>
 </ul>
-<p>You can pay securely online via credit card or bank transfer through your Axorks Client Portal.</p>
-<p>Thank you for your prompt payment!</p>
-<p>Best regards,<br/><strong>Axorks Billing Department</strong></p>`
+<p>You can complete payment securely online via bank transfer or card through your Client Portal.</p>
+<p style="margin-top:18px;"><a href="https://axorks.com" target="_blank" style="background:#059669;color:#ffffff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">Pay Invoice Online</a></p>
+<p style="margin-top:20px;">Thank you for your business!<br/><strong>Axorks Billing & Accounts Department</strong></p>`
   },
   {
     id: "maintenance-reminder",
@@ -141,9 +146,10 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
     description: "Notification for planned maintenance window.",
     html: `<p>Dear {{company}} Team,</p>
 <p>Please be advised that we have scheduled routine system maintenance for <strong>{{system_name}}</strong> on <strong>{{maintenance_date}}</strong> between {{start_time}} and {{end_time}}.</p>
-<p>During this window, brief service interruptions may occur as we deploy critical security patches and performance optimizations.</p>
-<p>If you have any questions or urgent requests, please contact our support desk.</p>
-<p>Best regards,<br/><strong>Axorks DevOps & Security Operations</strong></p>`
+<p>During this window, brief service interruptions may occur while we deploy security updates and performance optimizations.</p>
+<p>If you have any urgent requests, please contact our support desk directly.</p>
+<p style="margin-top:18px;"><a href="https://axorks.com" target="_blank" style="background:#475569;color:#ffffff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">Check Live System Status</a></p>
+<p style="margin-top:20px;">Best regards,<br/><strong>Axorks DevOps & Security Operations</strong></p>`
   },
   {
     id: "thank-you",
@@ -152,9 +158,10 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
     subject: "Thank you for partnering with Axorks",
     description: "Appreciation message for clients after project completion.",
     html: `<p>Dear {{decision_maker}},</p>
-<p>On behalf of the entire team at Axorks, I wanted to express our sincere gratitude for choosing us as your technology partner for {{project_name}}.</p>
-<p>It has been a privilege working with your team, and we look forward to supporting your future growth and tech roadmap.</p>
-<p>Warmest regards,<br/><strong>Leadership Team, Axorks</strong></p>`
+<p>On behalf of the entire team at Axorks, I wanted to express our sincere gratitude for choosing us as your technology partner for <strong>{{project_name}}</strong>.</p>
+<p>It has been a privilege collaborating with your team, and we look forward to supporting your future growth and innovation roadmap.</p>
+<p style="margin-top:18px;"><a href="https://axorks.com" target="_blank" style="background:#7c3aed;color:#ffffff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">Explore Axorks Solutions</a></p>
+<p style="margin-top:20px;">Warmest regards,<br/><strong>Leadership Team, Axorks Technologies</strong></p>`
   },
   {
     id: "general-inquiry",
@@ -163,9 +170,10 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
     subject: "Response regarding your inquiry to Axorks",
     description: "Standard response template for general customer inquiries.",
     html: `<p>Hi {{contact_name}},</p>
-<p>Thank you for reaching out to Axorks!</p>
-<p>We received your inquiry regarding <em>"{{inquiry_topic}}"</em> and an account specialist has been assigned to your request.</p>
+<p>Thank you for contacting Axorks Technologies!</p>
+<p>We received your inquiry regarding <em>"{{inquiry_topic}}"</em> and a technical account specialist has been assigned to your request.</p>
 <p>We will follow up with detailed information within 24 business hours.</p>
-<p>Best regards,<br/><strong>Axorks Client Support</strong></p>`
+<p style="margin-top:18px;"><a href="https://axorks.com" target="_blank" style="background:#7c3aed;color:#ffffff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">Visit Axorks Resource Center</a></p>
+<p style="margin-top:20px;">Best regards,<br/><strong>Axorks Client Support</strong></p>`
   }
 ];

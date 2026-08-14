@@ -46,7 +46,7 @@ class Settings(BaseSettings):
 
     # ── Email (Resend) ───────────────────────────────────
     resend_api_key: str = ""
-    resend_from_email: str = "noreply@axorks.com"
+    resend_from_email: str = "hello@axorks.com"
 
     # ── AI Providers ─────────────────────────────────────
     openai_api_key: str = ""

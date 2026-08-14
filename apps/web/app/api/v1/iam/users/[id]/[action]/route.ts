@@ -64,11 +64,17 @@ export async function POST(
     }
 
     if (action === "reset-password") {
-      const defaultPassword = "AxorksPass123!";
-      updateUser(targetUserId, { password_hash: hashPassword(defaultPassword) });
+      let body: any = {};
+      try {
+        body = await req.json();
+      } catch {
+        // empty body
+      }
+      const targetPassword = body.new_password || body.password || "AxorksPass123!";
+      updateUser(targetUserId, { password_hash: hashPassword(targetPassword) });
       return NextResponse.json({
-        data: { message: `Password for ${user.display_name} has been reset to: ${defaultPassword}` },
-        message: `Password for ${user.display_name} has been reset to: ${defaultPassword}`,
+        data: { message: `Password for ${user.display_name} has been set to: ${targetPassword}` },
+        message: `Password for ${user.display_name} has been set to: ${targetPassword}`,
       });
     }
 

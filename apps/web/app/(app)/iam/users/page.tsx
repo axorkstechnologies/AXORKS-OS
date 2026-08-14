@@ -356,12 +356,23 @@ export default function IAMUsersPage() {
                   </td>
                   <td className="p-3 text-right">
                     {isFounder && (
-                      <button
-                        onClick={() => actionMutation.mutate({ userId: u.id, action: "impersonate" })}
-                        className="px-2.5 py-1 bg-violet-600/10 text-violet-400 hover:bg-violet-600 hover:text-white rounded text-[11px] font-medium transition"
-                      >
-                        Impersonate
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        {u.role !== "Founder" && (
+                          <button
+                            onClick={() => actionMutation.mutate({ userId: u.id, action: "reset-password" })}
+                            className="px-2.5 py-1 bg-slate-800 text-slate-300 hover:bg-violet-600 hover:text-white rounded text-[11px] font-medium transition"
+                            title="Reset password to default"
+                          >
+                            Reset Pass
+                          </button>
+                        )}
+                        <button
+                          onClick={() => actionMutation.mutate({ userId: u.id, action: "impersonate" })}
+                          className="px-2.5 py-1 bg-violet-600/10 text-violet-400 hover:bg-violet-600 hover:text-white rounded text-[11px] font-medium transition"
+                        >
+                          Impersonate
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>

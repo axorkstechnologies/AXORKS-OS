@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { resend, RESEND_FROM_EMAIL } from "@/lib/email/resend";
+import { resend, RESEND_FROM_EMAIL, SENDER_NAME_EMAIL } from "@/lib/email/resend";
 import { EmailSendSchema } from "@/lib/validators/email";
 import { addEmailToHistory } from "@/lib/email/store";
 
@@ -37,13 +37,13 @@ export async function POST(req: NextRequest) {
     try {
       if (process.env.RESEND_API_KEY) {
         resendResponse = await resend.emails.send({
-          from: RESEND_FROM_EMAIL,
+          from: "Axorks OS <hello@axorks.com>",
           to,
           cc: cc.length > 0 ? cc : undefined,
           bcc: bcc.length > 0 ? bcc : undefined,
           subject,
           html,
-          reply_to: replyTo,
+          reply_to: replyTo || undefined,
           attachments: formattedAttachments && formattedAttachments.length > 0 ? formattedAttachments : undefined,
         });
 

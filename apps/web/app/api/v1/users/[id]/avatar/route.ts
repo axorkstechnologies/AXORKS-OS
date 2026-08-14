@@ -42,9 +42,10 @@ export async function POST(
 
     // Server-side role check: ONLY Founder/Admin can upload avatars
     const requestingUser = findUserById(requestingUserId);
-    if (!requestingUser || !isFounderOrAdmin(requestingUser.role)) {
+    const isSelf = requestingUserId === targetUserId;
+    if (!requestingUser || (!isSelf && !isFounderOrAdmin(requestingUser.role))) {
       return NextResponse.json(
-        { errors: [{ message: "Only Founder or Admin can change employee profile pictures" }] },
+        { errors: [{ message: "You are not authorized to update this profile picture" }] },
         { status: 403 }
       );
     }
@@ -150,9 +151,10 @@ export async function DELETE(
     }
 
     const requestingUser = findUserById(requestingUserId);
-    if (!requestingUser || !isFounderOrAdmin(requestingUser.role)) {
+    const isSelf = requestingUserId === targetUserId;
+    if (!requestingUser || (!isSelf && !isFounderOrAdmin(requestingUser.role))) {
       return NextResponse.json(
-        { errors: [{ message: "Only Founder or Admin can remove employee profile pictures" }] },
+        { errors: [{ message: "You are not authorized to remove this profile picture" }] },
         { status: 403 }
       );
     }

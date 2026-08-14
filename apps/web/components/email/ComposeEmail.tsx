@@ -174,15 +174,16 @@ export function ComposeEmail({
 
       const result = await res.json();
 
-      if (result.success) {
+      if (res.ok && result.success) {
         toast.success(`Email sent successfully to ${data.to.join(", ")}!`);
         localStorage.removeItem("axorks_email_draft");
         if (onSuccess) onSuccess();
       } else {
-        toast.error(result.error || "Failed to send email");
+        const errorMsg = result.error || result.message || "Failed to send email via Resend";
+        toast.error(errorMsg);
       }
     } catch (err: any) {
-      toast.error("Error sending email via Resend API");
+      toast.error(err.message || "Error sending email via Resend API");
     } finally {
       setIsSending(false);
     }
