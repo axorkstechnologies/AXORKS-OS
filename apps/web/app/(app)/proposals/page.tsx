@@ -96,21 +96,21 @@ export default function ProposalsListPage() {
                     <div className="flex items-center gap-2.5">
                       <FileText className="w-4 h-4 text-violet-400 shrink-0" />
                       <div>
-                        <span className="font-medium text-slate-200 block">{p.title}</span>
-                        <span className="text-[10px] text-slate-500 uppercase">{p.type.replace("_", " ")}</span>
+                        <span className="font-medium text-slate-200 block">{p.title || p.client_name || "Proposal"}</span>
+                        <span className="text-[10px] text-slate-500 uppercase">{(p.type || "proposal").replace("_", " ")}</span>
                       </div>
                     </div>
                   </td>
                   <td className="px-4 py-3">
                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${STATUS_BADGES[p.status] || STATUS_BADGES.draft}`}>
-                      {p.status}
+                      {p.status || "draft"}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-slate-200 font-bold">
-                    {p.total_value ? `${p.currency || "USD"} ${Number(p.total_value).toLocaleString()}` : "—"}
+                    {(p.total_value || p.value) ? `${p.currency || "USD"} ${Number(p.total_value || p.value).toLocaleString()}` : "—"}
                   </td>
-                  <td className="px-4 py-3 text-slate-400">v{p.version}</td>
-                  <td className="px-4 py-3 text-slate-500">{new Date(p.created_at).toLocaleDateString()}</td>
+                  <td className="px-4 py-3 text-slate-400">v{p.version || 1}</td>
+                  <td className="px-4 py-3 text-slate-500">{p.created_at ? new Date(p.created_at).toLocaleDateString() : "—"}</td>
                 </tr>
               ))
             )}

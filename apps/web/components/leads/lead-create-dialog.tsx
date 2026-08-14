@@ -25,7 +25,7 @@ export function LeadCreateDialog({ open, onClose, onSuccess }: LeadCreateDialogP
   const [sourceDetail, setSourceDetail] = useState("");
   const [status, setStatus] = useState("new");
   const [notes, setNotes] = useState("");
-  // ─── New Tracking Fields ─────────────────────────────
+  // ─── Tracking Fields ─────────────────────────────
   const [firstContactMethod, setFirstContactMethod] = useState("");
   const [result, setResult] = useState("");
   const [meetingScheduled, setMeetingScheduled] = useState(false);
@@ -91,79 +91,72 @@ export function LeadCreateDialog({ open, onClose, onSuccess }: LeadCreateDialogP
     }
   };
 
+  const inputClass = "w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded text-slate-100 font-medium placeholder-slate-400 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition";
+
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl glass p-6 rounded-2xl border border-slate-800 space-y-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-2xl bg-slate-950 p-6 rounded-2xl border border-slate-700 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto text-slate-100">
         <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-          <h2 className="text-base font-semibold">New Lead</h2>
-          <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-200">
+          <h2 className="text-base font-bold text-white">New Lead</h2>
+          <button onClick={onClose} className="p-1 text-slate-400 hover:text-white transition">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3 text-xs">
+        <form onSubmit={handleSubmit} className="space-y-3 text-xs text-slate-200">
           {/* ─── Company Info ─────────────────────────────── */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-medium text-slate-400 mb-1">Business / Company Name</label>
-              <input type="text" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="Acme Corp"
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded focus:outline-none focus:border-violet-500" />
+              <label className="block font-semibold text-slate-300 mb-1">Business / Company Name</label>
+              <input type="text" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="Acme Corp" className={inputClass} />
             </div>
             <div>
-              <label className="block font-medium text-slate-400 mb-1">Website URL</label>
-              <input type="text" value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://acme.com"
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded focus:outline-none focus:border-violet-500" />
+              <label className="block font-semibold text-slate-300 mb-1">Website URL</label>
+              <input type="text" value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://acme.com" className={inputClass} />
             </div>
           </div>
 
           {/* ─── Decision Maker ───────────────────────────── */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-medium text-slate-400 mb-1">Decision Maker Name</label>
-              <input type="text" value={decisionMakerName} onChange={(e) => setDecisionMakerName(e.target.value)} placeholder="Jane Doe"
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded focus:outline-none focus:border-violet-500" />
+              <label className="block font-semibold text-slate-300 mb-1">Decision Maker Name</label>
+              <input type="text" value={decisionMakerName} onChange={(e) => setDecisionMakerName(e.target.value)} placeholder="Jane Doe" className={inputClass} />
             </div>
             <div>
-              <label className="block font-medium text-slate-400 mb-1">Title / Role</label>
-              <input type="text" value={decisionMakerTitle} onChange={(e) => setDecisionMakerTitle(e.target.value)} placeholder="CEO / Director"
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded focus:outline-none focus:border-violet-500" />
+              <label className="block font-semibold text-slate-300 mb-1">Title / Role</label>
+              <input type="text" value={decisionMakerTitle} onChange={(e) => setDecisionMakerTitle(e.target.value)} placeholder="CEO / Director" className={inputClass} />
             </div>
           </div>
 
           {/* ─── Contact Info ─────────────────────────────── */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-medium text-slate-400 mb-1">Email Address</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@acme.com"
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded focus:outline-none focus:border-violet-500" />
+              <label className="block font-semibold text-slate-300 mb-1">Email Address</label>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@acme.com" className={inputClass} />
             </div>
             <div>
-              <label className="block font-medium text-slate-400 mb-1">Phone / WhatsApp</label>
-              <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 (555) 000-0000"
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded focus:outline-none focus:border-violet-500" />
+              <label className="block font-semibold text-slate-300 mb-1">Phone / WhatsApp</label>
+              <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 (555) 000-0000" className={inputClass} />
             </div>
           </div>
 
           {/* ─── Location & Industry ─────────────────────── */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-medium text-slate-400 mb-1">Industry</label>
-              <input type="text" value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="Software / Healthcare"
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded focus:outline-none focus:border-violet-500" />
+              <label className="block font-semibold text-slate-300 mb-1">Industry</label>
+              <input type="text" value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="Software / Healthcare" className={inputClass} />
             </div>
             <div>
-              <label className="block font-medium text-slate-400 mb-1">Country</label>
-              <input type="text" value={country} onChange={(e) => setCountry(e.target.value)} placeholder="United States"
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded focus:outline-none focus:border-violet-500" />
+              <label className="block font-semibold text-slate-300 mb-1">Country</label>
+              <input type="text" value={country} onChange={(e) => setCountry(e.target.value)} placeholder="United States" className={inputClass} />
             </div>
           </div>
 
           {/* ─── Source & Status ──────────────────────────── */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-medium text-slate-400 mb-1">Lead Source</label>
-              <select value={source} onChange={(e) => setSource(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded focus:outline-none focus:border-violet-500 text-slate-200">
+              <label className="block font-semibold text-slate-300 mb-1">Lead Source</label>
+              <select value={source} onChange={(e) => setSource(e.target.value)} className={inputClass}>
                 <option value="manual">Manual Entry</option>
                 <option value="hunter">Hunter (API)</option>
                 <option value="google_maps">Google Maps</option>
@@ -181,9 +174,8 @@ export function LeadCreateDialog({ open, onClose, onSuccess }: LeadCreateDialogP
               </select>
             </div>
             <div>
-              <label className="block font-medium text-slate-400 mb-1">Initial Status</label>
-              <select value={status} onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded focus:outline-none focus:border-violet-500 text-slate-200">
+              <label className="block font-semibold text-slate-300 mb-1">Initial Status</label>
+              <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputClass}>
                 <option value="new">New</option>
                 <option value="contacted">Contacted</option>
                 <option value="qualified">Qualified</option>
@@ -195,20 +187,18 @@ export function LeadCreateDialog({ open, onClose, onSuccess }: LeadCreateDialogP
           </div>
 
           <div>
-            <label className="block font-medium text-slate-400 mb-1">Source Detail / Reference</label>
+            <label className="block font-semibold text-slate-300 mb-1">Source Detail / Reference</label>
             <input type="text" value={sourceDetail} onChange={(e) => setSourceDetail(e.target.value)}
-              placeholder="e.g. WhatsApp message from +123456, Referred by Alex"
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded focus:outline-none focus:border-violet-500" />
+              placeholder="e.g. WhatsApp message from +123456, Referred by Alex" className={inputClass} />
           </div>
 
           {/* ─── Tracking Pipeline Fields ────────────────── */}
           <div className="border-t border-slate-800 pt-3 mt-2">
-            <h3 className="text-xs font-semibold text-slate-300 mb-3 uppercase tracking-wider">Pipeline Tracking</h3>
+            <h3 className="text-xs font-bold text-violet-400 mb-3 uppercase tracking-wider">Pipeline Tracking</h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block font-medium text-slate-400 mb-1">First Contact Method</label>
-                <select value={firstContactMethod} onChange={(e) => setFirstContactMethod(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded focus:outline-none focus:border-violet-500 text-slate-200">
+                <label className="block font-semibold text-slate-300 mb-1">First Contact Method</label>
+                <select value={firstContactMethod} onChange={(e) => setFirstContactMethod(e.target.value)} className={inputClass}>
                   <option value="">Not yet contacted</option>
                   <option value="email">Email</option>
                   <option value="phone">Phone Call</option>
@@ -219,9 +209,8 @@ export function LeadCreateDialog({ open, onClose, onSuccess }: LeadCreateDialogP
                 </select>
               </div>
               <div>
-                <label className="block font-medium text-slate-400 mb-1">Result</label>
-                <select value={result} onChange={(e) => setResult(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded focus:outline-none focus:border-violet-500 text-slate-200">
+                <label className="block font-semibold text-slate-300 mb-1">Result</label>
+                <select value={result} onChange={(e) => setResult(e.target.value)} className={inputClass}>
                   <option value="">Pending</option>
                   <option value="interested">Interested</option>
                   <option value="not_interested">Not Interested</option>
@@ -235,43 +224,42 @@ export function LeadCreateDialog({ open, onClose, onSuccess }: LeadCreateDialogP
             <div className="grid grid-cols-3 gap-3 mt-3">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={meetingScheduled} onChange={(e) => setMeetingScheduled(e.target.checked)}
-                  className="w-3.5 h-3.5 accent-violet-600" />
-                <span className="text-slate-300">Meeting Scheduled</span>
+                  className="w-4 h-4 accent-violet-600 rounded" />
+                <span className="text-slate-200 font-medium">Meeting Scheduled</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={proposalSent} onChange={(e) => setProposalSent(e.target.checked)}
-                  className="w-3.5 h-3.5 accent-violet-600" />
-                <span className="text-slate-300">Proposal Sent</span>
+                  className="w-4 h-4 accent-violet-600 rounded" />
+                <span className="text-slate-200 font-medium">Proposal Sent</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={closed} onChange={(e) => setClosed(e.target.checked)}
-                  className="w-3.5 h-3.5 accent-emerald-600" />
-                <span className="text-slate-300">Closed / Won</span>
+                  className="w-4 h-4 accent-emerald-600 rounded" />
+                <span className="text-slate-200 font-medium">Closed / Won</span>
               </label>
             </div>
 
             <div className="mt-3">
-              <label className="block font-medium text-slate-400 mb-1">Revenue (USD)</label>
+              <label className="block font-semibold text-slate-300 mb-1">Revenue (USD)</label>
               <input type="number" value={revenue} onChange={(e) => setRevenue(e.target.value)}
-                placeholder="0.00" step="0.01" min="0"
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded focus:outline-none focus:border-violet-500" />
+                placeholder="0.00" step="0.01" min="0" className={inputClass} />
             </div>
           </div>
 
           {/* ─── Notes ───────────────────────────────────── */}
           <div>
-            <label className="block font-medium text-slate-400 mb-1">Notes / Requirements</label>
+            <label className="block font-semibold text-slate-300 mb-1">Notes / Requirements</label>
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3}
               placeholder="Add key notes, requested services, or initial conversation details..."
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded focus:outline-none focus:border-violet-500 font-sans" />
+              className={inputClass} />
           </div>
 
           <div className="pt-2 flex justify-end gap-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded bg-slate-800 hover:bg-slate-700 font-medium">
+            <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 font-bold text-slate-300 transition">
               Cancel
             </button>
             <button type="submit" disabled={loading}
-              className="px-4 py-2 rounded bg-violet-600 hover:bg-violet-500 text-white font-medium disabled:opacity-50">
+              className="px-5 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-bold disabled:opacity-50 transition shadow-lg shadow-violet-600/30">
               {loading ? "Saving..." : "Save Lead"}
             </button>
           </div>

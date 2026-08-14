@@ -75,7 +75,7 @@ export default function ProjectsListPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Project name"
-            className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 placeholder-slate-500"
+            className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-slate-100 font-medium placeholder-slate-400 focus:outline-none focus:border-violet-500"
           />
           <div className="grid grid-cols-2 gap-2">
             <input
@@ -83,12 +83,12 @@ export default function ProjectsListPage() {
               value={budget}
               onChange={(e) => setBudget(e.target.value)}
               placeholder="Budget ($)"
-              className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 placeholder-slate-500"
+              className="px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-slate-100 font-medium placeholder-slate-400 focus:outline-none focus:border-violet-500"
             />
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200"
+              className="px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-slate-100 font-medium focus:outline-none focus:border-violet-500"
             >
               <option value="planning">Planning</option>
               <option value="active">Active</option>
