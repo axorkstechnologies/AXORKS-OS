@@ -30,7 +30,7 @@ interface ScreenRecording {
 
 const ALL_USERS = [
   { id: "user_founder_01", name: "Muhammad Mujahid", role: "Founder" },
-  { id: "user_emp_02", name: "Sarah Connor", role: "Co-Founder" },
+  { id: "user_cofounder_02", name: "Farhana Bakht", role: "Co-Founder" },
   { id: "user_emp_03", name: "Amna Khan", role: "Marketing & Outreach" },
 ];
 

@@ -1,11 +1,8 @@
 /**
  * Axorks OS — Central User Repository
  *
- * In-memory fallback store for user accounts, sessions, and RBAC permissions.
- * Primary storage is Neon PostgreSQL; this serves as a safety net when the
- * FastAPI backend is temporarily unavailable.
- *
- * Passwords are hashed with bcryptjs (cost 10) even in this fallback path.
+ * Primary store for user accounts, sessions, and RBAC permissions.
+ * Passwords are hashed with bcryptjs (cost 10).
  */
 
 import bcrypt from "bcryptjs";
@@ -56,11 +53,6 @@ export interface UserSession {
 
 // ─── RBAC Permissions ───────────────────────────────────────────────
 
-/**
- * Role → permission mapping.
- * Permissions follow the pattern: "module:action"
- * Founder/Admin have wildcard access.
- */
 export const ROLE_PERMISSIONS: Record<string, string[]> = {
   Founder: ["*"],
   "Co-Founder": ["*"],
@@ -94,7 +86,6 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
 };
 
-/** Map sidebar route prefixes to required permissions */
 export const ROUTE_PERMISSIONS: Record<string, string> = {
   "/": "dashboard:read",
   "/leads": "leads:read",
@@ -116,7 +107,6 @@ export const ROUTE_PERMISSIONS: Record<string, string> = {
   "/portal": "portal:read",
 };
 
-/** Check if a user's role has a specific permission */
 export function hasPermission(role: string, permission: string): boolean {
   const perms = ROLE_PERMISSIONS[role];
   if (!perms) return false;
@@ -124,12 +114,9 @@ export function hasPermission(role: string, permission: string): boolean {
   return perms.includes(permission);
 }
 
-/** Check if a user's role can access a given route */
 export function canAccessRoute(role: string, pathname: string): boolean {
-  // Founder/Admin/Co-Founder have full access
   if (hasPermission(role, "*")) return true;
 
-  // Find the most specific matching route prefix
   const matchingRoutes = Object.keys(ROUTE_PERMISSIONS)
     .filter((route) => route !== "/" && pathname.startsWith(route))
     .sort((a, b) => b.length - a.length);
@@ -139,14 +126,10 @@ export function canAccessRoute(role: string, pathname: string): boolean {
     return hasPermission(role, requiredPerm);
   }
 
-  // Dashboard (root) is always accessible
   if (pathname === "/") return true;
-
-  // Default: deny
   return false;
 }
 
-/** Check if a role is Founder or Admin (for profile picture uploads, etc.) */
 export function isFounderOrAdmin(role: string): boolean {
   return ["Founder", "Co-Founder", "Admin"].includes(role);
 }
@@ -169,7 +152,7 @@ const FOUNDER_USERNAME = process.env.FOUNDER_USERNAME || "muhammad.mujahid";
 const FOUNDER_EMAIL = process.env.FOUNDER_EMAIL || "mujahidaryan222149@gmail.com";
 const FOUNDER_PASSWORD = process.env.FOUNDER_PASSWORD || "Princearyan1#@#@";
 
-// ─── In-Memory Store (survives Next.js hot reloads) ─────────────────
+// ─── Persistent Memory Store Across Serverless Re-evaluations ─────
 
 const globalUserStore = globalThis as unknown as {
   __axorks_users?: StoredUser[];
@@ -179,8 +162,7 @@ const globalUserStore = globalThis as unknown as {
 
 if (!globalUserStore.__axorks_users_initialized) {
   const founderHash = hashPassword(FOUNDER_PASSWORD);
-  const sarahHash = hashPassword("AxorksPass123!");
-  // New Marketing & Outreach employee — credentials documented in delivery notes
+  const farhanaHash = hashPassword("AxorksFarii2024!");
   const amnaHash = hashPassword("AxorksMarketing2024!");
 
   globalUserStore.__axorks_users = [
@@ -210,32 +192,30 @@ if (!globalUserStore.__axorks_users_initialized) {
       updated_at: new Date().toISOString(),
     },
     {
-      id: "user_emp_02",
+      // Real Co-Founder Account
+      id: "user_cofounder_02",
       organization_id: "00000000-0000-0000-0000-000000000001",
-      email: "sarah@axorks.com",
-      username: "sarah",
-      password_hash: sarahHash,
-      first_name: "Sarah",
-      last_name: "Connor",
-      display_name: "Sarah Connor",
+      email: "heyfarii@gmail.com",
+      username: "farhana",
+      password_hash: farhanaHash,
+      first_name: "Farhana",
+      last_name: "Bakht",
+      display_name: "Farhana Bakht (Co-Founder)",
       employee_id: "EMP-002",
-      phone: "+1 (555) 222-3333",
-      department: "AI Department",
-      designation: "Senior AI Engineer",
-      joining_date: "2024-03-15",
+      phone: "+1 (555) 888-9999",
+      department: "Management",
+      designation: "Co-Founder & Director",
+      joining_date: "2024-01-01",
       employment_type: "full_time",
       role: "Co-Founder",
       permissions: ["*"],
       status: "active",
-      last_login_at: new Date(Date.now() - 3600000).toISOString(),
-      last_login_ip: "10.0.0.45",
-      last_login_browser: "Safari",
-      last_login_device: "iPhone 15 Pro",
-      created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
+      last_login_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     },
     {
-      // New Marketing & Outreach employee
+      // Real Marketing & Outreach employee
       id: "user_emp_03",
       organization_id: "00000000-0000-0000-0000-000000000001",
       email: "amna@axorks.com",
@@ -305,7 +285,6 @@ export function registerNewUser(data: {
   const cleanEmail = data.email.trim().toLowerCase();
   const existing = findUserByIdentifier(cleanEmail);
 
-  // Throw 409 Conflict if email already exists — do NOT silently return the existing user
   if (existing) {
     throw new ConflictError("An account with this email already exists");
   }
@@ -315,7 +294,6 @@ export function registerNewUser(data: {
     cleanEmail.split("@")[0].replace(/[^a-z0-9._]/g, "") ||
     `user_${Date.now()}`;
 
-  // Check username collision
   if (usersStore.find((u) => u.username === generatedUsername)) {
     throw new ConflictError("Username already taken");
   }
@@ -348,7 +326,7 @@ export function registerNewUser(data: {
   return newUser;
 }
 
-// ─── User Updates ───────────────────────────────────────────────────
+// ─── User Updates & Suspend Status ─────────────────────────────
 
 export function updateUser(id: string, updates: Partial<StoredUser>): StoredUser | null {
   const idx = usersStore.findIndex((u) => u.id === id);
@@ -368,7 +346,6 @@ export function recordLoginSession(
   user.last_login_ip = ip;
   user.last_login_device = device;
 
-  // Remove any previous active session for this user
   const filtered = sessionsStore.filter((s) => s.user_id !== user.id);
   globalUserStore.__axorks_sessions = filtered;
 

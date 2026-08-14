@@ -57,7 +57,7 @@ const store = globalStore._activityStore;
 function generateMockData() {
   if (store.initialized) return;
 
-  const users = ['user_founder_01', 'user_emp_02'];
+  const users = ['user_founder_01', 'user_cofounder_02'];
   const today = new Date();
   
   users.forEach((userId) => {
