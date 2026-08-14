@@ -18,26 +18,39 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { isAuthenticated, _hasHydrated } = useAuthStore();
+  const { isAuthenticated, _hasHydrated, setHasHydrated } = useAuthStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
 
-  // Only redirect AFTER Zustand has finished rehydrating from localStorage.
-  // This fixes the bug where a page refresh would always redirect to /login
-  // because isAuthenticated was still false during async hydration.
+    // Fast-check: if Zustand persist has already hydrated, mark true immediately
+    if (useAuthStore.persist?.hasHydrated()) {
+      setHasHydrated(true);
+    } else {
+      const unsub = useAuthStore.persist?.onFinishHydration(() => {
+        setHasHydrated(true);
+      });
+      // Fail-safe timer: ensure hydration lock NEVER hangs past 150ms
+      const timer = setTimeout(() => {
+        setHasHydrated(true);
+      }, 150);
+
+      return () => {
+        if (unsub) unsub();
+        clearTimeout(timer);
+      };
+    }
+  }, [setHasHydrated]);
+
+  // Immediate redirect check once mounted & hydrated
   useEffect(() => {
-    if (_hasHydrated && !isAuthenticated) {
+    if (mounted && _hasHydrated && !isAuthenticated) {
       router.replace("/login");
     }
-  }, [_hasHydrated, isAuthenticated, router]);
+  }, [mounted, _hasHydrated, isAuthenticated, router]);
 
-  // Show loading spinner while:
-  // 1. Component hasn't mounted (SSR mismatch prevention)
-  // 2. Zustand hasn't finished rehydrating from localStorage
-  // 3. After hydration, user is not authenticated (redirect is in progress)
+  // Show loading spinner while verifying session on mount
   if (!mounted || !_hasHydrated || !isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center">

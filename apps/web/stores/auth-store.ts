@@ -20,9 +20,7 @@ interface AuthState {
   user: AuthUser | null;
   accessToken: string | null;
   isAuthenticated: boolean;
-  /** Tracks whether Zustand has finished rehydrating from localStorage.
-   *  The app layout MUST wait for this before checking isAuthenticated,
-   *  otherwise a page refresh will always redirect to /login. */
+  /** Tracks whether Zustand has finished rehydrating from localStorage. */
   _hasHydrated: boolean;
   setAuth: (user: AuthUser, accessToken: string) => void;
   updateUser: (updates: Partial<AuthUser>) => void;
@@ -40,7 +38,7 @@ export const useAuthStore = create<AuthState>()(
 
       setAuth: (user, accessToken) => {
         setGlobalAccessToken(accessToken);
-        set({ user, accessToken, isAuthenticated: true });
+        set({ user, accessToken, isAuthenticated: true, _hasHydrated: true });
       },
 
       updateUser: (updates) => {
@@ -51,7 +49,7 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         setGlobalAccessToken(null);
-        set({ user: null, accessToken: null, isAuthenticated: false });
+        set({ user: null, accessToken: null, isAuthenticated: false, _hasHydrated: true });
       },
 
       setHasHydrated: (value) => {
@@ -60,19 +58,16 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "axorks_auth_session",
-      // partialize: exclude _hasHydrated from being persisted — it's runtime-only
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,
         isAuthenticated: state.isAuthenticated,
       }),
-      onRehydrateStorage: () => (state, error) => {
-        // Called after Zustand finishes restoring from localStorage.
-        // Sync the in-memory access token for the API client.
+      onRehydrateStorage: () => (state) => {
         if (state?.accessToken) {
           setGlobalAccessToken(state.accessToken);
         }
-        // Mark hydration as complete so the app layout can proceed.
+        // Always mark hydration complete when rehydration finishes
         useAuthStore.getState().setHasHydrated(true);
       },
     }
