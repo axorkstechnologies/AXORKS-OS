@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  findUserByIdentifier,
+  findUserByIdentifierAsync,
   recordLoginSession,
   verifyPassword,
 } from "@/lib/user-repository";
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Try FastAPI backend (Neon PostgreSQL) first
+    // 1. Try FastAPI backend first
     try {
       const backendRes = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
         method: "POST",
@@ -30,14 +30,14 @@ export async function POST(req: NextRequest) {
 
       if (backendRes.ok) {
         const data = await backendRes.json();
-        return NextResponse.json(data);
+        if (data?.data?.access_token) return NextResponse.json(data);
       }
     } catch {
-      // Backend not running, use fallback auth handler
+      // Backend not running, use direct Neon DB fallback
     }
 
-    // 2. Fallback: find user in central in-memory repository
-    const user = findUserByIdentifier(identifier);
+    // 2. Query user from Neon DB directly
+    const user = await findUserByIdentifierAsync(identifier);
 
     if (user) {
       // Verify password using bcrypt comparison

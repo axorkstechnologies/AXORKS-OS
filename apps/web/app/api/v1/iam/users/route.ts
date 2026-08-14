@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { usersStore, registerNewUser, findUserByIdentifier } from "@/lib/user-repository";
+import { getAllUsersAsync, registerNewUserAsync } from "@/lib/user-repository";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -7,6 +7,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const search = searchParams.get("search")?.toLowerCase() || "";
   const statusFilter = searchParams.get("status") || "";
+  const roleFilter = searchParams.get("role") || "";
 
   try {
     const authHeader = req.headers.get("authorization");
@@ -16,15 +17,18 @@ export async function GET(req: NextRequest) {
 
     if (backendRes.ok) {
       const data = await backendRes.json();
-      return NextResponse.json(data);
+      if (data?.data && Array.isArray(data.data) && data.data.length > 0) {
+        return NextResponse.json(data);
+      }
     }
   } catch (err) {
-    // Fallback
+    // Fallback directly to Neon DB queries
   }
 
-  let filtered = [...usersStore];
+  let usersList = await getAllUsersAsync();
+
   if (search) {
-    filtered = filtered.filter(
+    usersList = usersList.filter(
       (u) =>
         u.first_name.toLowerCase().includes(search) ||
         u.last_name.toLowerCase().includes(search) ||
@@ -34,10 +38,13 @@ export async function GET(req: NextRequest) {
     );
   }
   if (statusFilter) {
-    filtered = filtered.filter((u) => u.status === statusFilter);
+    usersList = usersList.filter((u) => u.status === statusFilter);
+  }
+  if (roleFilter) {
+    usersList = usersList.filter((u) => u.role === roleFilter);
   }
 
-  return NextResponse.json({ data: filtered });
+  return NextResponse.json({ data: usersList });
 }
 
 export async function POST(req: NextRequest) {
@@ -57,13 +64,13 @@ export async function POST(req: NextRequest) {
 
       if (backendRes.ok) {
         const data = await backendRes.json();
-        return NextResponse.json(data);
+        if (data?.data) return NextResponse.json(data);
       }
     } catch (err) {
       // Fallback
     }
 
-    const newUser = registerNewUser({
+    const newUser = await registerNewUserAsync({
       first_name: body.first_name || "New",
       last_name: body.last_name || "Employee",
       username: body.username || (body.first_name || "user").toLowerCase(),

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findUserById, updateUser } from "@/lib/user-repository";
+import { findUserByIdAsync, updateUserAsync } from "@/lib/user-repository";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -17,13 +17,13 @@ export async function GET(
 
     if (backendRes.ok) {
       const data = await backendRes.json();
-      return NextResponse.json(data);
+      if (data?.data) return NextResponse.json(data);
     }
   } catch (err) {
-    // Fallback
+    // Fallback directly to Neon DB
   }
 
-  const user = findUserById(id);
+  const user = await findUserByIdAsync(id);
 
   if (!user) {
     return NextResponse.json(
@@ -32,34 +32,7 @@ export async function GET(
     );
   }
 
-  return NextResponse.json({
-    data: {
-      id: user.id,
-      organization_id: user.organization_id,
-      email: user.email,
-      username: user.username,
-      first_name: user.first_name,
-      last_name: user.last_name,
-      display_name: user.display_name,
-      employee_id: user.employee_id,
-      phone: user.phone,
-      cnic: user.cnic,
-      department: user.department,
-      designation: user.designation,
-      joining_date: user.joining_date,
-      employment_type: user.employment_type,
-      role: user.role,
-      permissions: user.permissions,
-      status: user.status,
-      avatar_url: user.avatar_url,
-      last_login_at: user.last_login_at,
-      last_login_ip: user.last_login_ip,
-      last_login_browser: user.last_login_browser,
-      last_login_device: user.last_login_device,
-      created_at: user.created_at,
-      updated_at: user.updated_at,
-    },
-  });
+  return NextResponse.json({ data: user });
 }
 
 export async function PATCH(
@@ -83,13 +56,13 @@ export async function PATCH(
 
       if (backendRes.ok) {
         const data = await backendRes.json();
-        return NextResponse.json(data);
+        if (data?.data) return NextResponse.json(data);
       }
     } catch (err) {
       // Fallback
     }
 
-    const updated = updateUser(id, body);
+    const updated = await updateUserAsync(id, body);
 
     if (!updated) {
       return NextResponse.json(
@@ -98,13 +71,7 @@ export async function PATCH(
       );
     }
 
-    return NextResponse.json({
-      data: {
-        id,
-        ...body,
-        updated_at: new Date().toISOString(),
-      },
-    });
+    return NextResponse.json({ data: updated });
   } catch (error: any) {
     return NextResponse.json(
       { errors: [{ message: error.message || "Failed to update user" }] },
