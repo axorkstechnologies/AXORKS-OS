@@ -5,7 +5,7 @@
 
 // ─── 1. Hunter.io Integration ────────────────────────────────────────
 
-export async function searchDomainHunter(domain: string, limit: number = 10) {
+export async function searchDomainHunter(domain: string, limit: number = 15) {
   const apiKey = process.env.HUNTER_API_KEY;
   if (!apiKey) {
     return { success: false, provider: "Hunter", error: "HUNTER_API_KEY not configured" };
@@ -40,7 +40,7 @@ export async function searchDomainHunter(domain: string, limit: number = 10) {
 
 // ─── 2. Tomba.io Integration ──────────────────────────────────────────
 
-export async function searchDomainTomba(domain: string, limit: number = 10) {
+export async function searchDomainTomba(domain: string, limit: number = 15) {
   const apiKey = process.env.TOMBA_API_KEY;
   const secret = process.env.TOMBA_SECRET;
 
@@ -122,8 +122,8 @@ export async function findEmailProspeo(domain: string, firstName?: string, lastN
 
 export async function findDomainEmailsUnified(domain: string) {
   const results = await Promise.allSettled([
-    searchDomainHunter(domain),
-    searchDomainTomba(domain),
+    searchDomainHunter(domain, 15),
+    searchDomainTomba(domain, 15),
   ]);
 
   const emails: any[] = [];
@@ -146,7 +146,7 @@ export async function findDomainEmailsUnified(domain: string) {
     }
   }
 
-  const deduped = Array.from(uniqueMap.values());
+  const deduped = Array.from(uniqueMap.values()).slice(0, 15);
   return {
     domain,
     success: deduped.length > 0,
@@ -162,8 +162,8 @@ export async function searchLocationBusinessDiscovery(businessType: string, loca
   const query = `${businessType.trim()} ${location.trim()}`.toLowerCase();
 
   try {
-    // 1. Query Nominatim OpenStreetMap for real local business locations
-    const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=8`;
+    // 1. Query Nominatim OpenStreetMap for real local business locations (Top 15 limit)
+    const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=15`;
     const nomRes = await fetch(nomUrl, {
       headers: { "User-Agent": "AxorksOS-LeadFinder/1.0 (contact@axorks.com)" },
     });
@@ -220,12 +220,12 @@ export async function searchLocationBusinessDiscovery(businessType: string, loca
         });
       }
     } else {
-      // Fallback discovery generator based on industry & location
-      const mockSuffixes = ["Group", "Solutions", "Services", "Partners", "Studio", "Labs"];
-      const dmTitles = ["Managing Director", "Chief Executive", "Head of Operations", "Partner", "Owner"];
+      // Fallback discovery generator based on industry & location (Top 15 results)
+      const mockSuffixes = ["Group", "Solutions", "Services", "Partners", "Studio", "Labs", "Agency", "Digital", "Consulting", "Enterprise", "Systems", "Global", "Creative", "Tech", "Network"];
+      const dmTitles = ["Managing Director", "Chief Executive", "Head of Operations", "Partner", "Owner", "Founder", "VP of Growth"];
 
-      for (let i = 1; i <= 6; i++) {
-        const name = `${location} ${businessType} ${mockSuffixes[i % mockSuffixes.length]}`;
+      for (let i = 1; i <= 15; i++) {
+        const name = `${location} ${businessType} ${mockSuffixes[(i - 1) % mockSuffixes.length]}`;
         const domainSlug = name.toLowerCase().replace(/[^a-z0-9]/g, "") + ".com";
         leads.push({
           business_name: name,
@@ -234,9 +234,9 @@ export async function searchLocationBusinessDiscovery(businessType: string, loca
           country: location,
           location: location,
           decision_maker_name: `Contact Lead #${i}`,
-          decision_maker_title: dmTitles[i % dmTitles.length],
+          decision_maker_title: dmTitles[(i - 1) % dmTitles.length],
           email: `contact@${domainSlug}`,
-          score: 80 + i,
+          score: 80 + (i % 15),
           source: "location_discovery",
         });
       }
