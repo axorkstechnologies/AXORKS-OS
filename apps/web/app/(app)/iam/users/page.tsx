@@ -5,14 +5,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { useAuthStore } from "@/stores/auth-store";
 import { toast } from "sonner";
-import Link from "next/link";
 import {
   Search,
   Plus,
   LayoutList,
   Grid,
   Lock,
-  Unlock,
   UserCheck,
   KeyRound,
   MoreVertical,
@@ -21,7 +19,7 @@ import {
   Mail,
   Building2,
   Crown,
-  User,
+  Unlock,
 } from "lucide-react";
 
 export default function IAMUsersPage() {
@@ -46,7 +44,7 @@ export default function IAMUsersPage() {
   const [role, setRole] = useState("Software Engineer");
   const [employmentType, setEmploymentType] = useState("full_time");
 
-  const isFounder = currentUser?.role === "Founder" || currentUser?.role === "founder";
+  const isFounder = currentUser?.role === "Founder" || currentUser?.role === "Co-Founder" || currentUser?.role === "Admin";
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["iam-users", search, statusFilter, roleFilter],
@@ -87,7 +85,7 @@ export default function IAMUsersPage() {
     mutationFn: ({ userId, action }: { userId: string; action: string }) =>
       apiClient(`/api/v1/iam/users/${userId}/${action}`, { method: "POST" }),
     onSuccess: (res) => {
-      toast.success(res.message || "Action executed");
+      toast.success(res?.message || res?.data?.message || "Action executed successfully");
       queryClient.invalidateQueries({ queryKey: ["iam-users"] });
       queryClient.invalidateQueries({ queryKey: ["iam-dashboard"] });
       setActiveUserMenu(null);
@@ -100,7 +98,7 @@ export default function IAMUsersPage() {
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isFounder) {
-      toast.error("Only Founder has authorization to create new user accounts");
+      toast.error("Only Founder / Admin has authorization to create new user accounts");
       return;
     }
 
@@ -124,10 +122,10 @@ export default function IAMUsersPage() {
       {/* Header & Quick Action Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-base md:text-lg font-bold tracking-tight">
+          <h2 className="text-base md:text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">
             Employee Directory & User Accounts
           </h2>
-          <p className="text-slate-500 text-xs mt-0.5">
+          <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
             Manage employees, roles, departments, suspensions, and account access
           </p>
         </div>
@@ -151,21 +149,21 @@ export default function IAMUsersPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, username, email, department..."
-              className="w-full pl-9 pr-3 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-violet-500"
+              placeholder="Search by name, username, email..."
+              className="w-full pl-9 pr-3 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-violet-500"
             />
           </div>
 
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full sm:w-auto px-3 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none text-slate-700 dark:text-slate-300"
+            className="w-full sm:w-auto px-3 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none"
           >
-            <option value="">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="suspended">Suspended</option>
-            <option value="locked">Locked</option>
-            <option value="inactive">Inactive</option>
+            <option value="" className="bg-slate-900 text-slate-100">All Statuses</option>
+            <option value="active" className="bg-slate-900 text-slate-100">Active</option>
+            <option value="suspended" className="bg-slate-900 text-slate-100">Suspended</option>
+            <option value="locked" className="bg-slate-900 text-slate-100">Locked</option>
+            <option value="inactive" className="bg-slate-900 text-slate-100">Inactive</option>
           </select>
         </div>
 
@@ -194,54 +192,63 @@ export default function IAMUsersPage() {
         </div>
       </div>
 
-      {/* Main Directory Display */}
+      {/* Main Content Area */}
       {isLoading ? (
-        <div className="text-center py-12 text-xs text-slate-400">Loading employee accounts...</div>
+        <div className="text-center py-12 text-xs text-slate-400 font-mono">
+          Loading employees...
+        </div>
       ) : viewMode === "card" ? (
-        /* Mobile First Responsive Card Grid */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {users.map((u: any) => (
             <div
               key={u.id}
-              className="glass p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 relative flex flex-col justify-between"
+              className="glass p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between relative hover:border-violet-500/50 transition shadow-sm"
             >
               <div>
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-violet-600 to-indigo-600 text-white font-bold flex items-center justify-center text-sm flex-shrink-0 shadow-md shadow-violet-600/20">
-                      {u.first_name[0]}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <Link
-                          href={`/iam/users/${u.id}`}
-                          className="font-bold text-slate-900 dark:text-slate-100 hover:text-violet-500 text-sm tracking-tight truncate"
-                        >
-                          {u.first_name} {u.last_name}
-                        </Link>
-                        {u.role === "Founder" && (
-                          <Crown className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-                        )}
+                    {u.avatar_url ? (
+                      <img
+                        src={u.avatar_url}
+                        alt={u.display_name || u.first_name}
+                        className="w-10 h-10 rounded-xl object-cover border border-violet-500/30"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-violet-600/30">
+                        {u.first_name?.[0] || "E"}
                       </div>
-                      <div className="text-[11px] text-slate-500">@{u.username || u.first_name.toLowerCase()} • {u.designation || u.role}</div>
+                    )}
+
+                    <div>
+                      <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                        {u.first_name} {u.last_name}
+                        {u.role === "Founder" && (
+                          <span title="Founder"><Crown className="w-3.5 h-3.5 text-amber-400 inline" /></span>
+                        )}
+                      </h3>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                        @{u.username || u.first_name.toLowerCase()} • {u.designation || u.role}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Actions Dropdown Trigger */}
+                  {/* Actions Dropdown */}
                   <div className="relative">
                     <button
-                      onClick={() => setActiveUserMenu(activeUserMenu === u.id ? null : u.id)}
-                      className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+                      onClick={() =>
+                        setActiveUserMenu(activeUserMenu === u.id ? null : u.id)
+                      }
+                      className="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
                     >
                       <MoreVertical className="w-4 h-4" />
                     </button>
 
                     {activeUserMenu === u.id && (
-                      <div className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 py-1 text-xs">
+                      <div className="absolute right-0 top-full mt-1 w-44 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 py-1 text-xs text-slate-100">
                         {isFounder && (
                           <button
                             onClick={() => actionMutation.mutate({ userId: u.id, action: "impersonate" })}
-                            className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-violet-600 dark:text-violet-400"
+                            className="w-full text-left px-3 py-2 hover:bg-slate-800 flex items-center gap-2 text-violet-400 font-medium"
                           >
                             <KeyRound className="w-3.5 h-3.5" /> Impersonate
                           </button>
@@ -251,21 +258,21 @@ export default function IAMUsersPage() {
                             {u.status === "suspended" ? (
                               <button
                                 onClick={() => actionMutation.mutate({ userId: u.id, action: "reactivate" })}
-                                className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-emerald-500"
+                                className="w-full text-left px-3 py-2 hover:bg-slate-800 flex items-center gap-2 text-emerald-400 font-medium"
                               >
                                 <UserCheck className="w-3.5 h-3.5" /> Reactivate
                               </button>
                             ) : (
                               <button
                                 onClick={() => actionMutation.mutate({ userId: u.id, action: "suspend" })}
-                                className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-amber-500"
+                                className="w-full text-left px-3 py-2 hover:bg-slate-800 flex items-center gap-2 text-amber-400 font-medium"
                               >
                                 <Lock className="w-3.5 h-3.5" /> Suspend
                               </button>
                             )}
                             <button
                               onClick={() => actionMutation.mutate({ userId: u.id, action: "reset-password" })}
-                              className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-600 dark:text-slate-300"
+                              className="w-full text-left px-3 py-2 hover:bg-slate-800 flex items-center gap-2 text-slate-300 font-medium"
                             >
                               <Unlock className="w-3.5 h-3.5" /> Reset Password
                             </button>
@@ -276,7 +283,7 @@ export default function IAMUsersPage() {
                   </div>
                 </div>
 
-                <div className="mt-3 space-y-1.5 text-xs text-slate-600 dark:text-slate-400">
+                <div className="mt-3 space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
                   <div className="flex items-center gap-2">
                     <Mail className="w-3.5 h-3.5 text-slate-400" />
                     <span className="truncate">{u.email}</span>
@@ -301,8 +308,8 @@ export default function IAMUsersPage() {
                 <span
                   className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
                     u.status === "active"
-                      ? "bg-emerald-500/10 text-emerald-500"
-                      : "bg-amber-500/10 text-amber-500"
+                      ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                      : "bg-amber-500/10 text-amber-500 border border-amber-500/20"
                   }`}
                 >
                   {u.status}
@@ -364,12 +371,12 @@ export default function IAMUsersPage() {
         </div>
       )}
 
-      {/* Add Employee Drawer / Modal */}
+      {/* Create Employee Modal — Fixed High Contrast & High Visibility */}
       {createOpen && isFounder && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md glass p-6 rounded-2xl border border-slate-800 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-slate-950 border border-slate-800 text-slate-100 p-6 rounded-2xl shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold">Create Employee Account & Credentials</h3>
+              <h3 className="text-sm font-bold text-slate-100">Create Employee Account & Credentials</h3>
               <button onClick={() => setCreateOpen(false)} className="p-1 text-slate-400 hover:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
@@ -378,124 +385,125 @@ export default function IAMUsersPage() {
             <form onSubmit={handleCreateSubmit} className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-medium text-slate-400 mb-1">First Name *</label>
+                  <label className="block font-semibold text-slate-200 mb-1">First Name *</label>
                   <input
                     type="text"
                     required
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     placeholder="e.g. Sarah"
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-none focus:border-violet-500"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 font-medium"
                   />
                 </div>
                 <div>
-                  <label className="block font-medium text-slate-400 mb-1">Last Name *</label>
+                  <label className="block font-semibold text-slate-200 mb-1">Last Name *</label>
                   <input
                     type="text"
                     required
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     placeholder="e.g. Connor"
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-none focus:border-violet-500"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 font-medium"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-medium text-slate-400 mb-1">Username (unique for login) *</label>
+                <label className="block font-semibold text-slate-200 mb-1">Username (unique for login) *</label>
                 <input
                   type="text"
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="e.g. sarah"
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-none focus:border-violet-500 font-mono"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 font-mono font-medium"
                 />
               </div>
 
               <div>
-                <label className="block font-medium text-slate-400 mb-1">Email Address (unique) *</label>
+                <label className="block font-semibold text-slate-200 mb-1">Email Address (unique) *</label>
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="e.g. sarah@axorks.com"
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-none focus:border-violet-500"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 font-medium"
                 />
               </div>
 
               <div>
-                <label className="block font-medium text-slate-400 mb-1">Password *</label>
+                <label className="block font-semibold text-slate-200 mb-1">Password *</label>
                 <input
                   type="text"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter employee password..."
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-none focus:border-violet-500 font-mono"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 font-mono font-medium"
                 />
               </div>
 
               <div>
-                <label className="block font-medium text-slate-400 mb-1">Phone Number</label>
+                <label className="block font-semibold text-slate-200 mb-1">Phone Number</label>
                 <input
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-none focus:border-violet-500"
+                  placeholder="+1 (555) 000-0000"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 font-medium"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-medium text-slate-400 mb-1">Department</label>
+                  <label className="block font-semibold text-slate-200 mb-1">Department</label>
                   <select
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-none text-slate-200"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:border-violet-500 font-medium"
                   >
-                    <option value="Development">Development</option>
-                    <option value="AI Department">AI Department</option>
-                    <option value="UI/UX">UI/UX</option>
-                    <option value="HR">HR</option>
-                    <option value="Sales">Sales</option>
-                    <option value="Finance">Finance</option>
-                    <option value="Management">Management</option>
+                    <option value="Development" className="bg-slate-900 text-slate-100">Development</option>
+                    <option value="AI Department" className="bg-slate-900 text-slate-100">AI Department</option>
+                    <option value="UI/UX" className="bg-slate-900 text-slate-100">UI/UX</option>
+                    <option value="HR" className="bg-slate-900 text-slate-100">HR</option>
+                    <option value="Sales" className="bg-slate-900 text-slate-100">Sales</option>
+                    <option value="Finance" className="bg-slate-900 text-slate-100">Finance</option>
+                    <option value="Management" className="bg-slate-900 text-slate-100">Management</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block font-medium text-slate-400 mb-1">Enterprise Role</label>
+                  <label className="block font-semibold text-slate-200 mb-1">Enterprise Role</label>
                   <select
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-none text-slate-200"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:border-violet-500 font-medium"
                   >
-                    <option value="Co-Founder">Co-Founder</option>
-                    <option value="Software Engineer">Software Engineer</option>
-                    <option value="Full Stack Developer">Full Stack Developer</option>
-                    <option value="AI Engineer">AI Engineer</option>
-                    <option value="Project Manager">Project Manager</option>
-                    <option value="HR Manager">HR Manager</option>
-                    <option value="Sales Manager">Sales Manager</option>
-                    <option value="Sales Executive">Sales Executive</option>
+                    <option value="Co-Founder" className="bg-slate-900 text-slate-100">Co-Founder</option>
+                    <option value="Software Engineer" className="bg-slate-900 text-slate-100">Software Engineer</option>
+                    <option value="Full Stack Developer" className="bg-slate-900 text-slate-100">Full Stack Developer</option>
+                    <option value="AI Engineer" className="bg-slate-900 text-slate-100">AI Engineer</option>
+                    <option value="Project Manager" className="bg-slate-900 text-slate-100">Project Manager</option>
+                    <option value="HR Manager" className="bg-slate-900 text-slate-100">HR Manager</option>
+                    <option value="Sales Manager" className="bg-slate-900 text-slate-100">Sales Manager</option>
+                    <option value="Marketing & Outreach" className="bg-slate-900 text-slate-100">Marketing & Outreach</option>
                   </select>
                 </div>
               </div>
 
-              <div className="pt-2 flex justify-end gap-2">
+              <div className="pt-3 flex justify-end gap-2 border-t border-slate-800">
                 <button
                   type="button"
                   onClick={() => setCreateOpen(false)}
-                  className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 font-medium text-slate-300"
+                  className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 font-medium text-slate-300 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createMutation.isPending}
-                  className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-medium disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold shadow-lg shadow-violet-600/30 transition disabled:opacity-50"
                 >
                   {createMutation.isPending ? "Creating Account..." : "Create Account"}
                 </button>
