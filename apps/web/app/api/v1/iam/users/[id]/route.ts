@@ -32,7 +32,8 @@ export async function GET(
     );
   }
 
-  return NextResponse.json({ data: user });
+  const { password_hash, ...safeUser } = user;
+  return NextResponse.json({ data: safeUser });
 }
 
 export async function PATCH(

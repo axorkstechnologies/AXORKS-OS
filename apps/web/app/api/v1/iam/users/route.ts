@@ -44,7 +44,8 @@ export async function GET(req: NextRequest) {
     usersList = usersList.filter((u) => u.role === roleFilter);
   }
 
-  return NextResponse.json({ data: usersList });
+  const safeUsers = usersList.map(({ password_hash, ...u }) => u);
+  return NextResponse.json({ data: safeUsers });
 }
 
 export async function POST(req: NextRequest) {

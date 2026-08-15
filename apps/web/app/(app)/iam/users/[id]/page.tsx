@@ -94,6 +94,10 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
     resetPasswordMutation.mutate(newPassword);
   };
 
+  const isFounder = currentUser?.role === "Founder";
+  const isCoFounder = currentUser?.role === "Co-Founder";
+  const canResetPassword = u && (isFounder || (isCoFounder && u.role !== "Founder"));
+
   return (
     <div className="space-y-6">
       <Link href="/iam/users" className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-100">
@@ -132,7 +136,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
           <span className="px-3 py-1 rounded-xl text-xs font-semibold bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/30">
             Role: {u.role}
           </span>
-          {isFounderOrAdmin && (
+          {canResetPassword && (
             <button
               onClick={() => setResetModalOpen(true)}
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold shadow-md shadow-violet-600/30 transition"

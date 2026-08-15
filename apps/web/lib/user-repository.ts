@@ -166,7 +166,7 @@ const globalUserStore = globalThis as unknown as {
 
 if (!globalUserStore.__axorks_users_initialized) {
   const founderHash = hashPassword(FOUNDER_PASSWORD);
-  const farhanaHash = hashPassword("AxorksFarii2024!");
+  const farhanaHash = hashPassword("AxorksFarhana2026!");
 
   globalUserStore.__axorks_users = [
     {
