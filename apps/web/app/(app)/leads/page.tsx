@@ -45,9 +45,9 @@ export default function LeadsPage() {
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-white">Lead Intelligence & Email Finder</h1>
-          <p className="text-slate-500 text-xs mt-1">
-            Capture, score, and qualify prospective agency clients using API enrichment
+          <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Lead Intelligence & Email Finder</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-xs mt-1">
+            Capture, score, and qualify prospective agency clients using multi-source API enrichment
           </p>
         </div>
 

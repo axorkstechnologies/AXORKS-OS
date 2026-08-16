@@ -28,9 +28,10 @@ import {
   ChevronRight,
   ShieldCheck,
   LogOut,
+  Sparkles,
 } from "lucide-react";
 
-/** Each nav item knows which route prefix it maps to for RBAC checks */
+/** Navigation items mapping to system domains with RBAC permissions */
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard, routePrefix: "/" },
   { name: "User Management & IAM", href: "/iam", icon: ShieldCheck, routePrefix: "/iam" },
@@ -74,28 +75,28 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "hidden md:flex h-screen sticky top-0 border-r border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl transition-all duration-300 z-30 flex-col justify-between",
-        sidebarCollapsed ? "w-16" : "w-64"
+        "hidden md:flex h-screen sticky top-0 border-r border-slate-200/80 dark:border-slate-800/80 bg-white/80 dark:bg-slate-950/80 backdrop-blur-2xl transition-all duration-300 z-30 flex-col justify-between select-none shadow-sm",
+        sidebarCollapsed ? "w-20" : "w-64"
       )}
     >
-      <div>
-        {/* Header / Logo */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-800">
-          <Link href="/" className="flex items-center overflow-hidden">
+      <div className="flex flex-col h-full min-h-0">
+        {/* Header / Single Brand Logo */}
+        <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200/80 dark:border-slate-800/80 shrink-0">
+          <Link href="/" className="flex items-center overflow-hidden group">
             {sidebarCollapsed ? (
-              <div className="relative w-8 h-8 flex-shrink-0 mx-auto">
+              <div className="relative w-9 h-9 flex-shrink-0 mx-auto transition-transform duration-200 group-hover:scale-105">
                 <img
                   src="/images/Axorks_Logo_design_only.png"
                   alt="Axorks Symbol"
-                  className="w-8 h-8 object-contain filter drop-shadow-[0_0_8px_rgba(124,58,237,0.4)]"
+                  className="w-9 h-9 object-contain filter drop-shadow-[0_0_10px_rgba(124,58,237,0.5)]"
                 />
               </div>
             ) : (
-              <div className="relative w-40 h-9 flex items-center">
+              <div className="relative w-40 h-9 flex items-center transition-opacity duration-200">
                 <img
                   src="/images/Axorks_Complete_logo.png"
                   alt="Axorks Technologies"
-                  className="w-40 h-9 object-contain object-left"
+                  className="w-40 h-9 object-contain object-left filter drop-shadow-[0_0_8px_rgba(124,58,237,0.3)]"
                 />
               </div>
             )}
@@ -103,7 +104,8 @@ export function Sidebar() {
 
           <button
             onClick={toggleSidebar}
-            className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
           >
             {sidebarCollapsed ? (
               <ChevronRight className="w-4 h-4" />
@@ -114,7 +116,7 @@ export function Sidebar() {
         </div>
 
         {/* Navigation Items — filtered by RBAC */}
-        <nav className="p-2 space-y-1 overflow-y-auto max-h-[calc(100vh-8rem)]">
+        <nav className="p-2.5 space-y-1 overflow-y-auto flex-1 custom-scroll">
           {visibleItems.map((item) => {
             const isActive =
               pathname === item.href ||
@@ -126,42 +128,52 @@ export function Sidebar() {
                 key={item.name}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition group",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-150 relative group",
                   isActive
-                    ? "bg-violet-600 text-white shadow-md shadow-violet-600/20 font-semibold"
-                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-slate-100"
+                    ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-600/25 font-semibold"
+                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/90 dark:hover:bg-slate-900/90 hover:text-slate-900 dark:hover:text-slate-100"
                 )}
                 title={sidebarCollapsed ? item.name : undefined}
               >
-                <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-white" : "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200")} />
-                {!sidebarCollapsed && <span>{item.name}</span>}
+                <Icon
+                  className={cn(
+                    "w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110",
+                    isActive ? "text-white" : "text-slate-400 group-hover:text-violet-500 dark:group-hover:text-violet-400"
+                  )}
+                />
+                {!sidebarCollapsed && (
+                  <span className="truncate">{item.name}</span>
+                )}
+                {isActive && !sidebarCollapsed && (
+                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white shadow-sm" />
+                )}
               </Link>
             );
           })}
         </nav>
       </div>
 
-      {/* Footer / Settings & Logout */}
-      <div className="p-2 border-t border-slate-200 dark:border-slate-800 space-y-1">
+      {/* Footer / Settings & Explicit Logout */}
+      <div className="p-2.5 border-t border-slate-200/80 dark:border-slate-800/80 space-y-1 shrink-0 bg-slate-50/50 dark:bg-slate-950/50">
         <Link
           href="/settings/profile"
           className={cn(
-            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-slate-100 transition",
-            pathname.startsWith("/settings") && "bg-violet-600 text-white font-semibold"
+            "flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-slate-100 transition",
+            pathname.startsWith("/settings") && "bg-violet-600 text-white font-semibold shadow-md shadow-violet-600/20"
           )}
           title={sidebarCollapsed ? "Settings" : undefined}
         >
-          <Settings className="w-4 h-4 text-slate-400" />
-          {!sidebarCollapsed && <span>Settings</span>}
+          <Settings className="w-4 h-4 text-slate-400 shrink-0" />
+          {!sidebarCollapsed && <span className="font-medium">Settings</span>}
         </Link>
 
         <button
           onClick={() => logout()}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-400 transition"
-          title={sidebarCollapsed ? "Logout" : undefined}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-400 transition"
+          title={sidebarCollapsed ? "Sign Out" : undefined}
         >
-          <LogOut className="w-4 h-4 text-rose-500" />
-          {!sidebarCollapsed && <span>Logout</span>}
+          <LogOut className="w-4 h-4 text-rose-500 shrink-0" />
+          {!sidebarCollapsed && <span className="font-semibold text-rose-600 dark:text-rose-400">Sign Out</span>}
         </button>
       </div>
     </aside>
