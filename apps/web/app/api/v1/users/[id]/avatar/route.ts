@@ -1,17 +1,7 @@
-/**
- * Axorks OS — Employee Avatar Upload API
- *
- * Founder/Admin only — employees cannot upload or change their own profile picture.
- * Server-side role check enforced; never trust the frontend.
- *
- * Stores images locally in public/uploads/avatars/ (MVP).
- * Saves the URL in the user record.
- */
-
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir, unlink } from "fs/promises";
 import path from "path";
-import { findUserById, updateUser, isFounderOrAdmin } from "@/lib/user-repository";
+import { findUserByIdAsync, updateUserAsync, isFounderOrAdmin } from "@/lib/user-repository";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
@@ -24,10 +14,9 @@ export async function POST(
   try {
     const { id: targetUserId } = await params;
 
-    // Extract the requesting user from the Authorization header (mock JWT)
+    // Extract authorization header token
     const authHeader = req.headers.get("authorization") || "";
-    const token = authHeader.replace("Bearer ", "");
-    // Parse user ID from mock JWT format: jwt_session_{userId}_{timestamp}
+    const token = authHeader.replace("Bearer ", "").trim();
     const tokenParts = token.split("_");
     const requestingUserId = tokenParts.length >= 4
       ? tokenParts.slice(2, -1).join("_")
@@ -40,22 +29,38 @@ export async function POST(
       );
     }
 
-    // Server-side role check: ONLY Founder/Admin can upload avatars
-    const requestingUser = findUserById(requestingUserId);
-    const isSelf = requestingUserId === targetUserId;
-    if (!requestingUser || (!isSelf && !isFounderOrAdmin(requestingUser.role))) {
+    // Query both requesting user and target user from Neon DB
+    const requestingUser = await findUserByIdAsync(requestingUserId);
+    const targetUser = await findUserByIdAsync(targetUserId);
+
+    if (!requestingUser) {
       return NextResponse.json(
-        { errors: [{ message: "You are not authorized to update this profile picture" }] },
-        { status: 403 }
+        { errors: [{ message: "Authenticated user account not found" }] },
+        { status: 404 }
       );
     }
 
-    // Verify target user exists
-    const targetUser = findUserById(targetUserId);
     if (!targetUser) {
       return NextResponse.json(
-        { errors: [{ message: "User not found" }] },
+        { errors: [{ message: "Target employee profile not found" }] },
         { status: 404 }
+      );
+    }
+
+    // Authorization Rule:
+    // 1. Every user CAN update their own profile picture.
+    // 2. Founder and Co-Founder can update any employee's profile picture.
+    const isSelf =
+      requestingUser.id === targetUser.id ||
+      requestingUser.email.toLowerCase() === targetUser.email.toLowerCase() ||
+      requestingUser.username.toLowerCase() === targetUser.username.toLowerCase();
+
+    const isPrivileged = isFounderOrAdmin(requestingUser.role);
+
+    if (!isSelf && !isPrivileged) {
+      return NextResponse.json(
+        { errors: [{ message: "You are not authorized to update this profile picture" }] },
+        { status: 403 }
       );
     }
 
@@ -89,30 +94,30 @@ export async function POST(
     // Ensure upload directory exists
     await mkdir(UPLOAD_DIR, { recursive: true });
 
-    // Generate a unique filename to prevent overwriting
+    // Generate unique filename
     const ext = file.type.split("/")[1] === "jpeg" ? "jpg" : file.type.split("/")[1];
-    const filename = `${targetUserId}_${Date.now()}.${ext}`;
+    const filename = `${targetUser.id}_${Date.now()}.${ext}`;
     const filepath = path.join(UPLOAD_DIR, filename);
 
     // Delete old avatar file if it exists
-    if (targetUser.avatar_url) {
+    if (targetUser.avatar_url && targetUser.avatar_url.includes("/uploads/avatars/")) {
       try {
         const oldFilename = targetUser.avatar_url.split("/").pop();
         if (oldFilename) {
           await unlink(path.join(UPLOAD_DIR, oldFilename));
         }
       } catch {
-        // Old file may not exist, ignore
+        // Old file missing, ignore
       }
     }
 
-    // Write file to disk
+    // Write new file to disk
     const buffer = Buffer.from(await file.arrayBuffer());
     await writeFile(filepath, buffer);
 
-    // Update user record with new avatar URL
+    // Persist new avatar URL to Neon DB
     const avatarUrl = `/uploads/avatars/${filename}`;
-    updateUser(targetUserId, { avatar_url: avatarUrl });
+    await updateUserAsync(targetUser.id, { avatar_url: avatarUrl });
 
     return NextResponse.json({
       data: {
@@ -122,7 +127,7 @@ export async function POST(
     });
   } catch (error: any) {
     return NextResponse.json(
-      { errors: [{ message: error.message || "Failed to upload avatar" }] },
+      { errors: [{ message: error.message || "Failed to upload profile picture" }] },
       { status: 500 }
     );
   }
@@ -135,9 +140,8 @@ export async function DELETE(
   try {
     const { id: targetUserId } = await params;
 
-    // Extract and validate requesting user (same as POST)
     const authHeader = req.headers.get("authorization") || "";
-    const token = authHeader.replace("Bearer ", "");
+    const token = authHeader.replace("Bearer ", "").trim();
     const tokenParts = token.split("_");
     const requestingUserId = tokenParts.length >= 4
       ? tokenParts.slice(2, -1).join("_")
@@ -150,44 +154,48 @@ export async function DELETE(
       );
     }
 
-    const requestingUser = findUserById(requestingUserId);
-    const isSelf = requestingUserId === targetUserId;
-    if (!requestingUser || (!isSelf && !isFounderOrAdmin(requestingUser.role))) {
+    const requestingUser = await findUserByIdAsync(requestingUserId);
+    const targetUser = await findUserByIdAsync(targetUserId);
+
+    if (!requestingUser || !targetUser) {
+      return NextResponse.json(
+        { errors: [{ message: "User account not found" }] },
+        { status: 404 }
+      );
+    }
+
+    const isSelf =
+      requestingUser.id === targetUser.id ||
+      requestingUser.email.toLowerCase() === targetUser.email.toLowerCase();
+
+    const isPrivileged = isFounderOrAdmin(requestingUser.role);
+
+    if (!isSelf && !isPrivileged) {
       return NextResponse.json(
         { errors: [{ message: "You are not authorized to remove this profile picture" }] },
         { status: 403 }
       );
     }
 
-    const targetUser = findUserById(targetUserId);
-    if (!targetUser) {
-      return NextResponse.json(
-        { errors: [{ message: "User not found" }] },
-        { status: 404 }
-      );
-    }
-
-    // Delete the avatar file
-    if (targetUser.avatar_url) {
+    if (targetUser.avatar_url && targetUser.avatar_url.includes("/uploads/avatars/")) {
       try {
         const oldFilename = targetUser.avatar_url.split("/").pop();
         if (oldFilename) {
           await unlink(path.join(UPLOAD_DIR, oldFilename));
         }
       } catch {
-        // File may not exist
+        // Ignore missing file
       }
     }
 
-    // Remove avatar URL from user record
-    updateUser(targetUserId, { avatar_url: null });
+    await updateUserAsync(targetUser.id, { avatar_url: null });
 
     return NextResponse.json({
       data: { message: "Profile picture removed successfully" },
     });
   } catch (error: any) {
     return NextResponse.json(
-      { errors: [{ message: error.message || "Failed to remove avatar" }] },
+      { errors: [{ message: error.message || "Failed to remove profile picture" }] },
       { status: 500 }
     );
   }

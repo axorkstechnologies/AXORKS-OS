@@ -6,6 +6,7 @@ import { useUIStore } from "@/stores/ui-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { cn } from "@/lib/utils";
 import { canAccessRoute } from "@/lib/user-repository";
+import { logout } from "@/lib/auth";
 import {
   LayoutDashboard,
   Target,
@@ -26,6 +27,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
+  LogOut,
 } from "lucide-react";
 
 /** Each nav item knows which route prefix it maps to for RBAC checks */
@@ -79,20 +81,21 @@ export function Sidebar() {
       <div>
         {/* Header / Logo */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-800">
-          <Link href="/" className="flex items-center gap-2.5 overflow-hidden">
-            <div className="relative w-8 h-8 flex-shrink-0">
-              <img
-                src="/images/Axorks_Logo_design_only.png"
-                alt="Axorks Symbol"
-                className="w-8 h-8 object-contain filter drop-shadow-[0_0_8px_rgba(124,58,237,0.4)]"
-              />
-            </div>
-            {!sidebarCollapsed && (
-              <div className="relative w-36 h-8 flex items-center">
+          <Link href="/" className="flex items-center overflow-hidden">
+            {sidebarCollapsed ? (
+              <div className="relative w-8 h-8 flex-shrink-0 mx-auto">
+                <img
+                  src="/images/Axorks_Logo_design_only.png"
+                  alt="Axorks Symbol"
+                  className="w-8 h-8 object-contain filter drop-shadow-[0_0_8px_rgba(124,58,237,0.4)]"
+                />
+              </div>
+            ) : (
+              <div className="relative w-40 h-9 flex items-center">
                 <img
                   src="/images/Axorks_Complete_logo.png"
                   alt="Axorks Technologies"
-                  className="w-36 h-8 object-contain object-left"
+                  className="w-40 h-9 object-contain object-left"
                 />
               </div>
             )}
@@ -138,8 +141,8 @@ export function Sidebar() {
         </nav>
       </div>
 
-      {/* Footer / Settings */}
-      <div className="p-2 border-t border-slate-200 dark:border-slate-800">
+      {/* Footer / Settings & Logout */}
+      <div className="p-2 border-t border-slate-200 dark:border-slate-800 space-y-1">
         <Link
           href="/settings/profile"
           className={cn(
@@ -151,6 +154,15 @@ export function Sidebar() {
           <Settings className="w-4 h-4 text-slate-400" />
           {!sidebarCollapsed && <span>Settings</span>}
         </Link>
+
+        <button
+          onClick={() => logout()}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-400 transition"
+          title={sidebarCollapsed ? "Logout" : undefined}
+        >
+          <LogOut className="w-4 h-4 text-rose-500" />
+          {!sidebarCollapsed && <span>Logout</span>}
+        </button>
       </div>
     </aside>
   );
