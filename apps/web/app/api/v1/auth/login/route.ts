@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
       // Check if account is active
       if (user.status !== "active") {
         return NextResponse.json(
-          { errors: [{ message: `Account is ${user.status}. Contact your administrator.` }] },
+          { errors: [{ message: "Restricted by Founder" }] },
           { status: 403 }
         );
       }

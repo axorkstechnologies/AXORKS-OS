@@ -79,14 +79,22 @@ export function Sidebar() {
       <div>
         {/* Header / Logo */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-800">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-violet-600/30">
-              AX
+          <Link href="/" className="flex items-center gap-2.5 overflow-hidden">
+            <div className="relative w-8 h-8 flex-shrink-0">
+              <img
+                src="/images/Axorks_Logo_design_only.png"
+                alt="Axorks Symbol"
+                className="w-8 h-8 object-contain filter drop-shadow-[0_0_8px_rgba(124,58,237,0.4)]"
+              />
             </div>
             {!sidebarCollapsed && (
-              <span className="font-bold tracking-tight text-slate-900 dark:text-slate-100 text-base">
-                Axorks OS
-              </span>
+              <div className="relative w-36 h-8 flex items-center">
+                <img
+                  src="/images/Axorks_Complete_logo.png"
+                  alt="Axorks Technologies"
+                  className="w-36 h-8 object-contain object-left"
+                />
+              </div>
             )}
           </Link>
 

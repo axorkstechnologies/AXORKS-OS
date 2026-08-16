@@ -187,6 +187,7 @@ if (!globalUserStore.__axorks_users_initialized) {
       role: "Founder",
       permissions: ["*"],
       status: "active",
+      avatar_url: "/images/MUHAMMAD_MUJAHID_Founder_pic.jpg",
       last_login_at: new Date().toISOString(),
       last_login_ip: "192.168.1.1",
       last_login_browser: "Chrome",

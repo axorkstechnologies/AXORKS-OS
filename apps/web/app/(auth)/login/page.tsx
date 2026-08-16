@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { login } from "@/lib/auth";
 import { toast } from "sonner";
-import { Lock, User, ArrowRight, Sparkles } from "lucide-react";
+import { Lock, User, ArrowRight, Sparkles, ShieldCheck } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,14 +34,14 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center p-4 overflow-hidden bg-slate-950">
-      {/* Full-screen High-Res Axorks Office Background */}
+      {/* Premium Axorks Office Background */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         <Image
-          src="/images/AxorkOffice.png"
+          src="/images/Axorks_Office.jpeg"
           alt="Axorks Office Background"
           fill
           priority
-          className="object-cover object-center filter brightness-[0.4] contrast-[1.15] scale-105 transition-transform duration-1000"
+          className="object-cover object-center filter brightness-[0.35] contrast-[1.2] scale-105 transition-transform duration-1000"
         />
         {/* Dark Ambient Gradients for Maximum Visual Comfort */}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-slate-950/40" />
@@ -50,16 +50,20 @@ export default function LoginPage() {
 
       {/* Foreground Login Card */}
       <div className="relative z-10 w-full max-w-md">
-        <div className="bg-slate-950/80 backdrop-blur-3xl p-8 rounded-3xl border border-white/15 shadow-2xl shadow-black/90 space-y-6">
+        <div className="bg-slate-950/85 backdrop-blur-3xl p-8 rounded-3xl border border-white/20 shadow-2xl shadow-black/90 space-y-6">
           {/* Header & Logo */}
-          <div className="text-center space-y-2">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-600 text-white font-black text-2xl shadow-xl shadow-violet-600/40 border border-white/20 mb-2">
-              AX
+          <div className="text-center space-y-3">
+            <div className="relative w-48 h-16 mx-auto flex items-center justify-center">
+              <Image
+                src="/images/Axorks_Complete_logo.png"
+                alt="Axorks Technologies Logo"
+                fill
+                priority
+                className="object-contain filter drop-shadow-[0_0_15px_rgba(124,58,237,0.5)]"
+              />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
-              Axorks OS <Sparkles className="w-4 h-4 text-violet-400" />
-            </h1>
-            <p className="text-slate-300 text-xs max-w-xs mx-auto">
+
+            <p className="text-slate-300 text-xs max-w-xs mx-auto font-medium">
               Enterprise Operating System for Software Agencies
             </p>
           </div>
@@ -111,7 +115,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-violet-600/30 flex items-center justify-center gap-2 transition active:scale-[0.99] disabled:opacity-50 mt-2"
+              className="w-full py-3.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-violet-600/30 flex items-center justify-center gap-2 transition active:scale-[0.99] disabled:opacity-50 mt-2"
             >
               {loading ? "Authenticating..." : "Sign in to Axorks OS"}
               <ArrowRight className="w-4 h-4" />
@@ -120,7 +124,9 @@ export default function LoginPage() {
 
           {/* Request Access & Footer */}
           <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
-            <span>Need access?</span>
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Secure Environment
+            </span>
             <Link
               href="/register"
               className="text-violet-400 font-semibold hover:text-violet-300 transition flex items-center gap-1"

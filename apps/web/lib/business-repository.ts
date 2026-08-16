@@ -678,3 +678,92 @@ export async function updateEmailFollowupAsync(id: string, updates: Partial<Emai
   }
   return null;
 }
+
+// ─── Screen Recordings Repository ───────────────────────────────────
+
+export interface ScreenRecordingRecord {
+  id: string;
+  user_id?: string;
+  recorded_by_id?: string;
+  recording_type: "screen" | "call";
+  title: string;
+  file_url?: string | null;
+  duration_seconds: number;
+  created_at: string;
+}
+
+export async function getScreenRecordingsAsync(): Promise<ScreenRecordingRecord[]> {
+  try {
+    const rows = await sql`
+      CREATE TABLE IF NOT EXISTS screen_recordings (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id TEXT,
+        recorded_by_id TEXT,
+        recording_type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        file_url TEXT,
+        duration_seconds INT DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      SELECT * FROM screen_recordings ORDER BY created_at DESC;
+    `;
+    if (rows && rows.length > 0) {
+      return rows.map((r: any) => ({
+        id: String(r.id),
+        user_id: r.user_id || undefined,
+        recorded_by_id: r.recorded_by_id || "user_founder_01",
+        recording_type: r.recording_type === "call" ? "call" : "screen",
+        title: r.title,
+        file_url: r.file_url || null,
+        duration_seconds: Number(r.duration_seconds || 0),
+        created_at: new Date(r.created_at).toISOString(),
+      }));
+    }
+  } catch (err) {
+    console.error("Error fetching screen recordings from Neon DB:", err);
+  }
+  return [];
+}
+
+export async function createScreenRecordingAsync(data: {
+  title: string;
+  recording_type?: "screen" | "call";
+  file_url?: string | null;
+  duration_seconds?: number;
+  user_id?: string;
+}): Promise<ScreenRecordingRecord> {
+  const title = data.title.trim();
+  const recordingType = data.recording_type || "screen";
+  const fileUrl = data.file_url || null;
+  const duration = data.duration_seconds || 0;
+  const userId = data.user_id || "00000000-0000-0000-0000-00000000000a";
+
+  const rows = await sql`
+    CREATE TABLE IF NOT EXISTS screen_recordings (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id TEXT,
+      recorded_by_id TEXT,
+      recording_type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      file_url TEXT,
+      duration_seconds INT DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    INSERT INTO screen_recordings (user_id, recorded_by_id, recording_type, title, file_url, duration_seconds, created_at)
+    VALUES (${userId}, '00000000-0000-0000-0000-00000000000a', ${recordingType}, ${title}, ${fileUrl}, ${duration}, NOW())
+    RETURNING *;
+  `;
+
+  const r = rows[0];
+  return {
+    id: String(r.id),
+    user_id: r.user_id || undefined,
+    recorded_by_id: r.recorded_by_id || "user_founder_01",
+    recording_type: r.recording_type === "call" ? "call" : "screen",
+    title: r.title,
+    file_url: r.file_url || null,
+    duration_seconds: Number(r.duration_seconds || 0),
+    created_at: new Date(r.created_at).toISOString(),
+  };
+}
+
