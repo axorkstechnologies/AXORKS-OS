@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir, unlink } from "fs/promises";
-import path from "path";
 import { findUserByIdAsync, updateUserAsync, isFounderOrAdmin } from "@/lib/user-repository";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "avatars");
+const MAX_SIZE_BYTES = 3 * 1024 * 1024; // 3MB limit for fast serverless base64 processing
 
 export async function POST(
   req: NextRequest,
@@ -70,7 +67,7 @@ export async function POST(
 
     if (!file) {
       return NextResponse.json(
-        { errors: [{ message: "No file uploaded" }] },
+        { errors: [{ message: "No image file uploaded" }] },
         { status: 400 }
       );
     }
@@ -78,7 +75,7 @@ export async function POST(
     // Validate file type
     if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
-        { errors: [{ message: "Invalid file type. Only JPEG, PNG, and WebP are allowed." }] },
+        { errors: [{ message: "Invalid file format. Only JPEG, PNG, and WebP images are allowed." }] },
         { status: 400 }
       );
     }
@@ -86,48 +83,30 @@ export async function POST(
     // Validate file size
     if (file.size > MAX_SIZE_BYTES) {
       return NextResponse.json(
-        { errors: [{ message: "File too large. Maximum size is 5MB." }] },
+        { errors: [{ message: "Image too large. Maximum size is 3MB." }] },
         { status: 400 }
       );
     }
 
-    // Ensure upload directory exists
-    await mkdir(UPLOAD_DIR, { recursive: true });
+    // Convert file to Base64 Data URL in memory (Serverless Production Safe)
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const base64Data = buffer.toString("base64");
+    const avatarUrl = `data:${file.type};base64,${base64Data}`;
 
-    // Generate unique filename
-    const ext = file.type.split("/")[1] === "jpeg" ? "jpg" : file.type.split("/")[1];
-    const filename = `${targetUser.id}_${Date.now()}.${ext}`;
-    const filepath = path.join(UPLOAD_DIR, filename);
-
-    // Delete old avatar file if it exists
-    if (targetUser.avatar_url && targetUser.avatar_url.includes("/uploads/avatars/")) {
-      try {
-        const oldFilename = targetUser.avatar_url.split("/").pop();
-        if (oldFilename) {
-          await unlink(path.join(UPLOAD_DIR, oldFilename));
-        }
-      } catch {
-        // Old file missing, ignore
-      }
-    }
-
-    // Write new file to disk
-    const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(filepath, buffer);
-
-    // Persist new avatar URL to Neon DB
-    const avatarUrl = `/uploads/avatars/${filename}`;
-    await updateUserAsync(targetUser.id, { avatar_url: avatarUrl });
+    // Persist Base64 Data URL directly into Neon PostgreSQL database
+    const updatedUser = await updateUserAsync(targetUser.id, { avatar_url: avatarUrl });
 
     return NextResponse.json({
       data: {
         avatar_url: avatarUrl,
+        user: updatedUser,
         message: "Profile picture updated successfully",
       },
     });
   } catch (error: any) {
     return NextResponse.json(
-      { errors: [{ message: error.message || "Failed to upload profile picture" }] },
+      { errors: [{ message: error.message || "Failed to process profile picture" }] },
       { status: 500 }
     );
   }
@@ -177,17 +156,7 @@ export async function DELETE(
       );
     }
 
-    if (targetUser.avatar_url && targetUser.avatar_url.includes("/uploads/avatars/")) {
-      try {
-        const oldFilename = targetUser.avatar_url.split("/").pop();
-        if (oldFilename) {
-          await unlink(path.join(UPLOAD_DIR, oldFilename));
-        }
-      } catch {
-        // Ignore missing file
-      }
-    }
-
+    // Remove avatar URL from Neon PostgreSQL
     await updateUserAsync(targetUser.id, { avatar_url: null });
 
     return NextResponse.json({
