@@ -144,10 +144,12 @@ export interface LeadRecord {
   decision_maker_title?: string;
   email?: string;
   phone?: string;
+  linkedin_url?: string;
   source?: string;
   status?: string;
   score?: number;
   notes?: string;
+  ai_research?: any;
   created_at: string;
   updated_at: string;
 }
@@ -166,10 +168,12 @@ export async function getLeadsAsync(): Promise<LeadRecord[]> {
         decision_maker_title: r.decision_maker_title || "Director",
         email: r.email || "",
         phone: r.phone || "",
+        linkedin_url: r.linkedin_url || "",
         source: r.source || "manual",
         status: r.status || "new",
         score: Number(r.score || 75),
         notes: r.notes || "",
+        ai_research: r.ai_research || null,
         created_at: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
         updated_at: r.updated_at ? new Date(r.updated_at).toISOString() : new Date().toISOString(),
       }));
@@ -203,9 +207,11 @@ export async function getLeadsAsync(): Promise<LeadRecord[]> {
         decision_maker_title: r.decision_maker_title,
         email: r.email,
         phone: r.phone,
+        linkedin_url: r.linkedin_url || "",
         source: r.source,
         status: r.status,
         score: Number(r.score),
+        ai_research: r.ai_research || null,
         created_at: new Date(r.created_at).toISOString(),
         updated_at: new Date(r.updated_at).toISOString(),
       }));
@@ -214,6 +220,37 @@ export async function getLeadsAsync(): Promise<LeadRecord[]> {
     console.error("Error fetching leads from Neon DB:", err);
   }
   return [];
+}
+
+export async function getLeadByIdAsync(id: string): Promise<LeadRecord | null> {
+  try {
+    const rows = await sql`SELECT * FROM leads WHERE id = ${id} AND deleted_at IS NULL LIMIT 1`;
+    if (rows && rows.length > 0) {
+      const r = rows[0];
+      return {
+        id: String(r.id),
+        business_name: r.business_name || "Prospect Company",
+        website: r.website || "",
+        industry: r.industry || "Technology",
+        country: r.country || "USA",
+        decision_maker_name: r.decision_maker_name || "Contact",
+        decision_maker_title: r.decision_maker_title || "Director",
+        email: r.email || "",
+        phone: r.phone || "",
+        linkedin_url: r.linkedin_url || "",
+        source: r.source || "manual",
+        status: r.status || "new",
+        score: Number(r.score || 75),
+        notes: r.notes || "",
+        ai_research: r.ai_research || null,
+        created_at: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
+        updated_at: r.updated_at ? new Date(r.updated_at).toISOString() : new Date().toISOString(),
+      };
+    }
+  } catch (err) {
+    console.error("Error fetching lead by id from Neon DB:", err);
+  }
+  return null;
 }
 
 export async function createLeadAsync(data: Partial<LeadRecord>): Promise<LeadRecord> {
@@ -225,14 +262,16 @@ export async function createLeadAsync(data: Partial<LeadRecord>): Promise<LeadRe
   const dmTitle = data.decision_maker_title || "";
   const email = data.email || "";
   const phone = data.phone || "";
+  const linkedinUrl = data.linkedin_url || "";
   const source = data.source || "manual";
   const status = data.status || "new";
   const score = data.score || 50;
   const notes = data.notes || "";
+  const aiResearch = data.ai_research ? JSON.stringify(data.ai_research) : null;
 
   const rows = await sql`
-    INSERT INTO leads (business_name, website, industry, country, decision_maker_name, decision_maker_title, email, phone, source, status, score, notes, created_at, updated_at)
-    VALUES (${businessName}, ${website}, ${industry}, ${country}, ${dmName}, ${dmTitle}, ${email}, ${phone}, ${source}, ${status}, ${score}, ${notes}, NOW(), NOW())
+    INSERT INTO leads (business_name, website, industry, country, decision_maker_name, decision_maker_title, email, phone, linkedin_url, source, status, score, notes, ai_research, created_at, updated_at)
+    VALUES (${businessName}, ${website}, ${industry}, ${country}, ${dmName}, ${dmTitle}, ${email}, ${phone}, ${linkedinUrl}, ${source}, ${status}, ${score}, ${notes}, ${aiResearch}, NOW(), NOW())
     RETURNING *;
   `;
 
@@ -247,13 +286,47 @@ export async function createLeadAsync(data: Partial<LeadRecord>): Promise<LeadRe
     decision_maker_title: r.decision_maker_title,
     email: r.email,
     phone: r.phone,
+    linkedin_url: r.linkedin_url,
     source: r.source,
     status: r.status,
     score: Number(r.score),
     notes: r.notes,
+    ai_research: r.ai_research,
     created_at: new Date(r.created_at).toISOString(),
     updated_at: new Date(r.updated_at).toISOString(),
   };
+}
+
+export async function updateLeadResearchAsync(id: string, researchData: any): Promise<boolean> {
+  try {
+    const researchJson = JSON.stringify(researchData);
+    const score = researchData.confidence_score !== undefined ? researchData.confidence_score : 85;
+    const website = researchData.verified_website || undefined;
+    const email = researchData.verified_email || undefined;
+    const dmName = researchData.decision_maker_name || undefined;
+    const dmTitle = researchData.decision_maker_role || undefined;
+    const linkedinUrl = researchData.decision_maker_linkedin || researchData.social_media?.linkedin_company || undefined;
+    const status = researchData.verification_status === "verified_real" ? "qualified" : undefined;
+
+    await sql`
+      UPDATE leads
+      SET
+        ai_research = ${researchJson},
+        score = COALESCE(${score}, score),
+        website = COALESCE(${website}, website),
+        email = COALESCE(${email}, email),
+        decision_maker_name = COALESCE(${dmName}, decision_maker_name),
+        decision_maker_title = COALESCE(${dmTitle}, decision_maker_title),
+        linkedin_url = COALESCE(${linkedinUrl}, linkedin_url),
+        status = COALESCE(${status}, status),
+        updated_at = NOW()
+      WHERE id = ${id};
+    `;
+    return true;
+  } catch (err) {
+    console.error("Error updating lead research in Neon DB:", err);
+    return false;
+  }
 }
 
 // ─── CRM Contacts Repository ────────────────────────────────────────

@@ -1,79 +1,242 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { AIScoreBadge } from "./ai-score-badge";
-import { ExternalLink, Mail, Phone } from "lucide-react";
+import {
+  ExternalLink,
+  Mail,
+  Phone,
+  Sparkles,
+  ShieldCheck,
+  ShieldAlert,
+  CheckSquare,
+  Square,
+  Check,
+} from "lucide-react";
 
 interface LeadTableViewProps {
   leads: any[];
+  onVerifyLeads?: (leadsToVerify: any[]) => void;
 }
 
-export function LeadTableView({ leads }: LeadTableViewProps) {
+export function LeadTableView({ leads, onVerifyLeads }: LeadTableViewProps) {
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
   if (leads.length === 0) {
     return (
-      <div className="text-center py-12 text-slate-500 text-xs glass rounded-xl border border-slate-800">
+      <div className="text-center py-12 text-slate-500 text-xs glass rounded-2xl border border-slate-200 dark:border-slate-800">
         No leads match your criteria. Create one or adjust your filters.
       </div>
     );
   }
 
+  const allSelected = leads.length > 0 && selectedIds.size === leads.length;
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(leads.map((l) => l.id)));
+    }
+  };
+
+  const toggleSelectLead = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    setSelectedIds(next);
+  };
+
+  const handleBulkVerify = () => {
+    if (!onVerifyLeads) return;
+    const selectedLeads = leads.filter((l) => selectedIds.has(l.id));
+    onVerifyLeads(selectedLeads.length > 0 ? selectedLeads : leads);
+  };
+
+  const handleSingleVerify = (lead: any) => {
+    if (!onVerifyLeads) return;
+    onVerifyLeads([lead]);
+  };
+
   return (
-    <div className="overflow-x-auto glass rounded-xl border border-slate-200 dark:border-slate-800">
-      <table className="w-full text-left text-xs">
-        <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-slate-500 font-semibold uppercase tracking-wider">
-          <tr>
-            <th className="p-3">Business</th>
-            <th className="p-3">Decision Maker</th>
-            <th className="p-3">Status</th>
-            <th className="p-3">Score</th>
-            <th className="p-3">Source</th>
-            <th className="p-3">Action</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-          {leads.map((lead) => (
-            <tr key={lead.id} className="hover:bg-slate-100/50 dark:hover:bg-slate-900/50 transition">
-              <td className="p-3">
-                <Link href={`/leads/${lead.id}`} className="font-semibold text-slate-900 dark:text-slate-100 hover:text-violet-500">
-                  {lead.business_name || "Untitled Business"}
-                </Link>
-                {lead.website && (
-                  <div className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
-                    <ExternalLink className="w-2.5 h-2.5" />
-                    <a href={lead.website.startsWith("http") ? lead.website : `https://${lead.website}`} target="_blank" rel="noreferrer" className="hover:underline">
-                      {lead.website}
-                    </a>
-                  </div>
-                )}
-              </td>
-              <td className="p-3">
-                <div className="font-medium text-slate-800 dark:text-slate-200">
-                  {lead.decision_maker_name || "—"}
-                </div>
-                <div className="text-[10px] text-slate-400">
-                  {lead.decision_maker_title || lead.email || ""}
-                </div>
-              </td>
-              <td className="p-3">
-                <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20">
-                  {lead.status}
-                </span>
-              </td>
-              <td className="p-3">
-                <AIScoreBadge score={lead.score} />
-              </td>
-              <td className="p-3 text-slate-400 capitalize">
-                {lead.source}
-              </td>
-              <td className="p-3">
-                <Link href={`/leads/${lead.id}`} className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-800 hover:bg-violet-600 hover:text-white transition text-[10px]">
-                  View
-                </Link>
-              </td>
+    <div className="space-y-3">
+      {/* Floating Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="p-3 glass rounded-2xl border border-violet-500/40 bg-violet-950/20 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-150 shadow-lg shadow-violet-900/20">
+          <div className="flex items-center gap-2 text-xs font-semibold text-violet-300">
+            <CheckSquare className="w-4 h-4 text-violet-400" />
+            <span>{selectedIds.size} of {leads.length} leads selected</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+            >
+              Clear Selection
+            </button>
+
+            <button
+              onClick={handleBulkVerify}
+              className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold shadow-md shadow-violet-600/30 transition flex items-center gap-1.5"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-violet-200 animate-pulse" />
+              <span>Verify Selected with Gemini AI</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Main Leads Table */}
+      <div className="overflow-x-auto glass rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+        <table className="w-full text-left text-xs">
+          <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px]">
+            <tr>
+              <th className="p-3.5 w-10 text-center">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={toggleSelectAll}
+                  className="rounded border-slate-700 text-violet-600 focus:ring-violet-500 cursor-pointer"
+                  title="Select all leads"
+                />
+              </th>
+              <th className="p-3.5">Business & Website</th>
+              <th className="p-3.5">AI Verification</th>
+              <th className="p-3.5">Decision Maker</th>
+              <th className="p-3.5">Status</th>
+              <th className="p-3.5">Score</th>
+              <th className="p-3.5">Source</th>
+              <th className="p-3.5 text-right">Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-slate-200/80 dark:divide-slate-800/80">
+            {leads.map((lead) => {
+              const isSelected = selectedIds.has(lead.id);
+              const aiResearch = lead.ai_research;
+              const isReal = aiResearch?.verification_status === "verified_real";
+              const isBogus = aiResearch?.verification_status === "suspicious_bogus";
+
+              return (
+                <tr
+                  key={lead.id}
+                  className={`hover:bg-slate-100/50 dark:hover:bg-slate-900/50 transition group ${
+                    isSelected ? "bg-violet-500/10 dark:bg-violet-950/20" : ""
+                  }`}
+                >
+                  <td className="p-3.5 text-center">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleSelectLead(lead.id)}
+                      className="rounded border-slate-700 text-violet-600 focus:ring-violet-500 cursor-pointer"
+                    />
+                  </td>
+
+                  <td className="p-3.5">
+                    <Link
+                      href={`/leads/${lead.id}`}
+                      className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-violet-500 transition-colors text-sm"
+                    >
+                      {lead.business_name || "Untitled Business"}
+                    </Link>
+                    {lead.website && (
+                      <div className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
+                        <ExternalLink className="w-3 h-3 text-slate-500 shrink-0" />
+                        <a
+                          href={lead.website.startsWith("http") ? lead.website : `https://${lead.website}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="hover:underline truncate max-w-xs"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {lead.website.replace(/^https?:\/\//, "")}
+                        </a>
+                      </div>
+                    )}
+                  </td>
+
+                  <td className="p-3.5">
+                    {aiResearch ? (
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                          isReal
+                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                            : isBogus
+                            ? "bg-rose-500/10 text-rose-400 border-rose-500/30"
+                            : "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                        }`}
+                        title={aiResearch.verification_notes || "Gemini verified lead"}
+                      >
+                        {isReal ? (
+                          <>
+                            <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                            Real ({aiResearch.confidence_score}%)
+                          </>
+                        ) : isBogus ? (
+                          <>
+                            <ShieldAlert className="w-3 h-3 text-rose-400" />
+                            Bogus ({aiResearch.confidence_score}%)
+                          </>
+                        ) : (
+                          "Uncertain"
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-slate-400 font-mono">Unverified</span>
+                    )}
+                  </td>
+
+                  <td className="p-3.5">
+                    <div className="font-semibold text-slate-800 dark:text-slate-200">
+                      {lead.decision_maker_name || "—"}
+                    </div>
+                    <div className="text-[10px] text-slate-400 truncate max-w-xs font-mono">
+                      {lead.decision_maker_title || lead.email || ""}
+                    </div>
+                  </td>
+
+                  <td className="p-3.5">
+                    <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20">
+                      {lead.status || "new"}
+                    </span>
+                  </td>
+
+                  <td className="p-3.5">
+                    <AIScoreBadge score={lead.score || 75} />
+                  </td>
+
+                  <td className="p-3.5 text-slate-400 capitalize text-[11px]">
+                    {lead.source || "manual"}
+                  </td>
+
+                  <td className="p-3.5 text-right space-x-1.5">
+                    <button
+                      onClick={() => handleSingleVerify(lead)}
+                      className="px-2.5 py-1 rounded-lg bg-violet-600/10 hover:bg-violet-600 text-violet-600 dark:text-violet-400 hover:text-white transition text-[11px] font-bold inline-flex items-center gap-1"
+                      title="Verify this single lead with Gemini AI"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      <span>AI Research</span>
+                    </button>
+
+                    <Link
+                      href={`/leads/${lead.id}`}
+                      className="px-2.5 py-1 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition text-[11px] font-medium inline-block"
+                    >
+                      View
+                    </Link>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

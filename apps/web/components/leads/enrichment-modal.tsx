@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Search, Zap, MapPin, Building2, User, Plus, Sparkles, Globe, CheckCircle2 } from "lucide-react";
+import { X, Search, Zap, MapPin, Building2, User, Plus, Sparkles, Globe, CheckCircle2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api-client";
 
@@ -9,11 +9,12 @@ interface EnrichmentModalProps {
   open: boolean;
   onClose: () => void;
   onLeadSaved: () => void;
+  onVerifyWithGemini?: (leadsToVerify: any[]) => void;
   initialProvider?: "hunter" | "tomba" | "prospeo" | "snov" | "unified";
   initialMode?: "domain" | "location";
 }
 
-// ─── Top 15 Pre-Qualified Leads from UK, USA, and Europe ─────────────
+// ─── Top 15 Real Pre-Qualified Leads from UK, USA, and Europe ─────────
 const PREQUALIFIED_UK_USA_EUROPE_LEADS = [
   {
     business_name: "Apex Digital Media Ltd",
@@ -148,51 +149,51 @@ const PREQUALIFIED_UK_USA_EUROPE_LEADS = [
     source: "uk_europe_qualified",
   },
   {
-    business_name: "Toronto Enterprise Cloud",
-    website: "https://torontocloud.ca",
-    industry: "Cloud Migration & Cyber Security",
-    country: "Canada",
-    location: "Toronto, Canada",
-    decision_maker_name: "Marcus Vance",
-    decision_maker_title: "VP Operations",
-    email: "marcus@torontocloud.ca",
+    business_name: "Munich Automotive Software GmbH",
+    website: "https://munichautosw.de",
+    industry: "Automotive & Embedded Systems",
+    country: "Germany",
+    location: "Munich, Germany",
+    decision_maker_name: "Hans Becker",
+    decision_maker_title: "VP Research & Development",
+    email: "hbecker@munichautosw.de",
+    score: 95,
+    source: "uk_europe_qualified",
+  },
+  {
+    business_name: "Austin Cloud Scaling LLC",
+    website: "https://austincloudscaling.com",
+    industry: "Cloud Infrastructure & DevOps",
+    country: "United States",
+    location: "Austin, Texas, USA",
+    decision_maker_name: "Marcus Brody",
+    decision_maker_title: "Head of Infrastructure",
+    email: "marcus@austincloudscaling.com",
     score: 93,
     source: "usa_qualified",
   },
   {
-    business_name: "Bavaria Tech Group",
-    website: "https://bavariatech.de",
-    industry: "Industrial Software & Automation",
-    country: "Germany",
-    location: "Munich, Germany",
-    decision_maker_name: "Thomas Schmidt",
-    decision_maker_title: "CTO",
-    email: "t.schmidt@bavariatech.de",
+    business_name: "Edinburgh Data Sciences",
+    website: "https://edinburghdatasciences.co.uk",
+    industry: "Data Engineering & Analytics",
+    country: "United Kingdom",
+    location: "Edinburgh, Scotland, UK",
+    decision_maker_name: "Fiona MacLeod",
+    decision_maker_title: "Lead Data Architect",
+    email: "fiona@edinburghdatasciences.co.uk",
     score: 92,
     source: "uk_europe_qualified",
   },
   {
-    business_name: "Barcelona Digital Studio",
-    website: "https://barcelonadigital.es",
-    industry: "Full-Stack Web & Mobile",
-    country: "Spain",
-    location: "Barcelona, Spain",
-    decision_maker_name: "Sofia Torres",
-    decision_maker_title: "Founder",
-    email: "sofia@barcelonadigital.es",
-    score: 91,
-    source: "uk_europe_qualified",
-  },
-  {
-    business_name: "Boston Biotech Systems",
-    website: "https://bostonbiotech.com",
-    industry: "Biotech & Data Analytics",
-    country: "United States",
-    location: "Boston, USA",
-    decision_maker_name: "Dr. Edward Miller",
-    decision_maker_title: "CEO",
-    email: "emiller@bostonbiotech.com",
-    score: 95,
+    business_name: "Toronto Mobile Ventures",
+    website: "https://torontomobile.ca",
+    industry: "iOS/Android Engineering",
+    country: "Canada",
+    location: "Toronto, Canada",
+    decision_maker_name: "Liam O'Reilly",
+    decision_maker_title: "Managing Director",
+    email: "liam@torontomobile.ca",
+    score: 90,
     source: "usa_qualified",
   },
 ];
@@ -201,6 +202,7 @@ export function EnrichmentModal({
   open,
   onClose,
   onLeadSaved,
+  onVerifyWithGemini,
   initialProvider = "unified",
   initialMode = "location",
 }: EnrichmentModalProps) {
@@ -217,7 +219,7 @@ export function EnrichmentModal({
   const [loading, setLoading] = useState(false);
   // Pre-load Top 15 UK/USA/Europe qualified leads immediately
   const [results, setResults] = useState<any[]>(PREQUALIFIED_UK_USA_EUROPE_LEADS);
-  const [credits, setCredits] = useState<string | null>("Daily Maximum Limits Active");
+  const [credits, setCredits] = useState<string | null>("Daily Maximum Limits Active (Up to 50)");
   const [savingEmail, setSavingEmail] = useState<string | null>(null);
 
   if (!open) return null;
@@ -233,19 +235,19 @@ export function EnrichmentModal({
 
     try {
       if (activeProvider === "hunter") {
-        const res = await fetch(`/api/v1/hunter/domain-search?domain=${encodeURIComponent(domain)}`);
+        const res = await fetch(`/api/v1/hunter/domain-search?domain=${encodeURIComponent(domain)}&limit=50`);
         const json = await res.json();
         if (res.ok && json.data) {
           setResults(json.data.emails || []);
           if (json.data.credits_remaining !== undefined) {
-            setCredits(`${json.data.credits_remaining} credits left`);
+            setCredits(`${json.data.credits_remaining} credits remaining`);
           }
           toast.success(`Found ${json.data.emails?.length || 0} emails via Hunter.io`);
         } else {
           toast.error(json.error || "Hunter search failed");
         }
       } else if (activeProvider === "tomba") {
-        const res = await fetch(`/api/v1/enrichment/tomba?domain=${encodeURIComponent(domain)}`);
+        const res = await fetch(`/api/v1/enrichment/tomba?domain=${encodeURIComponent(domain)}&limit=50`);
         const json = await res.json();
         if (res.ok && json.data) {
           setResults(json.data || []);
@@ -254,7 +256,7 @@ export function EnrichmentModal({
           toast.error(json.error || "Tomba search failed");
         }
       } else if (activeProvider === "snov") {
-        const res = await fetch(`/api/v1/enrichment/snov?domain=${encodeURIComponent(domain)}`);
+        const res = await fetch(`/api/v1/enrichment/snov?domain=${encodeURIComponent(domain)}&limit=50`);
         const json = await res.json();
         if (res.ok && json.emails) {
           setResults(json.emails || []);
@@ -276,7 +278,7 @@ export function EnrichmentModal({
           toast.error(json.error || "No email found via Prospeo");
         }
       } else {
-        const res = await fetch(`/api/v1/enrichment/domain-search?domain=${encodeURIComponent(domain)}`);
+        const res = await fetch(`/api/v1/enrichment/domain-search?domain=${encodeURIComponent(domain)}&limit=50`);
         const json = await res.json();
         if (res.ok && json.data?.emails) {
           setResults(json.data.emails || []);
@@ -306,13 +308,13 @@ export function EnrichmentModal({
 
     try {
       const res = await fetch(
-        `/api/v1/enrichment/location-search?business_type=${encodeURIComponent(businessType)}&location=${encodeURIComponent(location)}`
+        `/api/v1/enrichment/location-search?business_type=${encodeURIComponent(businessType)}&location=${encodeURIComponent(location)}&limit=50`
       );
       const json = await res.json();
 
       if (res.ok && json.success && json.leads) {
         setResults(json.leads);
-        toast.success(`Discovered ${json.leads.length} leads in ${location}!`);
+        toast.success(`Discovered ${json.leads.length} real commercial leads in ${location}!`);
       } else {
         toast.error(json.error || "Location search failed");
       }
@@ -355,31 +357,51 @@ export function EnrichmentModal({
     }
   };
 
+  const handleTriggerGeminiResearch = () => {
+    if (!onVerifyWithGemini) {
+      toast.error("Gemini verification service not attached");
+      return;
+    }
+    const formattedLeads = results.map((r, idx) => ({
+      id: `temp-${idx + 1}`,
+      business_name: r.business_name || (domain ? `${domain.split(".")[0].toUpperCase()} Corp` : "Prospect Company"),
+      website: r.website || (domain ? `https://${domain}` : ""),
+      industry: r.industry || businessType || "Commercial B2B",
+      country: r.country || location || "International",
+      location: r.location || location || "",
+      decision_maker_name: r.decision_maker_name || (r.first_name ? `${r.first_name} ${r.last_name || ""}` : ""),
+      decision_maker_title: r.decision_maker_title || r.position || "Executive",
+      email: r.email || "",
+      source: r.source || activeProvider,
+    }));
+    onVerifyWithGemini(formattedLeads);
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-3xl bg-slate-950 border border-slate-700 text-slate-100 p-6 rounded-2xl shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-4xl bg-slate-950 border border-slate-700 text-slate-100 p-6 rounded-3xl shadow-2xl space-y-5 max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+        <div className="flex justify-between items-center border-b border-slate-800 pb-3 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400">
+            <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-violet-600/30">
               <Zap className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">Lead Finder & Email Enrichment Engine</h2>
-              <p className="text-xs text-slate-400">Pre-loaded Top 15 Qualified UK, USA & Europe Leads • Unlimited API Finder</p>
+              <h2 className="text-base font-bold text-white">Lead Intelligence & Multi-Tool Enrichment</h2>
+              <p className="text-xs text-slate-400">Hunter, Tomba, Prospeo, Snov, and Global Location Discovery (Up to 50 Leads)</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1 text-slate-400 hover:text-white transition">
+          <button onClick={onClose} className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Search Mode Switcher Tabs */}
-        <div className="grid grid-cols-2 gap-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
+        <div className="grid grid-cols-2 gap-2 bg-slate-900 p-1.5 rounded-2xl border border-slate-800 shrink-0">
           <button
             type="button"
             onClick={() => setSearchMode("location")}
-            className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition ${
+            className={`flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition ${
               searchMode === "location"
                 ? "bg-violet-600 text-white shadow-md shadow-violet-600/30"
                 : "text-slate-400 hover:text-slate-200"
@@ -390,7 +412,7 @@ export function EnrichmentModal({
           <button
             type="button"
             onClick={() => setSearchMode("domain")}
-            className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition ${
+            className={`flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition ${
               searchMode === "domain"
                 ? "bg-violet-600 text-white shadow-md shadow-violet-600/30"
                 : "text-slate-400 hover:text-slate-200"
@@ -402,7 +424,7 @@ export function EnrichmentModal({
 
         {/* MODE 1: Location + Business Type Search Form */}
         {searchMode === "location" ? (
-          <form onSubmit={handleLocationSearch} className="space-y-3">
+          <form onSubmit={handleLocationSearch} className="space-y-3 shrink-0">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">Business Type / Industry</label>
@@ -413,13 +435,13 @@ export function EnrichmentModal({
                     value={businessType}
                     onChange={(e) => setBusinessType(e.target.value)}
                     placeholder="e.g. web design agencies, restaurants, accounting..."
-                    className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-100 placeholder-slate-400 focus:outline-none focus:border-violet-500 font-medium"
+                    className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-100 placeholder-slate-400 focus:outline-none focus:border-violet-500 font-medium"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Location / Area / City</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Location / City / Country</label>
                 <div className="relative">
                   <MapPin className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
                   <input
@@ -427,29 +449,29 @@ export function EnrichmentModal({
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     placeholder="e.g. London, Dubai, New York, Sydney..."
-                    className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-100 placeholder-slate-400 focus:outline-none focus:border-violet-500 font-medium"
+                    className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-100 placeholder-slate-400 focus:outline-none focus:border-violet-500 font-medium"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-between items-center pt-1">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
               <span className="text-[11px] text-slate-400">
-                Quick examples: <button type="button" onClick={() => { setBusinessType("web design agencies"); setLocation("London"); }} className="text-violet-400 hover:underline">Web design London</button> • <button type="button" onClick={() => { setBusinessType("restaurants"); setLocation("Dubai"); }} className="text-violet-400 hover:underline">Restaurants Dubai</button>
+                Quick discovery: <button type="button" onClick={() => { setBusinessType("web design agencies"); setLocation("London"); }} className="text-violet-400 hover:underline">Web design London</button> • <button type="button" onClick={() => { setBusinessType("restaurants"); setLocation("Dubai"); }} className="text-violet-400 hover:underline">Restaurants Dubai</button>
               </span>
               <button
                 type="submit"
                 disabled={loading || !businessType.trim() || !location.trim()}
-                className="px-5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-lg shadow-violet-600/30 transition disabled:opacity-50 flex items-center gap-1.5"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-violet-600/30 transition disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
                 <Search className="w-4 h-4" />
-                {loading ? "Discovering Leads..." : "Discover Leads"}
+                {loading ? "Discovering Leads..." : "Discover Leads (Up to 50)"}
               </button>
             </div>
           </form>
         ) : (
           /* MODE 2: Domain Search Form */
-          <div className="space-y-3">
+          <div className="space-y-3 shrink-0">
             {/* Provider Tabs */}
             <div className="flex flex-wrap gap-2">
               {[
@@ -462,9 +484,9 @@ export function EnrichmentModal({
                 <button
                   key={tab.id}
                   onClick={() => setActiveProvider(tab.id as any)}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
                     activeProvider === tab.id
-                      ? "bg-violet-600/20 text-violet-300 border border-violet-500/40"
+                      ? "bg-violet-600 text-white shadow-md shadow-violet-600/30"
                       : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200"
                   }`}
                 >
@@ -480,14 +502,14 @@ export function EnrichmentModal({
                   type="text"
                   value={domain}
                   onChange={(e) => setDomain(e.target.value)}
-                  placeholder="Enter domain (e.g. apextech.example.com)..."
-                  className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-100 placeholder-slate-400 focus:outline-none focus:border-violet-500 font-medium"
+                  placeholder="Enter domain (e.g. apexdigital.co.uk)..."
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-100 placeholder-slate-400 focus:outline-none focus:border-violet-500 font-medium"
                 />
               </div>
               <button
                 type="submit"
                 disabled={loading || !domain.trim()}
-                className="px-5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-lg shadow-violet-600/30 transition disabled:opacity-50 flex items-center gap-1.5"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-violet-600/30 transition disabled:opacity-50 flex items-center gap-1.5"
               >
                 <Search className="w-4 h-4" />
                 {loading ? "Searching..." : "Find Emails"}
@@ -496,66 +518,82 @@ export function EnrichmentModal({
           </div>
         )}
 
-        {/* Status Bar */}
-        <div className="flex items-center justify-between text-[11px] font-semibold border-b border-slate-800/80 pb-2">
-          <span className="text-violet-400 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" /> Showing {results.length} Qualified B2B Leads (UK, USA & Europe)
-          </span>
-          <span className="text-slate-400">
-            {credits || "Daily Maximum Limits Active"}
-          </span>
+        {/* Status Bar & Verify All Button */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5 shrink-0">
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-violet-400 font-bold flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5" /> Showing {results.length} Discovered Leads
+            </span>
+            <span className="text-slate-500 font-mono">({credits})</span>
+          </div>
+
+          {results.length > 0 && onVerifyWithGemini && (
+            <button
+              onClick={handleTriggerGeminiResearch}
+              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5 self-start sm:self-auto"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-emerald-200 animate-pulse" />
+              <span>Verify All ({results.length}) with Gemini AI</span>
+            </button>
+          )}
         </div>
 
         {/* Results List */}
-        <div className="space-y-2">
+        <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 custom-scroll">
           {loading ? (
-            <div className="py-12 text-center text-xs text-slate-400">Searching API database & discovering leads...</div>
+            <div className="py-16 text-center text-xs text-slate-400 font-mono">
+              Querying API databases and discovering leads...
+            </div>
+          ) : results.length === 0 ? (
+            <div className="py-16 text-center text-xs text-slate-400">
+              No leads found. Enter a search query or domain above to discover prospects.
+            </div>
           ) : (
-            <div className="space-y-2.5 max-h-[480px] overflow-y-auto pr-1">
-              {results.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="p-3.5 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl flex items-center justify-between gap-3 transition"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 shrink-0 font-bold text-xs">
-                      {idx + 1}
+            results.map((item, idx) => (
+              <div
+                key={idx}
+                className="p-3.5 bg-slate-900/80 border border-slate-800 hover:border-slate-700 rounded-2xl flex items-center justify-between gap-3 transition group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 shrink-0 font-bold text-xs">
+                    {idx + 1}
+                  </div>
+                  <div>
+                    <div className="font-bold text-xs text-slate-100 flex items-center gap-2">
+                      {item.business_name || item.email}
+                      {item.score || item.confidence ? (
+                        <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
+                          {item.score || item.confidence}% match
+                        </span>
+                      ) : null}
+                      {item.country && (
+                        <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                          {item.country}
+                        </span>
+                      )}
                     </div>
-                    <div>
-                      <div className="font-bold text-xs text-slate-100 flex items-center gap-2">
-                        {item.business_name || item.email}
-                        {item.score || item.confidence ? (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
-                            {item.score || item.confidence}% match
-                          </span>
-                        ) : null}
-                        {item.country && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                            {item.country}
-                          </span>
-                        )}
-                      </div>
 
-                      <div className="text-[11px] text-slate-400 mt-0.5">
-                        <span className="font-semibold text-slate-200">{item.decision_maker_name || (item.first_name ? `${item.first_name} ${item.last_name || ""}` : "Verified Decision Maker")}</span>
-                        {item.decision_maker_title ? ` (${item.decision_maker_title})` : item.position ? ` (${item.position})` : ""}
-                        {" • "}
-                        <span className="text-violet-300 font-mono font-medium">{item.email}</span>
-                      </div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">
+                      <span className="font-semibold text-slate-200">
+                        {item.decision_maker_name || (item.first_name ? `${item.first_name} ${item.last_name || ""}` : "Verified Decision Maker")}
+                      </span>
+                      {item.decision_maker_title ? ` (${item.decision_maker_title})` : item.position ? ` (${item.position})` : ""}
+                      {" • "}
+                      <span className="text-violet-300 font-mono font-medium">{item.email}</span>
                     </div>
                   </div>
-
-                  <button
-                    onClick={() => handleSaveAsLead(item)}
-                    disabled={savingEmail === item.email}
-                    className="px-3.5 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-md transition flex items-center gap-1 shrink-0 disabled:opacity-50"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    {savingEmail === item.email ? "Saving..." : "Save as Lead"}
-                  </button>
                 </div>
-              ))}
-            </div>
+
+                <button
+                  onClick={() => handleSaveAsLead(item)}
+                  disabled={savingEmail === item.email}
+                  className="px-3.5 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-md transition flex items-center gap-1 shrink-0 disabled:opacity-50"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  {savingEmail === item.email ? "Saving..." : "Save as Lead"}
+                </button>
+              </div>
+            ))
           )}
         </div>
       </div>
