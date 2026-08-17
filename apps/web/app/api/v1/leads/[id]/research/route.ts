@@ -14,7 +14,7 @@ export async function POST(
       const dbLead = await getLeadByIdAsync(id);
       if (!dbLead) {
         return NextResponse.json(
-          { success: false, error: "Lead not found" },
+          { success: false, error: "Lead not found", errors: [{ message: "Lead not found" }] },
           { status: 404 }
         );
       }
@@ -48,8 +48,14 @@ export async function POST(
     });
   } catch (error: any) {
     console.error("Single lead research API error:", error);
+    const errorMessage = error.message || "Failed to research lead with Gemini AI";
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to research lead" },
+      {
+        success: false,
+        error: errorMessage,
+        errors: [{ message: errorMessage }],
+        detail: errorMessage,
+      },
       { status: 500 }
     );
   }

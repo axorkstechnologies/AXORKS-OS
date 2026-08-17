@@ -61,7 +61,11 @@ async function buildRequest(endpoint: string, options: FetchOptions = {}) {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       const message =
-        errorData?.errors?.[0]?.message || errorData?.detail || `HTTP Error ${response.status}`;
+        errorData?.error ||
+        errorData?.errors?.[0]?.message ||
+        errorData?.detail ||
+        errorData?.message ||
+        `HTTP Error ${response.status}`;
       throw new Error(message);
     }
 
@@ -86,8 +90,10 @@ async function buildRequest(endpoint: string, options: FetchOptions = {}) {
       if (!fallbackResponse.ok) {
         const fallbackErrorData = await fallbackResponse.json().catch(() => ({}));
         const fallbackMessage =
+          fallbackErrorData?.error ||
           fallbackErrorData?.errors?.[0]?.message ||
           fallbackErrorData?.detail ||
+          fallbackErrorData?.message ||
           `HTTP Error ${fallbackResponse.status}`;
         throw new Error(fallbackMessage);
       }

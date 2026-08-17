@@ -70,12 +70,17 @@ export default function LeadsPage() {
         }),
       });
 
-      if (res.success && res.data) {
-        setResearchResults(res.data);
-        toast.success(`Gemini verified ${res.total_researched} leads (${res.verified_real_count} real, ${res.suspicious_count} bogus)`);
+      const resultsArray = Array.isArray(res) ? res : res?.data || [];
+      if (resultsArray.length > 0) {
+        setResearchResults(resultsArray);
+        const realCount = resultsArray.filter((r: any) => r.verification_status === "verified_real").length;
+        const bogusCount = resultsArray.filter((r: any) => r.verification_status === "suspicious_bogus").length;
+        toast.success(`Gemini verified ${resultsArray.length} lead${resultsArray.length > 1 ? "s" : ""} (${realCount} real, ${bogusCount} bogus)`);
         refetch();
+      } else if (res?.error) {
+        toast.error(res.error);
       } else {
-        toast.error(res.error || "Gemini research failed");
+        toast.error("No verification data returned by Gemini AI");
       }
     } catch (err: any) {
       toast.error(err.message || "Failed to execute AI lead verification");

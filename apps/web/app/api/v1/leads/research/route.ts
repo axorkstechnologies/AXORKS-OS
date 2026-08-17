@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
 
     if (!leads || !Array.isArray(leads) || leads.length === 0) {
       return NextResponse.json(
-        { success: false, error: "Please provide an array of leads to research." },
+        { success: false, error: "Please provide an array of leads to research.", errors: [{ message: "Please provide an array of leads to research." }] },
         { status: 400 }
       );
     }
@@ -39,8 +39,14 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: any) {
     console.error("Bulk lead research API error:", error);
+    const errorMessage = error.message || "Failed to research leads with Gemini AI";
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to research leads with Gemini AI" },
+      {
+        success: false,
+        error: errorMessage,
+        errors: [{ message: errorMessage }],
+        detail: errorMessage,
+      },
       { status: 500 }
     );
   }

@@ -42,10 +42,11 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
   const researchMutation = useMutation({
     mutationFn: () => apiClient(`/api/v1/leads/${id}/research`, { method: "POST" }),
     onSuccess: (res) => {
+      const researchData = res?.data || res;
       toast.success(
-        res.data?.is_real_business
-          ? `Gemini confirmed ${res.data.business_name} as VERIFIED REAL (${res.data.confidence_score}% confidence)`
-          : `Gemini marked ${res.data?.business_name || "lead"} as SUSPICIOUS/BOGUS`
+        researchData?.is_real_business
+          ? `Gemini confirmed ${researchData.business_name} as VERIFIED REAL (${researchData.confidence_score}% confidence)`
+          : `Gemini marked ${researchData?.business_name || "lead"} as SUSPICIOUS/BOGUS`
       );
       queryClient.invalidateQueries({ queryKey: ["lead", id] });
     },

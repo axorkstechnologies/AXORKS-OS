@@ -6,6 +6,9 @@
  * LinkedIn URLs, and social profiles.
  */
 
+import fs from "fs";
+import path from "path";
+
 export interface LeadToResearch {
   id?: string;
   lead_id?: string;
@@ -51,15 +54,54 @@ export interface LeadResearchResult {
   recommended_action: "Reach Out via Email" | "Manual Review Required" | "Discard as Bogus";
 }
 
-const GOOGLE_AI_API_KEY = process.env.GOOGLE_AI_API_KEY;
-
-// Multi-model fallback chain for high reliability
+// Active and verified working Gemini models (v1beta)
 const GEMINI_MODELS = [
-  "gemini-2.5-flash",
   "gemini-3.6-flash",
   "gemini-3.7-flash",
-  "gemini-flash-latest",
+  "gemini-3.1-flash-lite",
+  "gemini-3-flash-preview",
 ];
+
+/**
+ * Dynamically resolves the Google AI API key from environment or local env files.
+ */
+function getGoogleApiKey(): string {
+  if (process.env.GOOGLE_AI_API_KEY && process.env.GOOGLE_AI_API_KEY.trim().length > 0) {
+    return process.env.GOOGLE_AI_API_KEY.trim();
+  }
+  if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim().length > 0) {
+    return process.env.GEMINI_API_KEY.trim();
+  }
+
+  // Fallback: Check possible .env.local locations
+  const potentialPaths = [
+    path.join(process.cwd(), ".env.local"),
+    path.join(process.cwd(), "..", ".env.local"),
+    path.join(process.cwd(), "..", "..", ".env.local"),
+    "d:/AxorksOS/.env.local",
+    "d:/AxorksOS/apps/web/.env.local",
+  ];
+
+  for (const envPath of potentialPaths) {
+    try {
+      if (fs.existsSync(envPath)) {
+        const content = fs.readFileSync(envPath, "utf-8");
+        const match = content.match(/(?:GOOGLE_AI_API_KEY|GEMINI_API_KEY)=(.*)/);
+        if (match && match[1]) {
+          const key = match[1].trim();
+          if (key.length > 0) {
+            process.env.GOOGLE_AI_API_KEY = key;
+            return key;
+          }
+        }
+      }
+    } catch {
+      // Ignore filesystem access errors in restricted serverless environments
+    }
+  }
+
+  return "";
+}
 
 /**
  * Executes deep AI lead verification and research on a batch of leads using Gemini.
@@ -71,11 +113,14 @@ export async function researchLeadsWithGemini(
     return [];
   }
 
-  if (!GOOGLE_AI_API_KEY) {
-    throw new Error("GOOGLE_AI_API_KEY is not configured in server environment.");
+  const apiKey = getGoogleApiKey();
+  if (!apiKey) {
+    throw new Error(
+      "GOOGLE_AI_API_KEY is not configured. Please verify your Google Gemini API key in .env.local."
+    );
   }
 
-  // Chunk into batches of up to 10 leads per prompt to avoid timeout or output truncation
+  // Chunk into batches of up to 10 leads per prompt to ensure prompt token safety
   const CHUNK_SIZE = 10;
   const chunks: LeadToResearch[][] = [];
   for (let i = 0; i < leads.length; i += CHUNK_SIZE) {
@@ -85,7 +130,7 @@ export async function researchLeadsWithGemini(
   const allResults: LeadResearchResult[] = [];
 
   for (const chunk of chunks) {
-    const chunkResults = await processLeadChunk(chunk);
+    const chunkResults = await processLeadChunk(chunk, apiKey);
     allResults.push(...chunkResults);
   }
 
@@ -95,7 +140,10 @@ export async function researchLeadsWithGemini(
 /**
  * Processes an individual batch of leads with Gemini and handles model fallbacks.
  */
-async function processLeadChunk(chunk: LeadToResearch[]): Promise<LeadResearchResult[]> {
+async function processLeadChunk(
+  chunk: LeadToResearch[],
+  apiKey: string
+): Promise<LeadResearchResult[]> {
   const sanitizedInput = chunk.map((lead, idx) => ({
     lead_id: lead.id || lead.lead_id || `lead-${idx + 1}`,
     business_name: lead.business_name || "Unknown Company",
@@ -159,7 +207,7 @@ REQUIRED JSON RESPONSE SCHEMA:
 
   for (const model of GEMINI_MODELS) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GOOGLE_AI_API_KEY}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -177,7 +225,8 @@ REQUIRED JSON RESPONSE SCHEMA:
         lastError = new Error(
           `Gemini [${model}] HTTP ${res.status}: ${errorJson.error?.message || res.statusText}`
         );
-        continue; // Try next model in fallback list
+        console.warn(`Gemini model ${model} returned error:`, lastError.message);
+        continue; // Fallback to next working model in list
       }
 
       const data = await res.json();
@@ -193,36 +242,16 @@ REQUIRED JSON RESPONSE SCHEMA:
       }
     } catch (err: any) {
       lastError = err;
+      console.warn(`Gemini model ${model} fetch exception:`, err.message);
     }
   }
 
-  // If all Gemini models failed, generate structured fallback result with explicit error flag
-  return chunk.map((lead, idx) => ({
-    lead_id: lead.id || lead.lead_id || `lead-${idx + 1}`,
-    business_name: lead.business_name,
-    is_real_business: Boolean(lead.website && !lead.website.includes("fake")),
-    verification_status: "uncertain",
-    confidence: "Low",
-    confidence_score: 50,
-    appears_on_google: false,
-    google_presence_notes: "AI verification server temporarily unreachable. Verification queued.",
-    verified_website: lead.website || null,
-    website_status: lead.website ? "active" : "unconfirmed",
-    verified_email: lead.email || null,
-    email_status: lead.email ? "pattern_match" : "unconfirmed",
-    decision_maker_name: lead.decision_maker_name || null,
-    decision_maker_role: lead.decision_maker_title || null,
-    decision_maker_linkedin: null,
-    social_media: {
-      linkedin_company: null,
-      instagram: null,
-      facebook: null,
-      youtube: null,
-    },
-    business_summary: `${lead.business_name} in ${lead.industry || "General Industry"}.`,
-    verification_notes: lastError ? lastError.message : "Preliminary heuristic verification.",
-    recommended_action: "Manual Review Required",
-  }));
+  // If all models failed or encountered temporary demand spikes, throw descriptive error so user and API get the real reason
+  if (lastError) {
+    throw new Error(`Gemini Research Service: ${lastError.message}`);
+  }
+
+  throw new Error("Gemini AI lead verification service is temporarily unavailable.");
 }
 
 /**
