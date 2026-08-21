@@ -29,16 +29,16 @@ async function buildRequest(endpoint: string, options: FetchOptions = {}) {
   const { params, headers, ...restOptions } = options;
 
   const isBrowser = typeof window !== "undefined";
-  const isLocalhostApi = API_BASE_URL.includes("localhost:8000");
-  const isVercelHost = isBrowser && !window.location.hostname.includes("localhost");
 
-  // In production browser environment where API_BASE_URL points to localhost:8000,
-  // use relative endpoint directly to avoid CORS / connection refused network errors
-  let targetUrl = isVercelHost && isLocalhostApi ? endpoint : `${API_BASE_URL}${endpoint}`;
+  // In the browser, all Next.js API routes (/api/...) MUST be fetched from the current origin
+  let targetUrl = endpoint;
+  if (!isBrowser && API_BASE_URL && !endpoint.startsWith("http")) {
+    targetUrl = `${API_BASE_URL}${endpoint}`;
+  }
 
   if (params) {
     const searchParams = new URLSearchParams(params);
-    targetUrl += `?${searchParams.toString()}`;
+    targetUrl += (targetUrl.includes("?") ? "&" : "?") + searchParams.toString();
   }
 
   const token = getAccessToken();
