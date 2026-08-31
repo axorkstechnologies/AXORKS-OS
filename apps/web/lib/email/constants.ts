@@ -81,6 +81,7 @@ export interface EmailAnalyticsReport {
   };
   aliases: AliasMetric[];
   employees: EmployeeEmailMetric[];
+  executive_metrics?: EmployeeEmailMetric[];
   high_performer_day: EmployeeEmailMetric | null;
   high_performer_month: EmployeeEmailMetric | null;
 }

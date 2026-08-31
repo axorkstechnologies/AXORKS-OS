@@ -14,9 +14,13 @@ import {
   ShieldCheck,
   Zap,
 } from "lucide-react";
-import { type EmailAnalyticsReport, type EmployeeEmailMetric } from "@/lib/email/constants";
+import { useAuthStore } from "@/stores/auth-store";
+import { EmailAnalyticsReport, EmployeeEmailMetric } from "@/lib/email/constants";
 
 export function EmailLeaderboard() {
+  const { user: currentUser } = useAuthStore();
+  const isExecutive = currentUser?.role === "Founder" || currentUser?.role === "Co-Founder";
+
   const { data: response, isLoading } = useQuery<{ success: boolean; data: EmailAnalyticsReport }>({
     queryKey: ["email-analytics"],
     queryFn: () => apiClient("/api/v1/email/analytics"),
@@ -24,6 +28,7 @@ export function EmailLeaderboard() {
 
   const report = response?.data || (response as any);
   const employees: EmployeeEmailMetric[] = report?.employees || [];
+  const executiveMetrics: EmployeeEmailMetric[] = report?.executive_metrics || [];
   const highPerformerDay = report?.high_performer_day;
   const highPerformerMonth = report?.high_performer_month;
 
@@ -37,6 +42,40 @@ export function EmailLeaderboard() {
 
   return (
     <div className="space-y-6">
+      {/* Private Executive Metrics (Visible Only to Founder & Co-Founder) */}
+      {isExecutive && executiveMetrics.length > 0 && (
+        <div className="p-5 rounded-3xl bg-slate-900/60 border border-violet-500/30 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-violet-300 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-violet-400" /> Private Executive Achievements (Founder & Co-Founder)
+            </h3>
+            <span className="text-[10px] text-violet-400 font-mono">Excluded from Public Employee Competition</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {executiveMetrics.map((exec) => (
+              <div
+                key={exec.user_id}
+                className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center justify-between text-xs"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-violet-600/20 text-violet-300 border border-violet-500/30 flex items-center justify-center font-bold">
+                    {exec.user_name[0] || "E"}
+                  </div>
+                  <div>
+                    <span className="font-bold text-slate-100 block">{exec.user_name}</span>
+                    <span className="text-[10px] text-slate-400">{exec.role}</span>
+                  </div>
+                </div>
+                <div className="text-right font-mono">
+                  <span className="text-sm font-bold text-violet-300 block">{exec.score} pts</span>
+                  <span className="text-[10px] text-slate-500">{exec.total_sent} sent • {exec.converted_clients} deals</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {/* High Performer Spotlight Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* High Performer of the Day */}

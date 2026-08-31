@@ -21,6 +21,10 @@ export interface ProjectRecord {
   description?: string;
   tech_stack?: string[];
   team_members?: string[];
+  assigned_to?: string[];
+  assigned_to_names?: string[];
+  assigned_by?: string;
+  assigned_at?: string;
   created_at: string;
   updated_at: string;
 }
@@ -41,6 +45,10 @@ export async function getProjectsAsync(): Promise<ProjectRecord[]> {
         description: r.description || "",
         tech_stack: r.tech_stack || ["Next.js", "TypeScript"],
         team_members: r.team_members || ["Muhammad Mujahid", "Farwa"],
+        assigned_to: Array.isArray(r.assigned_to) ? r.assigned_to : [],
+        assigned_to_names: Array.isArray(r.assigned_to_names) ? r.assigned_to_names : [],
+        assigned_by: r.assigned_by || undefined,
+        assigned_at: r.assigned_at ? new Date(r.assigned_at).toISOString() : undefined,
         created_at: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
         updated_at: r.updated_at ? new Date(r.updated_at).toISOString() : new Date().toISOString(),
       }));
@@ -48,7 +56,7 @@ export async function getProjectsAsync(): Promise<ProjectRecord[]> {
 
     // Seed default project into DB if empty
     const seed = await sql`
-      INSERT INTO projects (name, client_name, status, budget, spent, deadline, health, description, tech_stack, team_members)
+      INSERT INTO projects (name, client_name, status, budget, spent, deadline, health, description, tech_stack, team_members, assigned_to_names)
       VALUES (
         'Axorks OS Enterprise System',
         'Axorks Technologies',
@@ -59,7 +67,8 @@ export async function getProjectsAsync(): Promise<ProjectRecord[]> {
         'good',
         'Next-Gen Operating System for Software Agencies',
         ARRAY['Next.js', 'TypeScript', 'PostgreSQL', 'TailwindCSS'],
-        ARRAY['Muhammad Mujahid', 'Farwa', 'Farhana Bakht']
+        ARRAY['Muhammad Mujahid', 'Farwa', 'Farhana Bakht'],
+        ARRAY['Muhammad Mujahid']
       ) RETURNING *;
     `;
     if (seed && seed.length > 0) {
@@ -75,6 +84,10 @@ export async function getProjectsAsync(): Promise<ProjectRecord[]> {
         description: r.description,
         tech_stack: r.tech_stack,
         team_members: r.team_members,
+        assigned_to: Array.isArray(r.assigned_to) ? r.assigned_to : [],
+        assigned_to_names: Array.isArray(r.assigned_to_names) ? r.assigned_to_names : [],
+        assigned_by: r.assigned_by || undefined,
+        assigned_at: r.assigned_at ? new Date(r.assigned_at).toISOString() : undefined,
         created_at: new Date(r.created_at).toISOString(),
         updated_at: new Date(r.updated_at).toISOString(),
       }));
@@ -83,6 +96,52 @@ export async function getProjectsAsync(): Promise<ProjectRecord[]> {
     console.error("Error fetching projects from Neon DB:", err);
   }
   return [];
+}
+
+export async function assignProjectEngineersAsync(
+  projectId: string,
+  assignedToUserIds: string[],
+  assignedToNames: string[],
+  assignedBy: string = "Founder"
+): Promise<ProjectRecord | null> {
+  try {
+    const rows = await sql`
+      UPDATE projects
+      SET assigned_to = ${assignedToUserIds},
+          assigned_to_names = ${assignedToNames},
+          assigned_by = ${assignedBy},
+          assigned_at = NOW(),
+          updated_at = NOW()
+      WHERE id::text = ${projectId}
+      RETURNING *;
+    `;
+
+    if (rows && rows.length > 0) {
+      const r = rows[0];
+      return {
+        id: String(r.id),
+        name: r.name,
+        client_name: r.client_name,
+        status: r.status,
+        budget: Number(r.budget || 0),
+        spent: Number(r.spent || 0),
+        deadline: r.deadline ? new Date(r.deadline).toISOString().split("T")[0] : "2026-12-31",
+        health: r.health,
+        description: r.description,
+        tech_stack: r.tech_stack,
+        team_members: r.team_members,
+        assigned_to: Array.isArray(r.assigned_to) ? r.assigned_to : [],
+        assigned_to_names: Array.isArray(r.assigned_to_names) ? r.assigned_to_names : [],
+        assigned_by: r.assigned_by,
+        assigned_at: r.assigned_at ? new Date(r.assigned_at).toISOString() : undefined,
+        created_at: new Date(r.created_at).toISOString(),
+        updated_at: new Date(r.updated_at).toISOString(),
+      };
+    }
+  } catch (err) {
+    console.error("Error assigning project engineers in Neon DB:", err);
+  }
+  return null;
 }
 
 export async function createProjectAsync(data: {
@@ -999,10 +1058,13 @@ export async function getEmailAnalyticsAsync(): Promise<EmailAnalyticsReport> {
     `;
 
     const employeeMetrics: EmployeeEmailMetric[] = [];
+    const executiveMetrics: EmployeeEmailMetric[] = [];
 
     for (const u of users) {
       const uId = String(u.id);
       const uName = `${u.first_name || ""} ${u.last_name || ""}`.trim() || "Team Member";
+      const uRole = u.role || "Team Member";
+      const uEmail = (u.email || "").toLowerCase();
 
       const uSent = await sql`
         SELECT COUNT(*)::int AS count FROM workspace_emails
@@ -1023,23 +1085,38 @@ export async function getEmailAnalyticsAsync(): Promise<EmailAnalyticsReport> {
       const convRate = s > 0 ? Math.round((c / s) * 1000) / 10 : 0;
       const score = (s * 1) + (f * 2) + (c * 10);
 
-      employeeMetrics.push({
+      const metric: EmployeeEmailMetric = {
         user_id: uId,
         user_name: uName,
-        role: u.role || "Team Member",
+        role: uRole,
         avatar_url: u.avatar_url || undefined,
         total_sent: s,
         followups_sent: f,
         converted_clients: c,
         conversion_rate: convRate,
         score,
-      });
+      };
+
+      const isExecutive =
+        uRole === "Founder" ||
+        uRole === "Co-Founder" ||
+        uEmail === "mujahidaryan222149@gmail.com" ||
+        uEmail === "heyfarii@gmail.com" ||
+        uEmail === "muhammad.mujahid@axorks.com" ||
+        uEmail === "farhana.bakht@axorks.com";
+
+      if (isExecutive) {
+        executiveMetrics.push(metric);
+      } else {
+        employeeMetrics.push(metric);
+      }
     }
 
-    // Sort by score descending
+    // Sort employee leaderboard by score descending
     employeeMetrics.sort((a, b) => b.score - a.score);
+    executiveMetrics.sort((a, b) => b.score - a.score);
 
-    // Assign badges
+    // Assign badges to employee leaderboard
     if (employeeMetrics.length > 0) employeeMetrics[0].badge = "Outreach Champion 👑";
     if (employeeMetrics.length > 1) employeeMetrics[1].badge = "Top Closer 🎯";
     if (employeeMetrics.length > 2) employeeMetrics[2].badge = "Rising Star 🚀";
@@ -1056,6 +1133,7 @@ export async function getEmailAnalyticsAsync(): Promise<EmailAnalyticsReport> {
       },
       aliases: aliasMetrics,
       employees: employeeMetrics,
+      executive_metrics: executiveMetrics,
       high_performer_day: topPerformer,
       high_performer_month: topPerformer,
     };

@@ -15,8 +15,13 @@ import { PRIMARY_WORKSPACE_EMAIL, WORKSPACE_ALIASES, WorkspaceAlias } from "./co
 
 export { PRIMARY_WORKSPACE_EMAIL, WORKSPACE_ALIASES, type WorkspaceAlias };
 
-export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
-export const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
+/** Read Google credentials lazily at call time so env vars are always resolved */
+export function getGoogleClientId(): string {
+  return process.env.GOOGLE_CLIENT_ID || "";
+}
+export function getGoogleClientSecret(): string {
+  return process.env.GOOGLE_CLIENT_SECRET || "";
+}
 
 const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.modify";
 

@@ -103,20 +103,44 @@ export function EmailInboxList({ onSelectEmail, selectedEmailId }: EmailInboxLis
           >
             All Mail
           </button>
-          {WORKSPACE_ALIASES.map((alias) => (
-            <button
-              key={alias}
-              onClick={() => setSelectedAlias(alias)}
-              className={`px-2.5 py-1.5 rounded-xl text-xs font-mono font-medium whitespace-nowrap transition border ${
-                selectedAlias === alias
-                  ? "bg-slate-800 text-slate-100 border-violet-500/50 shadow-xs"
-                  : "text-slate-400 border-transparent hover:text-slate-200 hover:bg-slate-800/40"
-              }`}
-            >
-              {alias.replace("@axorks.com", "")}
-              <span className="text-[10px] text-slate-500">@axorks.com</span>
-            </button>
-          ))}
+          {WORKSPACE_ALIASES.map((alias) => {
+            const isActive = selectedAlias === alias;
+            const colorMap: Record<string, { active: string; inactive: string }> = {
+              "sales@axorks.com": {
+                active: "bg-emerald-600 text-white border-emerald-500 shadow-sm shadow-emerald-600/40",
+                inactive: "bg-emerald-500/15 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25 hover:text-emerald-200",
+              },
+              "contact@axorks.com": {
+                active: "bg-blue-600 text-white border-blue-500 shadow-sm shadow-blue-600/40",
+                inactive: "bg-blue-500/15 text-blue-300 border-blue-500/40 hover:bg-blue-500/25 hover:text-blue-200",
+              },
+              "hello@axorks.com": {
+                active: "bg-violet-600 text-white border-violet-500 shadow-sm shadow-violet-600/40",
+                inactive: "bg-violet-500/15 text-violet-300 border-violet-500/40 hover:bg-violet-500/25 hover:text-violet-200",
+              },
+              "careers@axorks.com": {
+                active: "bg-amber-600 text-white border-amber-500 shadow-sm shadow-amber-600/40",
+                inactive: "bg-amber-500/15 text-amber-300 border-amber-500/40 hover:bg-amber-500/25 hover:text-amber-200",
+              },
+              "muhammad.mujahid@axorks.com": {
+                active: "bg-purple-600 text-white border-purple-500 shadow-sm shadow-purple-600/40",
+                inactive: "bg-purple-500/15 text-purple-300 border-purple-500/40 hover:bg-purple-500/25 hover:text-purple-200",
+              },
+            };
+            const colors = colorMap[alias] || colorMap["muhammad.mujahid@axorks.com"];
+            return (
+              <button
+                key={alias}
+                onClick={() => setSelectedAlias(alias)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border ${
+                  isActive ? colors.active : colors.inactive
+                }`}
+              >
+                {alias.replace("@axorks.com", "")}
+                <span className={`text-[10px] ml-0.5 ${isActive ? "text-white/70" : "opacity-60"}`}>@axorks</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Search & Actions */}
