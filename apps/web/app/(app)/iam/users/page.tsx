@@ -351,19 +351,19 @@ export default function IAMUsersPage() {
         </div>
       ) : (
         /* Desktop Table View */
-        <div className="glass rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="glass rounded-2xl border border-slate-800 bg-slate-950/90 overflow-hidden shadow-xl">
           <table className="w-full text-xs">
-            <thead className="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+            <thead className="bg-slate-900 border-b border-slate-700 text-slate-200 font-bold">
               <tr>
-                <th className="text-left p-3 text-slate-500 font-semibold">Employee</th>
-                <th className="text-left p-3 text-slate-500 font-semibold">Username</th>
-                <th className="text-left p-3 text-slate-500 font-semibold">Department</th>
-                <th className="text-left p-3 text-slate-500 font-semibold">Role</th>
-                <th className="text-left p-3 text-slate-500 font-semibold">Status</th>
-                <th className="text-right p-3 text-slate-500 font-semibold">Actions</th>
+                <th className="text-left p-3.5 text-slate-200 font-bold">Employee</th>
+                <th className="text-left p-3.5 text-slate-200 font-bold">Username</th>
+                <th className="text-left p-3.5 text-slate-200 font-bold">Department</th>
+                <th className="text-left p-3.5 text-slate-200 font-bold">Role</th>
+                <th className="text-left p-3.5 text-slate-200 font-bold">Status</th>
+                <th className="text-right p-3.5 text-slate-200 font-bold">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+            <tbody className="divide-y divide-slate-800">
               {users.map((u: any) => {
                 const protectedUser = isProtectedProfile(u);
                 return (

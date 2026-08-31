@@ -158,11 +158,11 @@ export default function ProjectsListPage() {
   });
 
   const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; border: string }> = {
-    active: { label: "In Progress", bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/30" },
-    in_progress: { label: "In Progress", bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/30" },
-    planning: { label: "Planning", bg: "bg-slate-500/10", text: "text-slate-400", border: "border-slate-500/30" },
-    on_hold: { label: "On Hold", bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/30" },
-    completed: { label: "Completed", bg: "bg-cyan-500/10", text: "text-cyan-400", border: "border-cyan-500/30" },
+    active: { label: "In Progress", bg: "bg-emerald-500/20", text: "text-emerald-300 font-bold", border: "border-emerald-500/40" },
+    in_progress: { label: "In Progress", bg: "bg-emerald-500/20", text: "text-emerald-300 font-bold", border: "border-emerald-500/40" },
+    planning: { label: "Planning", bg: "bg-violet-500/20", text: "text-violet-300 font-bold", border: "border-violet-500/40" },
+    on_hold: { label: "On Hold", bg: "bg-amber-500/20", text: "text-amber-300 font-bold", border: "border-amber-500/40" },
+    completed: { label: "Completed", bg: "bg-cyan-500/20", text: "text-cyan-300 font-bold", border: "border-cyan-500/40" },
   };
 
   return (
@@ -171,43 +171,43 @@ export default function ProjectsListPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Project Operations & Delivery</h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-violet-500/10 text-violet-500 dark:text-violet-400 border border-violet-500/20">
+            <h1 className="text-xl font-black tracking-tight text-white">Project Operations & Delivery</h1>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-violet-500/20 text-violet-300 border border-violet-500/40">
               {total} Projects
             </span>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs text-slate-300 font-medium mt-1">
             Enterprise delivery tracking, engineer task assignments, and milestone budgets in Neon DB
           </p>
         </div>
 
         <button
           onClick={() => setShowCreate(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-violet-600/30 transition transform active:scale-95 shrink-0"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-black shadow-lg shadow-violet-600/40 transition transform active:scale-95 shrink-0"
         >
           <Plus className="w-4 h-4" /> New Project
         </button>
       </div>
 
-      {/* Filter Tabs & Search Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/40 p-2.5 rounded-2xl border border-slate-800 backdrop-blur-sm">
-        <div className="flex items-center gap-1.5">
+      {/* Filter and Search Tabs */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl border border-slate-800 bg-slate-900/80 shadow-md">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           <button
             onClick={() => setFilterMode("all")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition border ${
               filterMode === "all"
-                ? "bg-violet-600 text-white shadow-sm shadow-violet-600/30"
-                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+                ? "bg-violet-600 text-white border-violet-500 shadow-sm shadow-violet-600/40"
+                : "bg-slate-950 text-slate-300 border-slate-800 hover:text-white hover:bg-slate-800"
             }`}
           >
             All Projects ({projects.length})
           </button>
           <button
             onClick={() => setFilterMode("assigned")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border ${
               filterMode === "assigned"
-                ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/30"
-                : "text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                ? "bg-emerald-600 text-white border-emerald-500 shadow-sm shadow-emerald-600/40"
+                : "bg-slate-950 text-emerald-300 border-emerald-500/40 hover:text-white hover:bg-emerald-950/40"
             }`}
           >
             <UserCheck className="w-3.5 h-3.5" /> Assigned to Me
@@ -215,13 +215,13 @@ export default function ProjectsListPage() {
         </div>
 
         <div className="relative w-full sm:max-w-xs">
-          <Search className="w-3.5 h-3.5 absolute left-3.5 top-2.5 text-slate-500" />
+          <Search className="w-3.5 h-3.5 absolute left-3.5 top-2.5 text-slate-400" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search projects or engineers..."
-            className="w-full pl-9 pr-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-hidden focus:border-violet-500 transition"
+            className="w-full pl-9 pr-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-400 focus:outline-hidden focus:border-violet-500 font-medium transition"
           />
         </div>
       </div>

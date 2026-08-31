@@ -70,40 +70,40 @@ export default function SecuritySettingsPage() {
   return (
     <div className="space-y-6 max-w-5xl">
       <div>
-        <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+        <h1 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
           <ShieldAlert className="w-5 h-5 text-rose-500" /> Security & Access Sentinel
         </h1>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+        <p className="text-xs text-slate-300 font-medium mt-1">
           Automated IP brute-force protection, lockout enforcement, session security, and access control
         </p>
       </div>
 
       {/* Sentinel Rules Overview Card */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-2">
-          <div className="flex items-center gap-2 text-amber-500 font-bold text-xs">
-            <Clock className="w-4 h-4" /> Tier 1: 10-Min Lockout
+        <div className="p-4 rounded-2xl bg-amber-500/15 border border-amber-500/30 space-y-2">
+          <div className="flex items-center gap-2 text-amber-300 font-black text-xs">
+            <Clock className="w-4 h-4 text-amber-400" /> Tier 1: 10-Min Lockout
           </div>
-          <p className="text-xs text-slate-300">
-            Triggered automatically after <strong>3 failed login attempts</strong> from the same IP.
+          <p className="text-xs text-slate-200 font-medium">
+            Triggered automatically after <strong className="text-white">3 failed login attempts</strong> from the same IP.
           </p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-orange-500/10 border border-orange-500/20 space-y-2">
-          <div className="flex items-center gap-2 text-orange-500 font-bold text-xs">
-            <AlertTriangle className="w-4 h-4" /> Tier 2: 45-Min Lockout
+        <div className="p-4 rounded-2xl bg-orange-500/15 border border-orange-500/30 space-y-2">
+          <div className="flex items-center gap-2 text-orange-300 font-black text-xs">
+            <AlertTriangle className="w-4 h-4 text-orange-400" /> Tier 2: 45-Min Lockout
           </div>
-          <p className="text-xs text-slate-300">
-            Triggered automatically after <strong>6 failed login attempts</strong> from the same IP.
+          <p className="text-xs text-slate-200 font-medium">
+            Triggered automatically after <strong className="text-white">6 failed login attempts</strong> from the same IP.
           </p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 space-y-2">
-          <div className="flex items-center gap-2 text-rose-500 font-bold text-xs">
-            <Ban className="w-4 h-4" /> Tier 3: Permanent Block
+        <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 space-y-2">
+          <div className="flex items-center gap-2 text-rose-300 font-black text-xs">
+            <Ban className="w-4 h-4 text-rose-400" /> Tier 3: Permanent Block
           </div>
-          <p className="text-xs text-slate-300">
-            Triggered after <strong>9+ failures</strong>. Locked permanently until manually unblocked by Founder.
+          <p className="text-xs text-slate-200 font-medium">
+            Triggered after <strong className="text-white">9+ failures</strong>. Locked permanently until manually unblocked by Founder.
           </p>
         </div>
       </div>

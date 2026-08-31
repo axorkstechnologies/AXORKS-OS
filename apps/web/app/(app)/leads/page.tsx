@@ -95,14 +95,14 @@ export default function LeadsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+            <h1 className="text-xl font-black tracking-tight text-white">
               Lead Intelligence & AI Verification
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-violet-500/10 text-violet-500 dark:text-violet-400 border border-violet-500/20">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-violet-500/20 text-violet-300 border border-violet-500/40">
               {leads.length} Leads
             </span>
           </div>
-          <p className="text-slate-500 dark:text-slate-400 text-xs mt-1">
+          <p className="text-slate-300 text-xs font-medium mt-1">
             Multi-source API enrichment with one-click Google Gemini commercial verification & bogus lead filtering
           </p>
         </div>
@@ -112,7 +112,7 @@ export default function LeadsPage() {
             <button
               onClick={() => handleStartResearch(leads)}
               disabled={isResearching}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition transform active:scale-95 disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-md shadow-emerald-600/30 transition transform active:scale-95 disabled:opacity-50"
             >
               <Sparkles className="w-3.5 h-3.5 text-emerald-200 animate-pulse" />
               <span>Verify All with Gemini AI</span>
@@ -121,14 +121,14 @@ export default function LeadsPage() {
 
           <Link
             href="/leads/import"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 glass text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900 transition"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-700 bg-slate-900 text-xs font-bold text-slate-200 hover:text-white hover:bg-slate-800 transition"
           >
             <Upload className="w-3.5 h-3.5" /> Import CSV
           </Link>
 
           <button
             onClick={() => setCreateDialogOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-violet-600/30 transition transform active:scale-95"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-black shadow-lg shadow-violet-600/40 transition transform active:scale-95"
           >
             <Plus className="w-3.5 h-3.5" /> New Lead
           </button>
@@ -139,7 +139,7 @@ export default function LeadsPage() {
       <LeadSourcesPanel onOpenEnrichment={handleOpenEnrichment} />
 
       {/* Filter & View Switcher Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 glass rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 rounded-2xl border border-slate-800 bg-slate-900/80 shadow-md">
         <div className="flex items-center gap-2 flex-1 max-w-md">
           <div className="relative w-full">
             <Search className="w-3.5 h-3.5 absolute left-3.5 top-3 text-slate-400" />
@@ -148,14 +148,14 @@ export default function LeadsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search leads by business, email, location..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-violet-500 transition"
+              className="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-400 focus:outline-none focus:border-violet-500 font-medium transition"
             />
           </div>
 
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-medium"
+            className="px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none font-semibold"
           >
             <option value="">All Statuses</option>
             <option value="new">New</option>
@@ -168,13 +168,13 @@ export default function LeadsPage() {
         </div>
 
         {/* Table / Board Switcher */}
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
           <button
             onClick={() => setViewMode("table")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
               viewMode === "table"
-                ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm"
-                : "text-slate-400 hover:text-slate-200"
+                ? "bg-violet-600 text-white shadow-sm"
+                : "text-slate-300 hover:text-white"
             }`}
           >
             <LayoutList className="w-3.5 h-3.5" /> Table
@@ -183,8 +183,8 @@ export default function LeadsPage() {
             onClick={() => setViewMode("board")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
               viewMode === "board"
-                ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm"
-                : "text-slate-400 hover:text-slate-200"
+                ? "bg-violet-600 text-white shadow-sm"
+                : "text-slate-300 hover:text-white"
             }`}
           >
             <Kanban className="w-3.5 h-3.5" /> Board

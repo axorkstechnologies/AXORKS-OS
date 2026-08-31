@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { EMAIL_TEMPLATES, EmailTemplate } from "@/lib/email/templates";
-import { LayoutTemplate, Search, Check, Sparkles } from "lucide-react";
+import { LayoutTemplate, Search, Check, Sparkles, X } from "lucide-react";
 
 interface TemplateSelectorProps {
   onSelect: (template: EmailTemplate) => void;
@@ -27,35 +27,35 @@ export function TemplateSelector({ onSelect }: TemplateSelectorProps) {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-900 text-xs font-bold text-slate-200 hover:bg-slate-800 hover:text-white transition shadow-sm"
       >
-        <LayoutTemplate className="w-3.5 h-3.5 text-violet-500" />
+        <LayoutTemplate className="w-3.5 h-3.5 text-violet-400" />
         Choose Template
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-950 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             {/* Header */}
-            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
               <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-violet-500" /> Professional Email Templates
+                <h3 className="text-base font-black text-white flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-violet-400" /> High-Impact Email Templates
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-slate-300 font-medium">
                   Select a template to pre-fill your email subject and HTML body.
                 </p>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-sm font-semibold"
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Filter & Search */}
-            <div className="p-4 bg-slate-50/50 dark:bg-slate-950/50 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row gap-3">
+            <div className="p-4 bg-slate-900/40 border-b border-slate-800 flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
                 <input
@@ -63,19 +63,19 @@ export function TemplateSelector({ onSelect }: TemplateSelectorProps) {
                   placeholder="Search templates..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-violet-500 font-medium"
                 />
               </div>
-              <div className="flex items-center gap-1 overflow-x-auto">
+              <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
                 {["all", "sales", "projects", "finance", "support", "general"].map((cat) => (
                   <button
                     key={cat}
                     type="button"
                     onClick={() => setCategory(cat)}
-                    className={`text-[11px] capitalize px-2.5 py-1 rounded-md transition ${
+                    className={`text-xs capitalize px-3 py-1 rounded-xl font-bold transition border ${
                       category === cat
-                        ? "bg-violet-600 text-white font-medium"
-                        : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700"
+                        ? "bg-violet-600 text-white border-violet-500 shadow-sm"
+                        : "bg-slate-900 text-slate-300 border-slate-800 hover:text-white hover:bg-slate-800"
                     }`}
                   >
                     {cat}
@@ -93,23 +93,23 @@ export function TemplateSelector({ onSelect }: TemplateSelectorProps) {
                     onSelect(t);
                     setIsOpen(false);
                   }}
-                  className="p-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-violet-500 dark:hover:border-violet-500 hover:shadow-md transition cursor-pointer flex flex-col justify-between group"
+                  className="p-4 rounded-xl border border-slate-800 bg-slate-900/80 hover:border-violet-500/60 hover:bg-slate-900 hover:shadow-lg transition cursor-pointer flex flex-col justify-between group space-y-2"
                 >
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-semibold text-xs text-slate-900 dark:text-slate-100 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition">
+                      <span className="font-bold text-xs text-white group-hover:text-violet-300 transition">
                         {t.name}
                       </span>
-                      <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
+                      <span className="text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded bg-violet-500/20 text-violet-300 border border-violet-500/30">
                         {t.category}
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 mb-2">
+                    <p className="text-[11px] text-slate-300 line-clamp-2 leading-relaxed">
                       {t.description}
                     </p>
                   </div>
-                  <div className="text-[10px] text-violet-600 dark:text-violet-400 font-medium truncate bg-violet-50 dark:bg-violet-950/40 px-2 py-1 rounded">
-                    Subject: {t.subject}
+                  <div className="pt-2 border-t border-slate-800 text-[11px] font-mono text-slate-400 truncate">
+                    <strong className="text-slate-300 font-sans">Sub:</strong> {t.subject}
                   </div>
                 </div>
               ))}

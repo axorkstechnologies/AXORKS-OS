@@ -81,22 +81,22 @@ export function RecipientSelector({
 
   return (
     <div className="relative flex flex-col gap-1.5">
-      <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
         {label}
       </label>
-      <div className="min-h-[42px] w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1.5 flex flex-wrap items-center gap-1.5 focus-within:ring-2 focus-within:ring-violet-500 focus-within:border-transparent transition">
+      <div className="min-h-[44px] w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-1.5 flex flex-wrap items-center gap-1.5 focus-within:ring-2 focus-within:ring-violet-500 focus-within:border-transparent transition">
         {value.map((email, idx) => (
           <span
             key={idx}
-            className="inline-flex items-center gap-1 bg-violet-50 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300 text-xs px-2.5 py-1 rounded-full border border-violet-200 dark:border-violet-800/50 font-medium"
+            className="inline-flex items-center gap-1 bg-violet-500/25 text-violet-200 text-xs px-3 py-1 rounded-full border border-violet-500/40 font-semibold"
           >
             {email}
             <button
               type="button"
               onClick={() => removeEmail(idx)}
-              className="text-violet-400 hover:text-violet-600 dark:hover:text-violet-200 rounded-full p-0.5"
+              className="text-violet-300 hover:text-white rounded-full p-0.5"
             >
-              <X className="w-3 h-3" />
+              <X className="w-3.5 h-3.5" />
             </button>
           </span>
         ))}
@@ -111,29 +111,13 @@ export function RecipientSelector({
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           placeholder={value.length === 0 ? placeholder : ""}
-          className="flex-1 bg-transparent border-none text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none min-w-[180px]"
+          className="flex-1 bg-transparent border-none text-xs text-white placeholder-slate-400 focus:outline-none min-w-[200px] font-medium"
         />
       </div>
 
       {/* Autocomplete & Manual Add Dropdown */}
       {showDropdown && input.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl max-h-48 overflow-y-auto py-1">
-          {/* Custom Typed Email Option */}
-          {isInputNewEmail && (
-            <button
-              type="button"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                addEmail(input.trim());
-              }}
-              className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 text-violet-600 dark:text-violet-400 hover:bg-slate-50 dark:hover:bg-slate-800 font-medium border-b border-slate-100 dark:border-slate-800"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add custom email: <strong className="underline">{input.trim()}</strong></span>
-            </button>
-          )}
-
-          {/* Sample Suggestions */}
+        <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl max-h-48 overflow-y-auto py-1 divide-y divide-slate-800">
           {filteredSuggestions.map((item) => (
             <button
               key={item.email}
@@ -142,22 +126,30 @@ export function RecipientSelector({
                 e.preventDefault();
                 addEmail(item.email);
               }}
-              className="w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+              className="w-full px-3 py-2 text-left hover:bg-slate-800 flex items-center justify-between transition group"
             >
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 font-bold text-[10px]">
-                  {item.name[0]}
-                </div>
-                <div>
-                  <div className="font-semibold text-slate-800 dark:text-slate-200">{item.name}</div>
-                  <div className="text-slate-400 text-[11px]">{item.email}</div>
-                </div>
+                <User className="w-3.5 h-3.5 text-violet-400" />
+                <span className="text-xs font-bold text-white group-hover:text-violet-300">{item.name}</span>
+                <span className="text-[11px] text-slate-400 font-mono">({item.email})</span>
               </div>
-              <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded">
-                {item.company}
-              </span>
+              <span className="text-[10px] text-slate-300 bg-slate-800 px-2 py-0.5 rounded font-medium">{item.company}</span>
             </button>
           ))}
+
+          {isInputNewEmail && (
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                addEmail(input.trim());
+              }}
+              className="w-full px-3 py-2 text-left hover:bg-violet-950/50 flex items-center gap-2 text-xs text-violet-300 font-bold transition"
+            >
+              <Plus className="w-3.5 h-3.5 text-violet-400" />
+              <span>Add custom email: <strong className="text-white font-mono">{input.trim()}</strong></span>
+            </button>
+          )}
         </div>
       )}
     </div>
