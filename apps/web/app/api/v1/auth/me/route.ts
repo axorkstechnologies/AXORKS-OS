@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findUserByIdAsync } from "@/lib/user-repository";
+import { verifySessionToken } from "@/lib/server-auth";
 
 export async function GET(req: NextRequest) {
   try {
+    let token = "";
     const authHeader = req.headers.get("authorization") || "";
-    const token = authHeader.replace("Bearer ", "").trim();
+    if (authHeader.startsWith("Bearer ")) {
+      token = authHeader.substring(7).trim();
+    }
+    if (!token) {
+      token = req.cookies.get("axorks_token")?.value || "";
+    }
 
     if (!token) {
       return NextResponse.json(
@@ -13,18 +20,17 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const tokenParts = token.split("_");
-    const userId = tokenParts.length >= 4 ? tokenParts.slice(2, -1).join("_") : null;
-
-    if (!userId) {
+    // 1. Strictly verify HMAC-SHA256 signature (rejects forged/tampered/old tokens)
+    const payload = verifySessionToken(token);
+    if (!payload) {
       return NextResponse.json(
-        { errors: [{ message: "Invalid session token" }] },
+        { errors: [{ message: "Invalid or expired session token" }] },
         { status: 401 }
       );
     }
 
-    const user = await findUserByIdAsync(userId);
-
+    // 2. Query Neon PostgreSQL in real-time
+    const user = await findUserByIdAsync(payload.userId);
     if (!user) {
       return NextResponse.json(
         { errors: [{ message: "User account not found" }] },
@@ -32,6 +38,8 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // 3. Strict Check: Account Suspension
+    // Suspended accounts are immediately blocked on next API polling
     if (user.status !== "active") {
       return NextResponse.json(
         {
@@ -46,8 +54,9 @@ export async function GET(req: NextRequest) {
     const { password_hash, ...safeUser } = user;
     return NextResponse.json({ data: safeUser });
   } catch (error: any) {
+    console.error("Session verification error:", error);
     return NextResponse.json(
-      { errors: [{ message: error.message || "Failed to verify session" }] },
+      { errors: [{ message: "Failed to verify session" }] },
       { status: 500 }
     );
   }

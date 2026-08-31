@@ -122,17 +122,14 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Request Access & Footer */}
+          {/* Security Notice Footer */}
           <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
             <span className="flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Secure Environment
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Secure Database Verification
             </span>
-            <Link
-              href="/register"
-              className="text-violet-400 font-semibold hover:text-violet-300 transition flex items-center gap-1"
-            >
-              Request Access <ArrowRight className="w-3 h-3" />
-            </Link>
+            <span className="text-[11px] text-slate-500 font-mono">
+              Authorized Personnel Only
+            </span>
           </div>
         </div>
       </div>

@@ -1,8 +1,10 @@
 /**
- * Axorks OS — Central User Repository (Neon PostgreSQL Integration)
+ * Axorks OS — Central User Repository (100% Neon PostgreSQL Driven)
  *
  * Primary store for user accounts, sessions, and RBAC permissions.
- * All queries, creations, and updates are 100% driven by Neon PostgreSQL.
+ * All queries, authentications, creations, and updates are 100% driven by Neon PostgreSQL.
+ *
+ * ZERO hardcoded users, ZERO mock passwords, ZERO in-memory backdoors.
  */
 
 import bcrypt from "bcryptjs";
@@ -62,113 +64,39 @@ export {
 } from "./rbac";
 import { ROLE_PERMISSIONS } from "./rbac";
 
-// ─── Password Hashing ───────────────────────────────────────────────
+// ─── Password Hashing & Verification ─────────────────────────────────
 
 const BCRYPT_ROUNDS = 10;
 
 export function hashPassword(plaintext: string): string {
+  if (!plaintext || typeof plaintext !== "string") {
+    throw new Error("Password string is required for hashing");
+  }
   return bcrypt.hashSync(plaintext, BCRYPT_ROUNDS);
 }
 
 export function verifyPassword(plaintext: string, hash: string): boolean {
-  return bcrypt.compareSync(plaintext, hash);
+  if (!plaintext || !hash || typeof plaintext !== "string" || typeof hash !== "string") {
+    return false;
+  }
+  try {
+    return bcrypt.compareSync(plaintext, hash);
+  } catch (err) {
+    console.error("Error verifying bcrypt hash:", err);
+    return false;
+  }
 }
 
-// ─── Environment Config ─────────────────────────────────────────────
-
-const FOUNDER_USERNAME = process.env.FOUNDER_USERNAME || "muhammad.mujahid";
-const FOUNDER_EMAIL = process.env.FOUNDER_EMAIL || "mujahidaryan222149@gmail.com";
-const FOUNDER_PASSWORD = process.env.FOUNDER_PASSWORD || "Princearyan1#@#@";
-
-// ─── Persistent Memory Store Cache ─────────────────────────────────
+// ─── Active In-Memory Session Cache (Only for live presence metrics) ──
 
 const globalUserStore = globalThis as unknown as {
-  __axorks_users?: StoredUser[];
   __axorks_sessions?: UserSession[];
-  __axorks_users_initialized?: boolean;
 };
 
-if (!globalUserStore.__axorks_users_initialized) {
-  const founderHash = hashPassword(FOUNDER_PASSWORD);
-  const farhanaHash = hashPassword("AxorksFarhana2026!");
-
-  globalUserStore.__axorks_users = [
-    {
-      id: "00000000-0000-0000-0000-00000000000a",
-      organization_id: "00000000-0000-0000-0000-000000000001",
-      email: FOUNDER_EMAIL.toLowerCase(),
-      username: FOUNDER_USERNAME.toLowerCase(),
-      password_hash: founderHash,
-      first_name: "Muhammad",
-      last_name: "Mujahid",
-      display_name: "Muhammad Mujahid (Founder)",
-      employee_id: "EMP-001",
-      phone: "+1 (555) 000-1111",
-      department: "Management",
-      designation: "Founder & Chief Executive",
-      joining_date: "2024-01-01",
-      employment_type: "full_time",
-      role: "Founder",
-      permissions: ["*"],
-      status: "active",
-      avatar_url: "/images/MUHAMMAD_MUJAHID_Founder_pic.jpg",
-      last_login_at: new Date().toISOString(),
-      last_login_ip: "192.168.1.1",
-      last_login_browser: "Chrome",
-      last_login_device: "MacBook Pro",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    {
-      id: "00000000-0000-0000-0000-00000000000b",
-      organization_id: "00000000-0000-0000-0000-000000000001",
-      email: "heyfarii@gmail.com",
-      username: "farhana",
-      password_hash: farhanaHash,
-      first_name: "Farhana",
-      last_name: "Bakht",
-      display_name: "Farhana Bakht (Co-Founder)",
-      employee_id: "EMP-002",
-      phone: "+1 (555) 888-9999",
-      department: "Management",
-      designation: "Co-Founder & Director",
-      joining_date: "2024-01-01",
-      employment_type: "full_time",
-      role: "Co-Founder",
-      permissions: ["*"],
-      status: "active",
-      last_login_at: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    {
-      id: "a1b2c3d4-e5f6-47a8-b901-23456789abcd",
-      organization_id: "00000000-0000-0000-0000-000000000001",
-      email: "farwa@axorks.com",
-      username: "farwa",
-      password_hash: hashPassword("AxorksPass123!"),
-      first_name: "Farwa",
-      last_name: "Marketing Specialist",
-      display_name: "Farwa (Marketing & Outreach)",
-      employee_id: "EMP-003",
-      phone: null,
-      department: "Marketing",
-      designation: "Marketing & Outreach Specialist",
-      joining_date: "2024-03-01",
-      employment_type: "full_time",
-      role: "Marketing & Outreach",
-      permissions: ROLE_PERMISSIONS["Marketing & Outreach"],
-      status: "active",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-  ];
-
+if (!globalUserStore.__axorks_sessions) {
   globalUserStore.__axorks_sessions = [];
-  globalUserStore.__axorks_users_initialized = true;
 }
 
-export const usersStore = globalUserStore.__axorks_users!;
 export const sessionsStore = globalUserStore.__axorks_sessions!;
 
 // ─── DB Mapping Helper ──────────────────────────────────────────────
@@ -207,31 +135,20 @@ export function mapDbUserToStoredUser(row: any): StoredUser {
   };
 }
 
-function updateUserInMemory(user: StoredUser) {
-  const idx = usersStore.findIndex((u) => u.id === user.id);
-  if (idx !== -1) {
-    usersStore[idx] = user;
-  } else {
-    usersStore.unshift(user);
-  }
-}
-
-// ─── Query Functions (Neon DB Driven) ────────────────────────────────
+// ─── Query Functions (100% Neon DB Driven — Zero Mock Fallbacks) ────
 
 export async function getAllUsersAsync(): Promise<StoredUser[]> {
   try {
     if (DATABASE_URL) {
       const rows = await sql`SELECT * FROM users WHERE deleted_at IS NULL ORDER BY created_at ASC`;
       if (rows && rows.length > 0) {
-        const dbUsers = rows.map(mapDbUserToStoredUser);
-        globalUserStore.__axorks_users = dbUsers;
-        return dbUsers;
+        return rows.map(mapDbUserToStoredUser);
       }
     }
   } catch (err) {
     console.error("Neon DB query error in getAllUsersAsync:", err);
   }
-  return [...usersStore];
+  return [];
 }
 
 export async function findUserByIdAsync(id: string): Promise<StoredUser | undefined> {
@@ -242,52 +159,43 @@ export async function findUserByIdAsync(id: string): Promise<StoredUser | undefi
 
   try {
     if (DATABASE_URL) {
-      const rows = await sql`SELECT * FROM users WHERE (id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId}) AND deleted_at IS NULL LIMIT 1`;
+      const rows = await sql`
+        SELECT * FROM users
+        WHERE (id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId})
+          AND deleted_at IS NULL
+        LIMIT 1;
+      `;
       if (rows && rows.length > 0) {
-        const u = mapDbUserToStoredUser(rows[0]);
-        updateUserInMemory(u);
-        return u;
+        return mapDbUserToStoredUser(rows[0]);
       }
     }
   } catch (err) {
     console.error("Neon DB query error in findUserByIdAsync:", err);
   }
-  return findUserById(id);
+  return undefined;
 }
 
 export async function findUserByIdentifierAsync(identifier: string): Promise<StoredUser | undefined> {
   const clean = identifier.trim().toLowerCase();
   try {
     if (DATABASE_URL) {
-      const rows = await sql`SELECT * FROM users WHERE (LOWER(email) = ${clean} OR LOWER(username) = ${clean}) AND deleted_at IS NULL LIMIT 1`;
+      const rows = await sql`
+        SELECT * FROM users
+        WHERE (LOWER(email) = ${clean} OR LOWER(username) = ${clean})
+          AND deleted_at IS NULL
+        LIMIT 1;
+      `;
       if (rows && rows.length > 0) {
-        const u = mapDbUserToStoredUser(rows[0]);
-        updateUserInMemory(u);
-        return u;
+        return mapDbUserToStoredUser(rows[0]);
       }
     }
   } catch (err) {
     console.error("Neon DB query error in findUserByIdentifierAsync:", err);
   }
-  return findUserByIdentifier(identifier);
+  return undefined;
 }
 
-export function findUserByIdentifier(identifier: string): StoredUser | undefined {
-  const clean = identifier.trim().toLowerCase();
-  return usersStore.find(
-    (u) => u.username.toLowerCase() === clean || u.email.toLowerCase() === clean
-  );
-}
-
-export function findUserById(id: string): StoredUser | undefined {
-  return usersStore.find((u) => u.id === id || u.employee_id === id);
-}
-
-export function getAllUsers(): StoredUser[] {
-  return [...usersStore];
-}
-
-// ─── Registration (Neon DB Driven) ───────────────────────────────────
+// ─── Registration (Neon DB Driven — Founder Provisioned Only) ────────
 
 export class ConflictError extends Error {
   constructor(message: string) {
@@ -341,67 +249,15 @@ export async function registerNewUserAsync(data: {
         ) RETURNING *;
       `;
       if (rows && rows.length > 0) {
-        const created = mapDbUserToStoredUser(rows[0]);
-        usersStore.unshift(created);
-        return created;
+        return mapDbUserToStoredUser(rows[0]);
       }
     }
   } catch (err: any) {
     console.error("Neon DB insert error in registerNewUserAsync:", err);
+    throw new Error(`Database error creating user: ${err.message}`);
   }
 
-  return registerNewUser(data);
-}
-
-export function registerNewUser(data: {
-  email: string;
-  password: string;
-  username?: string;
-  first_name?: string;
-  last_name?: string;
-  department?: string;
-  role?: string;
-  designation?: string;
-  phone?: string;
-}): StoredUser {
-  const cleanEmail = data.email.trim().toLowerCase();
-  const existing = findUserByIdentifier(cleanEmail);
-
-  if (existing) {
-    throw new ConflictError("An account with this email already exists");
-  }
-
-  const generatedUsername =
-    data.username?.trim().toLowerCase() ||
-    cleanEmail.split("@")[0].replace(/[^a-z0-9._]/g, "") ||
-    `user_${Date.now()}`;
-
-  const role = data.role || "Software Engineer";
-
-  const newUser: StoredUser = {
-    id: crypto.randomUUID(),
-    organization_id: "00000000-0000-0000-0000-000000000001",
-    email: cleanEmail,
-    username: generatedUsername,
-    password_hash: hashPassword(data.password),
-    first_name: data.first_name || "New",
-    last_name: data.last_name || "User",
-    display_name: `${data.first_name || "New"} ${data.last_name || "User"}`.trim(),
-    employee_id: `EMP-${String(usersStore.length + 1).padStart(3, "0")}`,
-    phone: data.phone || null,
-    department: data.department || "Development",
-    designation: data.designation || "Team Member",
-    joining_date: new Date().toISOString().split("T")[0],
-    employment_type: "full_time",
-    role,
-    permissions: ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS["Viewer"] || [],
-    status: "active",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-
-  usersStore.unshift(newUser);
-  return newUser;
+  throw new Error("Failed to insert user into database");
 }
 
 // ─── User Updates (Neon DB Driven) ───────────────────────────────────
@@ -435,23 +291,14 @@ export async function updateUserAsync(id: string, updates: Partial<StoredUser>):
 
       const rows = await sql`SELECT * FROM users WHERE (id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId}) AND deleted_at IS NULL LIMIT 1`;
       if (rows && rows.length > 0) {
-        const updated = mapDbUserToStoredUser(rows[0]);
-        updateUserInMemory(updated);
-        return updated;
+        return mapDbUserToStoredUser(rows[0]);
       }
     }
   } catch (err) {
     console.error("Neon DB update error in updateUserAsync:", err);
   }
 
-  return updateUser(id, updates);
-}
-
-export function updateUser(id: string, updates: Partial<StoredUser>): StoredUser | null {
-  const idx = usersStore.findIndex((u) => u.id === id);
-  if (idx === -1) return null;
-  usersStore[idx] = { ...usersStore[idx], ...updates, updated_at: new Date().toISOString() };
-  return usersStore[idx];
+  return null;
 }
 
 // ─── Account Deletion (Strict Rule & Neon DB Driven) ────────────────
@@ -524,13 +371,7 @@ export async function deleteUserAsync(id: string): Promise<{ success: boolean; m
     throw new Error(`Database error deleting user: ${err.message}`);
   }
 
-  // Remove from in-memory cache
-  const idx = usersStore.findIndex((u) => u.id === targetUser.id || u.email === targetUser.email);
-  if (idx !== -1) {
-    usersStore.splice(idx, 1);
-  }
-
-  // Terminate active sessions
+  // Terminate active live presence sessions
   const filteredSessions = sessionsStore.filter((s) => s.user_id !== targetUser.id && s.email !== targetUser.email);
   globalUserStore.__axorks_sessions = filteredSessions;
 
@@ -540,7 +381,7 @@ export async function deleteUserAsync(id: string): Promise<{ success: boolean; m
   };
 }
 
-// ─── Session Management ─────────────────────────────────────────────
+// ─── Session Presence Management ────────────────────────────────────
 
 export function recordLoginSession(
   user: StoredUser,
@@ -555,7 +396,7 @@ export function recordLoginSession(
   globalUserStore.__axorks_sessions = filtered;
 
   const session: UserSession = {
-    session_id: `sess_${Date.now()}`,
+    session_id: `sess_${Date.now()}_${crypto.randomUUID().substring(0, 8)}`,
     user_id: user.id,
     username: user.username,
     email: user.email,

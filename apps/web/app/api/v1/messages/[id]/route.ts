@@ -5,18 +5,7 @@ import {
   markMessageAsReadAsync,
   isFounderUser,
 } from "@/lib/messages-repository";
-import { findUserByIdAsync } from "@/lib/user-repository";
-
-async function getAuthUserFromRequest(req: NextRequest) {
-  const userId = req.headers.get("x-user-id") || req.nextUrl.searchParams.get("userId");
-  if (userId) {
-    const user = await findUserByIdAsync(userId);
-    if (user && user.status === "active") {
-      return user;
-    }
-  }
-  return await findUserByIdAsync("00000000-0000-0000-0000-00000000000a");
-}
+import { authenticateRequest } from "@/lib/server-auth";
 
 export async function PATCH(
   req: NextRequest,
@@ -24,9 +13,12 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const user = await getAuthUserFromRequest(req);
+    const user = await authenticateRequest(req);
     if (!user) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: "Unauthorized: Valid session required" },
+        { status: 401 }
+      );
     }
 
     const body = await req.json();

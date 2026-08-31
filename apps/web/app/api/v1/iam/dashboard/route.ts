@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { usersStore, sessionsStore } from "@/lib/user-repository";
+import { getAllUsersAsync, sessionsStore } from "@/lib/user-repository";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -15,15 +15,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(data);
     }
   } catch (err) {
-    // Fallback
+    // Fallback directly to Neon DB queries
   }
 
-  const totalEmployees = usersStore.length;
+  const users = await getAllUsersAsync();
+  const totalEmployees = users.length;
   const onlineEmployees = sessionsStore.length > 0 ? sessionsStore.length : 1;
   const offlineEmployees = Math.max(0, totalEmployees - onlineEmployees);
-  const lockedAccounts = usersStore.filter((u) => u.status === "locked").length;
-  const suspendedAccounts = usersStore.filter((u) => u.status === "suspended").length;
-  const pendingInvitations = usersStore.filter((u) => u.status === "pending_invitation").length;
+  const lockedAccounts = users.filter((u: any) => u.status === "locked").length;
+  const suspendedAccounts = users.filter((u: any) => u.status === "suspended").length;
+  const pendingInvitations = users.filter((u: any) => u.status === "pending_invitation").length;
 
   const activeSessionsList = sessionsStore.map((s) => ({
     id: s.session_id,
@@ -51,13 +52,13 @@ export async function GET(req: NextRequest) {
       recent_audit_logs: [
         {
           id: "log_01",
-          actor_email: "founder@axorks.com",
+          actor_email: "muhammad.mujahid@axorks.com",
           action: "USER_AUTHENTICATED",
           entity_type: "session",
           created_at: new Date().toISOString(),
         },
       ],
-      latest_joined: usersStore.slice(0, 5).map((u) => ({
+      latest_joined: users.slice(0, 5).map((u: any) => ({
         id: u.id,
         first_name: u.first_name,
         last_name: u.last_name,
