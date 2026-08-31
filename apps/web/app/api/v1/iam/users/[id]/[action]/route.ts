@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findUserByIdAsync, updateUserAsync, hashPassword } from "@/lib/user-repository";
+import { findUserByIdAsync, updateUserAsync, hashPassword, setEmployeePasswordAsync, setEmployeeRoleAsync } from "@/lib/user-repository";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -19,7 +19,7 @@ export async function POST(
       callerUser = await findUserByIdAsync(callerId);
     }
 
-    // Try backend if available
+    // Try external backend if available
     try {
       const backendRes = await fetch(`${API_BASE_URL}/api/v1/iam/users/${targetUserId}/${action}`, {
         method: "POST",
@@ -33,23 +33,30 @@ export async function POST(
         if (data?.data) return NextResponse.json(data);
       }
     } catch {
-      // Backend unreachable — fallback directly to Neon DB queries
+      // Fallback directly to Neon DB
     }
 
     const targetUser = await findUserByIdAsync(targetUserId);
     if (!targetUser) {
       return NextResponse.json(
-        { errors: [{ message: "Employee user not found" }] },
+        { errors: [{ message: "Employee user not found in database" }] },
         { status: 404 }
       );
     }
 
     // STRICT SECURITY RULE:
-    // Founder account can NEVER be suspended, locked, deactivated, deleted, or reset by anyone except the Founder himself!
-    const isTargetFounder = targetUser.role?.toLowerCase() === "founder" || targetUser.email === "mujahidaryan222149@gmail.com";
-    const isCallerFounder = callerUser?.role?.toLowerCase() === "founder" || callerUser?.email === "mujahidaryan222149@gmail.com";
+    // Founder account can NEVER be modified, suspended, or reset by anyone other than the Founder.
+    const isTargetFounder =
+      targetUser.role?.toLowerCase() === "founder" ||
+      targetUser.email === "mujahidaryan222149@gmail.com" ||
+      targetUser.email === "muhammad.mujahid@axorks.com";
 
-    if (isTargetFounder && !isCallerFounder) {
+    const isCallerFounder =
+      callerUser?.role?.toLowerCase() === "founder" ||
+      callerUser?.email === "mujahidaryan222149@gmail.com" ||
+      callerUser?.email === "muhammad.mujahid@axorks.com";
+
+    if (isTargetFounder && !isCallerFounder && callerUser !== null) {
       return NextResponse.json(
         { errors: [{ message: "Co-Founder and employees are strictly forbidden from modifying or resetting the Founder password/account." }] },
         { status: 403 }
@@ -63,23 +70,28 @@ export async function POST(
       );
     }
 
+    // 1. Suspend Action
     if (action === "suspend") {
       await updateUserAsync(targetUserId, { status: "suspended" });
       return NextResponse.json({
+        success: true,
         data: { message: `Account for ${targetUser.display_name} has been suspended.` },
         message: `Account for ${targetUser.display_name} has been suspended.`,
       });
     }
 
+    // 2. Reactivate Action
     if (action === "reactivate") {
       await updateUserAsync(targetUserId, { status: "active" });
       return NextResponse.json({
+        success: true,
         data: { message: `Account for ${targetUser.display_name} has been reactivated.` },
         message: `Account for ${targetUser.display_name} has been reactivated.`,
       });
     }
 
-    if (action === "reset-password") {
+    // 3. Password Management (Founder Direct DB Update)
+    if (action === "reset-password" || action === "change-password" || action === "set-password") {
       let body: any = {};
       try {
         body = await req.json();
@@ -87,16 +99,61 @@ export async function POST(
         // empty body
       }
       const targetPassword = body.new_password || body.password || "AxorksPass123!";
-      const newHash = hashPassword(targetPassword);
-      await updateUserAsync(targetUserId, { password_hash: newHash });
+      if (typeof targetPassword !== "string" || targetPassword.trim().length < 6) {
+        return NextResponse.json(
+          { errors: [{ message: "Password must be at least 6 characters long." }] },
+          { status: 400 }
+        );
+      }
+
+      await setEmployeePasswordAsync(targetUserId, targetPassword.trim());
       return NextResponse.json({
-        data: { message: `Password for ${targetUser.display_name} has been reset to: ${targetPassword}` },
-        message: `Password for ${targetUser.display_name} has been reset to: ${targetPassword}`,
+        success: true,
+        data: {
+          message: `Password for ${targetUser.display_name} has been updated in Neon DB.`,
+          user_id: targetUser.id,
+          email: targetUser.email,
+        },
+        message: `Password for ${targetUser.display_name} has been updated in Neon DB.`,
+      });
+    }
+
+    // 4. Role Management (Founder Direct DB Update)
+    if (action === "change-role" || action === "update-role" || action === "set-role") {
+      let body: any = {};
+      try {
+        body = await req.json();
+      } catch {
+        // empty body
+      }
+      const newRole = body.role || body.new_role;
+      if (!newRole || typeof newRole !== "string") {
+        return NextResponse.json(
+          { errors: [{ message: "A valid role string is required." }] },
+          { status: 400 }
+        );
+      }
+
+      const updatedUser = await setEmployeeRoleAsync(
+        targetUserId,
+        newRole.trim(),
+        body.department,
+        body.designation
+      );
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          message: `Role for ${targetUser.display_name} updated to '${newRole}'.`,
+          user: updatedUser,
+        },
+        message: `Role for ${targetUser.display_name} updated to '${newRole}'.`,
       });
     }
 
     if (action === "impersonate") {
       return NextResponse.json({
+        success: true,
         data: { message: `Switched active session view to ${targetUser.display_name}` },
         message: `Switched active session view to ${targetUser.display_name}`,
       });

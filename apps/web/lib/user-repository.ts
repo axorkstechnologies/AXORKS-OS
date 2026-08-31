@@ -262,7 +262,7 @@ export async function registerNewUserAsync(data: {
 
 // ─── User Updates (Neon DB Driven) ───────────────────────────────────
 
-export async function updateUserAsync(id: string, updates: Partial<StoredUser>): Promise<StoredUser | null> {
+export async function updateUserAsync(id: string, updates: Partial<StoredUser> & { password?: string }): Promise<StoredUser | null> {
   const cleanId = id.trim().toLowerCase();
   let queryId = id;
   if (cleanId === "user_founder_01") queryId = "00000000-0000-0000-0000-00000000000a";
@@ -270,12 +270,20 @@ export async function updateUserAsync(id: string, updates: Partial<StoredUser>):
 
   try {
     if (DATABASE_URL) {
-      if (updates.password_hash !== undefined) {
+      // 1. Password update (if plaintext password or password_hash supplied)
+      if (updates.password) {
+        const hashed = hashPassword(updates.password);
+        await sql`UPDATE users SET password_hash = ${hashed}, updated_at = NOW() WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId}`;
+      } else if (updates.password_hash !== undefined) {
         await sql`UPDATE users SET password_hash = ${updates.password_hash}, updated_at = NOW() WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId}`;
       }
+
+      // 2. Avatar
       if (updates.avatar_url !== undefined) {
         await sql`UPDATE users SET avatar_url = ${updates.avatar_url}, updated_at = NOW() WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId}`;
       }
+
+      // 3. Names & Contact
       if (updates.first_name !== undefined || updates.last_name !== undefined || updates.phone !== undefined) {
         await sql`UPDATE users SET 
           first_name = COALESCE(${updates.first_name || null}, first_name),
@@ -284,6 +292,27 @@ export async function updateUserAsync(id: string, updates: Partial<StoredUser>):
           updated_at = NOW()
           WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId}`;
       }
+
+      // 4. Role & Permissions (Immediate Neon DB Enforcement)
+      if (updates.role !== undefined) {
+        const newRole = updates.role;
+        const newPerms = updates.permissions || ROLE_PERMISSIONS[newRole] || ROLE_PERMISSIONS["Viewer"] || [];
+        await sql`UPDATE users SET 
+          role = ${newRole},
+          permissions = ${newPerms},
+          department = COALESCE(${updates.department || null}, department),
+          designation = COALESCE(${updates.designation || null}, designation),
+          updated_at = NOW()
+          WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId}`;
+      } else if (updates.department !== undefined || updates.designation !== undefined) {
+        await sql`UPDATE users SET 
+          department = COALESCE(${updates.department || null}, department),
+          designation = COALESCE(${updates.designation || null}, designation),
+          updated_at = NOW()
+          WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId}`;
+      }
+
+      // 5. Status
       if (updates.status !== undefined) {
         const isActive = updates.status === "active";
         await sql`UPDATE users SET status = ${updates.status}, is_active = ${isActive}, updated_at = NOW() WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId}`;
@@ -299,6 +328,30 @@ export async function updateUserAsync(id: string, updates: Partial<StoredUser>):
   }
 
   return null;
+}
+
+export async function setEmployeePasswordAsync(userId: string, newPlaintext: string): Promise<boolean> {
+  if (!newPlaintext || newPlaintext.length < 6) {
+    throw new Error("Password must be at least 6 characters long");
+  }
+  const newHash = hashPassword(newPlaintext);
+  const updated = await updateUserAsync(userId, { password_hash: newHash });
+  return !!updated;
+}
+
+export async function setEmployeeRoleAsync(
+  userId: string,
+  newRole: string,
+  department?: string,
+  designation?: string
+): Promise<StoredUser | null> {
+  const perms = ROLE_PERMISSIONS[newRole] || ROLE_PERMISSIONS["Viewer"] || [];
+  return updateUserAsync(userId, {
+    role: newRole,
+    permissions: perms,
+    ...(department ? { department } : {}),
+    ...(designation ? { designation } : {}),
+  });
 }
 
 // ─── Account Deletion (Strict Rule & Neon DB Driven) ────────────────

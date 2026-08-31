@@ -30,12 +30,14 @@ import {
   ShieldCheck,
   LogOut,
   Sparkles,
+  Trophy,
 } from "lucide-react";
 
 /** Navigation items mapping to system domains with RBAC permissions */
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard, routePrefix: "/" },
   { name: "User Management & IAM", href: "/iam", icon: ShieldCheck, routePrefix: "/iam" },
+  { name: "KPIs & Performance", href: "/performance", icon: Trophy, routePrefix: "/performance" },
   { name: "Leads", href: "/leads", icon: Target, routePrefix: "/leads" },
   {
     name: "CRM",

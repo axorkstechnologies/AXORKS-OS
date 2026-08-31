@@ -47,6 +47,7 @@ export const ROUTE_PERMISSIONS: Record<string, string> = {
   "/finance": "finance:read",
   "/hr": "hr:read",
   "/iam": "iam:read",
+  "/performance": "dashboard:read",
   "/knowledge": "knowledge:read",
   "/marketing": "marketing:read",
   "/recruitment": "recruitment:read",
