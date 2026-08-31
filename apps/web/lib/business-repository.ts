@@ -209,33 +209,84 @@ export interface LeadRecord {
   score?: number;
   notes?: string;
   ai_research?: any;
+  first_contacted_by?: string | null;
+  first_contacted_by_name?: string | null;
+  contacted_at?: string | null;
+  assigned_to?: string | null;
   created_at: string;
   updated_at: string;
 }
 
-export async function getLeadsAsync(): Promise<LeadRecord[]> {
+export function mapDbRowToLeadRecord(r: any): LeadRecord {
+  return {
+    id: String(r.id),
+    business_name: r.business_name || "Prospect Company",
+    website: r.website || "",
+    industry: r.industry || "Technology",
+    country: r.country || "USA",
+    decision_maker_name: r.decision_maker_name || "Contact",
+    decision_maker_title: r.decision_maker_title || "Director",
+    email: r.email || "",
+    phone: r.phone || "",
+    linkedin_url: r.linkedin_url || "",
+    source: r.source || "manual",
+    status: r.status || "new",
+    score: Number(r.score || 75),
+    notes: r.notes || "",
+    ai_research: r.ai_research || null,
+    first_contacted_by: r.first_contacted_by || null,
+    first_contacted_by_name: r.first_contacted_by_name || null,
+    contacted_at: r.contacted_at ? new Date(r.contacted_at).toISOString() : null,
+    assigned_to: r.assigned_to || null,
+    created_at: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
+    updated_at: r.updated_at ? new Date(r.updated_at).toISOString() : new Date().toISOString(),
+  };
+}
+
+export async function getLeadsAsync(filters: {
+  userId?: string;
+  isFounder?: boolean;
+  search?: string;
+  status?: string;
+} = {}): Promise<LeadRecord[]> {
   try {
-    const rows = await sql`SELECT * FROM leads WHERE deleted_at IS NULL ORDER BY created_at DESC`;
+    const isFounder = filters.isFounder || false;
+    const userId = filters.userId;
+
+    let rows: any[] = [];
+
+    // Lead Exclusivity Logic:
+    // - Founder sees ALL leads.
+    // - Non-founders (employees like Farwa, Furqan) only see:
+    //   1. Uncontacted leads (first_contacted_by IS NULL)
+    //   2. Leads they themselves have contacted (first_contacted_by = userId)
+    //   3. Leads explicitly assigned to them (assigned_to = userId)
+    //   Leads contacted by someone else are completely excluded!
+    if (isFounder) {
+      rows = await sql`
+        SELECT * FROM leads 
+        WHERE deleted_at IS NULL 
+        ORDER BY created_at DESC;
+      `;
+    } else if (userId) {
+      rows = await sql`
+        SELECT * FROM leads 
+        WHERE deleted_at IS NULL 
+          AND (first_contacted_by IS NULL OR first_contacted_by = ${userId} OR assigned_to = ${userId})
+        ORDER BY created_at DESC;
+      `;
+    } else {
+      // Unspecified user (public/fallback) -> only uncontacted
+      rows = await sql`
+        SELECT * FROM leads 
+        WHERE deleted_at IS NULL 
+          AND first_contacted_by IS NULL
+        ORDER BY created_at DESC;
+      `;
+    }
+
     if (rows && rows.length > 0) {
-      return rows.map((r: any) => ({
-        id: String(r.id),
-        business_name: r.business_name || "Prospect Company",
-        website: r.website || "",
-        industry: r.industry || "Technology",
-        country: r.country || "USA",
-        decision_maker_name: r.decision_maker_name || "Contact",
-        decision_maker_title: r.decision_maker_title || "Director",
-        email: r.email || "",
-        phone: r.phone || "",
-        linkedin_url: r.linkedin_url || "",
-        source: r.source || "manual",
-        status: r.status || "new",
-        score: Number(r.score || 75),
-        notes: r.notes || "",
-        ai_research: r.ai_research || null,
-        created_at: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
-        updated_at: r.updated_at ? new Date(r.updated_at).toISOString() : new Date().toISOString(),
-      }));
+      return rows.map(mapDbRowToLeadRecord);
     }
 
     // Seed default lead if empty
@@ -256,29 +307,35 @@ export async function getLeadsAsync(): Promise<LeadRecord[]> {
       ) RETURNING *;
     `;
     if (seed && seed.length > 0) {
-      return seed.map((r: any) => ({
-        id: String(r.id),
-        business_name: r.business_name,
-        website: r.website,
-        industry: r.industry,
-        country: r.country,
-        decision_maker_name: r.decision_maker_name,
-        decision_maker_title: r.decision_maker_title,
-        email: r.email,
-        phone: r.phone,
-        linkedin_url: r.linkedin_url || "",
-        source: r.source,
-        status: r.status,
-        score: Number(r.score),
-        ai_research: r.ai_research || null,
-        created_at: new Date(r.created_at).toISOString(),
-        updated_at: new Date(r.updated_at).toISOString(),
-      }));
+      return seed.map(mapDbRowToLeadRecord);
     }
   } catch (err) {
     console.error("Error fetching leads from Neon DB:", err);
   }
   return [];
+}
+
+export async function recordLeadOutreachAsync(
+  leadIdOrEmail: string,
+  userId: string,
+  userName: string
+): Promise<boolean> {
+  try {
+    await sql`
+      UPDATE leads
+      SET status = CASE WHEN status = 'new' THEN 'contacted' ELSE status END,
+          first_contacted_by = COALESCE(first_contacted_by, ${userId}),
+          first_contacted_by_name = COALESCE(first_contacted_by_name, ${userName}),
+          contacted_at = COALESCE(contacted_at, NOW()),
+          updated_at = NOW()
+      WHERE (id::text = ${leadIdOrEmail} OR LOWER(email) = LOWER(${leadIdOrEmail}))
+        AND (first_contacted_by IS NULL OR first_contacted_by = ${userId});
+    `;
+    return true;
+  } catch (err) {
+    console.error("Error recording lead outreach in Neon DB:", err);
+    return false;
+  }
 }
 
 export async function getLeadByIdAsync(id: string): Promise<LeadRecord | null> {
@@ -922,27 +979,92 @@ export async function getWorkspaceEmailsAsync(filters: {
   thread_id?: string;
   limit?: number;
   offset?: number;
+  isFounder?: boolean;
 } = {}): Promise<WorkspaceEmailRecord[]> {
   try {
     const limit = filters.limit || 50;
     const offset = filters.offset || 0;
+    const isFounder = filters.isFounder || false;
+
+    const BUSINESS_ALIASES = [
+      "sales@axorks.com",
+      "contact@axorks.com",
+      "hello@axorks.com",
+      "careers@axorks.com",
+    ];
+
+    let queryAlias = filters.alias;
+    // Strict Access Control:
+    // If non-founder requests the Founder's personal inbox alias, deny access immediately
+    if (!isFounder && queryAlias && queryAlias.toLowerCase() === "muhammad.mujahid@axorks.com") {
+      return [];
+    }
 
     let rows: any[] = [];
-    if (filters.direction && filters.direction !== "all") {
-      rows = await sql`
-        SELECT * FROM workspace_emails
-        WHERE direction = ${filters.direction}
-          AND (${filters.alias ? sql`LOWER(sender_alias) = ${filters.alias.toLowerCase()} OR LOWER(recipient_email) = ${filters.alias.toLowerCase()}` : sql`TRUE`})
-        ORDER BY created_at DESC
-        LIMIT ${limit} OFFSET ${offset};
-      `;
+
+    if (!isFounder) {
+      // Non-founders can ONLY see the 4 business aliases (sales@, contact@, hello@, careers@)
+      if (queryAlias && BUSINESS_ALIASES.includes(queryAlias.toLowerCase())) {
+        const targetAlias = queryAlias.toLowerCase();
+        if (filters.direction && filters.direction !== "all") {
+          rows = await sql`
+            SELECT * FROM workspace_emails
+            WHERE direction = ${filters.direction}
+              AND (LOWER(sender_alias) = ${targetAlias} OR LOWER(recipient_email) = ${targetAlias})
+            ORDER BY created_at DESC
+            LIMIT ${limit} OFFSET ${offset};
+          `;
+        } else {
+          rows = await sql`
+            SELECT * FROM workspace_emails
+            WHERE (LOWER(sender_alias) = ${targetAlias} OR LOWER(recipient_email) = ${targetAlias})
+            ORDER BY created_at DESC
+            LIMIT ${limit} OFFSET ${offset};
+          `;
+        }
+      } else {
+        // "All Mail" for non-founders: strictly restricted to any of the 4 business aliases
+        if (filters.direction && filters.direction !== "all") {
+          rows = await sql`
+            SELECT * FROM workspace_emails
+            WHERE direction = ${filters.direction}
+              AND (
+                LOWER(sender_alias) IN ('sales@axorks.com', 'contact@axorks.com', 'hello@axorks.com', 'careers@axorks.com')
+                OR LOWER(recipient_email) IN ('sales@axorks.com', 'contact@axorks.com', 'hello@axorks.com', 'careers@axorks.com')
+              )
+            ORDER BY created_at DESC
+            LIMIT ${limit} OFFSET ${offset};
+          `;
+        } else {
+          rows = await sql`
+            SELECT * FROM workspace_emails
+            WHERE (
+              LOWER(sender_alias) IN ('sales@axorks.com', 'contact@axorks.com', 'hello@axorks.com', 'careers@axorks.com')
+              OR LOWER(recipient_email) IN ('sales@axorks.com', 'contact@axorks.com', 'hello@axorks.com', 'careers@axorks.com')
+            )
+            ORDER BY created_at DESC
+            LIMIT ${limit} OFFSET ${offset};
+          `;
+        }
+      }
     } else {
-      rows = await sql`
-        SELECT * FROM workspace_emails
-        WHERE (${filters.alias ? sql`LOWER(sender_alias) = ${filters.alias.toLowerCase()} OR LOWER(recipient_email) = ${filters.alias.toLowerCase()}` : sql`TRUE`})
-        ORDER BY created_at DESC
-        LIMIT ${limit} OFFSET ${offset};
-      `;
+      // Founder has full visibility into all emails (personal inbox + all aliases)
+      if (filters.direction && filters.direction !== "all") {
+        rows = await sql`
+          SELECT * FROM workspace_emails
+          WHERE direction = ${filters.direction}
+            AND (${filters.alias ? sql`LOWER(sender_alias) = ${filters.alias.toLowerCase()} OR LOWER(recipient_email) = ${filters.alias.toLowerCase()}` : sql`TRUE`})
+          ORDER BY created_at DESC
+          LIMIT ${limit} OFFSET ${offset};
+        `;
+      } else {
+        rows = await sql`
+          SELECT * FROM workspace_emails
+          WHERE (${filters.alias ? sql`LOWER(sender_alias) = ${filters.alias.toLowerCase()} OR LOWER(recipient_email) = ${filters.alias.toLowerCase()}` : sql`TRUE`})
+          ORDER BY created_at DESC
+          LIMIT ${limit} OFFSET ${offset};
+        `;
+      }
     }
 
     if (rows && rows.length > 0) {
@@ -954,7 +1076,10 @@ export async function getWorkspaceEmailsAsync(filters: {
   return [];
 }
 
-export async function getWorkspaceEmailByIdAsync(id: string): Promise<WorkspaceEmailRecord | null> {
+export async function getWorkspaceEmailByIdAsync(
+  id: string,
+  isFounder: boolean = false
+): Promise<WorkspaceEmailRecord | null> {
   try {
     const rows = await sql`
       SELECT * FROM workspace_emails
@@ -962,7 +1087,21 @@ export async function getWorkspaceEmailByIdAsync(id: string): Promise<WorkspaceE
       LIMIT 1;
     `;
     if (rows && rows.length > 0) {
-      return mapDbRowToWorkspaceEmail(rows[0]);
+      const email = mapDbRowToWorkspaceEmail(rows[0]);
+
+      // Strict check: if not Founder and this email is addressed to/from Founder personal inbox only
+      if (!isFounder) {
+        const BUSINESS_ALIASES = ["sales@axorks.com", "contact@axorks.com", "hello@axorks.com", "careers@axorks.com"];
+        const senderAlias = (email.sender_alias || "").toLowerCase();
+        const recipient = (email.recipient_email || "").toLowerCase();
+        const isBusinessEmail = BUSINESS_ALIASES.includes(senderAlias) || BUSINESS_ALIASES.includes(recipient);
+
+        if (!isBusinessEmail) {
+          return null; // Block access to Founder personal email
+        }
+      }
+
+      return email;
     }
   } catch (err) {
     console.error("Error fetching email by ID from Neon DB:", err);

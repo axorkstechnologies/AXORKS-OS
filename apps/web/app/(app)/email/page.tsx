@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
+import { useAuthStore } from "@/stores/auth-store";
 import {
   Mail,
   Send,
@@ -35,6 +36,13 @@ import { type WorkspaceEmailRecord } from "@/lib/email/constants";
 
 export default function EmailCenterPage() {
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const isFounder = Boolean(
+    user?.role === "Founder" ||
+      user?.email === "mujahidaryan222149@gmail.com" ||
+      user?.email === "muhammad.mujahid@axorks.com"
+  );
+
   const [activeTab, setActiveTab] = useState<"inbox" | "analytics" | "leaderboard" | "compose">("inbox");
   const [selectedEmail, setSelectedEmail] = useState<WorkspaceEmailRecord | null>(null);
   const [replyConfig, setReplyConfig] = useState<{
@@ -53,8 +61,12 @@ export default function EmailCenterPage() {
 
   const googleStatus = googleStatusData?.data || (googleStatusData as any) || { connected: false };
 
-  // 2. Google OAuth Connect trigger
+  // 2. Google OAuth Connect trigger (Founder Only)
   const handleConnectGoogle = async () => {
+    if (!isFounder) {
+      toast.error("Only the Founder can manage Google Workspace authorization.");
+      return;
+    }
     try {
       const response = await fetch("/api/v1/email/gmail/auth");
       const json = await response.json().catch(() => ({}));
@@ -74,12 +86,11 @@ export default function EmailCenterPage() {
       window.location.href = "/api/v1/email/gmail/auth?redirect=true";
     } catch (err: any) {
       console.error("Error connecting to Google Workspace:", err);
-      // Fallback: trigger server-side 302 redirect
       window.location.href = "/api/v1/email/gmail/auth?redirect=true";
     }
   };
 
-  // 3. Sync Gmail Inbox
+  // 3. Sync Gmail Inbox (Founder Only)
   const syncMutation = useMutation({
     mutationFn: () => apiClient("/api/v1/email/inbox", { method: "POST" }),
     onSuccess: (res) => {
@@ -118,11 +129,13 @@ export default function EmailCenterPage() {
               <Mail className="w-5 h-5 text-violet-500" /> Google Workspace Email Center
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-violet-500/10 text-violet-400 border border-violet-500/20">
-              muhammad.mujahid@axorks.com
+              {isFounder ? "muhammad.mujahid@axorks.com" : "Axorks Business Aliases"}
             </span>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Enterprise email intelligence, Gmail API synchronization, alias routing, and conversion tracking
+            {isFounder
+              ? "Enterprise email intelligence, Gmail API synchronization, alias routing, and conversion tracking"
+              : "Business alias inbox: sales@, contact@, hello@, and careers@axorks.com"}
           </p>
         </div>
 
@@ -172,37 +185,42 @@ export default function EmailCenterPage() {
                   ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                   : "bg-amber-500/10 text-amber-400 border-amber-500/20"
               }`}>
-                {googleStatus.connected ? "Connected & Active" : "OAuth Authorization Ready"}
+                {googleStatus.connected ? "Connected & Active" : "OAuth Ready"}
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
               {googleStatus.connected
-                ? `Synchronized with ${googleStatus.accountEmail || "muhammad.mujahid@axorks.com"} • All 4 aliases routing live`
-                : "Connect muhammad.mujahid@axorks.com to enable direct Gmail API sending and 2-way inbox sync"}
+                ? isFounder
+                  ? `Synchronized with ${googleStatus.accountEmail || "muhammad.mujahid@axorks.com"} • All 4 aliases routing live`
+                  : "All 4 business aliases (sales@, contact@, hello@, careers@) active and synchronized"
+                : "Google Workspace Gmail API connected for enterprise dispatch"}
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {googleStatus.connected ? (
-            <button
-              onClick={() => syncMutation.mutate()}
-              disabled={syncMutation.isPending}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${syncMutation.isPending ? "animate-spin text-violet-400" : ""}`} />
-              {syncMutation.isPending ? "Syncing..." : "Sync Inbox"}
-            </button>
-          ) : null}
+        {/* UI Restriction: Sync and Reauthorize buttons visible ONLY to the Founder */}
+        {isFounder && (
+          <div className="flex flex-wrap items-center gap-2">
+            {googleStatus.connected ? (
+              <button
+                onClick={() => syncMutation.mutate()}
+                disabled={syncMutation.isPending}
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${syncMutation.isPending ? "animate-spin text-violet-400" : ""}`} />
+                {syncMutation.isPending ? "Syncing..." : "Sync Inbox"}
+              </button>
+            ) : null}
 
-          <button
-            onClick={handleConnectGoogle}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-md shadow-violet-600/30 transition"
-          >
-            <Mail className="w-3.5 h-3.5" />
-            {googleStatus.connected ? "Re-authorize Workspace" : "Authorize muhammad.mujahid@axorks.com"}
-          </button>
-        </div>
+            <button
+              onClick={handleConnectGoogle}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-md shadow-violet-600/30 transition"
+            >
+              <Mail className="w-3.5 h-3.5" />
+              {googleStatus.connected ? "Re-authorize Workspace" : "Authorize Workspace"}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Main Tab Navigation */}

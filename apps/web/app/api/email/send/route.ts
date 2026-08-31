@@ -3,6 +3,7 @@ import { resend, RESEND_FROM_EMAIL } from "@/lib/email/resend";
 import { EmailSendSchema } from "@/lib/validators/email";
 import { addEmailToHistory } from "@/lib/email/store";
 import { sendGmailMessage, getGoogleWorkspaceStatus } from "@/lib/email/gmail-service";
+import { authenticateRequest } from "@/lib/server-auth";
 import { neon } from "@neondatabase/serverless";
 
 const DATABASE_URL = process.env.DATABASE_URL || "";
@@ -10,6 +11,7 @@ const sql = neon(DATABASE_URL || "postgresql://placeholder:placeholder@localhost
 
 export async function POST(req: NextRequest) {
   try {
+    const authUser = await authenticateRequest(req);
     const body = await req.json();
 
     // 1. Validate payload with Zod
@@ -45,6 +47,11 @@ export async function POST(req: NextRequest) {
       isFollowup = false,
     } = validation.data;
 
+    const activeUserId = authUser?.id || sentByUserId || "00000000-0000-0000-0000-00000000000a";
+    const activeUserName = authUser
+      ? `${authUser.first_name} ${authUser.last_name || ""}`.trim()
+      : sentByUserName || "Axorks Team Member";
+
     let status: "Sent" | "Failed" = "Sent";
     let messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     let activeThreadId = threadId || messageId;
@@ -70,8 +77,8 @@ export async function POST(req: NextRequest) {
           inReplyTo,
           references,
           attachments,
-          sentByUserId,
-          sentByUserName,
+          sentByUserId: activeUserId,
+          sentByUserName: activeUserName,
           leadId,
           isFollowup,
         });
@@ -138,7 +145,7 @@ export async function POST(req: NextRequest) {
               ${subject}, ${html || ""}, ${text || ""},
               ${(text || html || "").substring(0, 160).replace(/<[^>]*>/g, "")},
               TRUE, ${(attachments?.length || 0) > 0},
-              ${leadId || null}, ${sentByUserId || null}, ${sentByUserName || "Team Member"},
+              ${leadId || null}, ${activeUserId}, ${activeUserName},
               ${Boolean(isFollowup)}, ${status === "Sent" ? "sent" : "failed"}, ${provider === "Resend" ? "resend" : "gmail"},
               NOW(), NOW(), NOW()
             )
@@ -164,7 +171,7 @@ export async function POST(req: NextRequest) {
       html,
       status,
       createdAt: new Date().toISOString(),
-      sentBy: sentByUserName || "Axorks OS Team Member",
+      sentBy: activeUserName,
       attachmentsCount: attachments.length,
       provider,
       deliveryStatus: status === "Sent" ? "Delivered" : "Error",
@@ -176,18 +183,23 @@ export async function POST(req: NextRequest) {
 
     addEmailToHistory(emailRecord);
 
-    // 5. Update CRM lead activity timeline if leadId provided
-    if (leadId && status === "Sent") {
+    // 5. Update CRM Lead Exclusivity: Mark lead contacted by active employee
+    if (status === "Sent" && DATABASE_URL) {
       try {
+        const toEmail = to[0] ? to[0].toLowerCase().trim() : "";
         await sql`
           UPDATE leads
           SET status = CASE WHEN status = 'new' THEN 'contacted' ELSE status END,
-              notes = COALESCE(notes || E'\n', '') || ${`[${new Date().toLocaleDateString()}] Emailed from ${senderAlias} with subject "${subject}"`},
+              first_contacted_by = COALESCE(first_contacted_by, ${activeUserId}),
+              first_contacted_by_name = COALESCE(first_contacted_by_name, ${activeUserName}),
+              contacted_at = COALESCE(contacted_at, NOW()),
+              notes = COALESCE(notes || E'\n', '') || ${`[${new Date().toLocaleDateString()}] Emailed from ${senderAlias} by ${activeUserName} with subject "${subject}"`},
               updated_at = NOW()
-          WHERE id::text = ${leadId};
+          WHERE (id::text = ${leadId || null} OR LOWER(email) = ${toEmail})
+            AND (first_contacted_by IS NULL OR first_contacted_by = ${activeUserId});
         `;
       } catch (crmErr) {
-        console.error("Failed to update CRM lead timeline in DB:", crmErr);
+        console.error("Failed to update CRM lead exclusivity in DB:", crmErr);
       }
     }
 

@@ -5,9 +5,31 @@ import {
   verifyPassword,
 } from "@/lib/user-repository";
 import { createSessionToken } from "@/lib/server-auth";
+import {
+  checkIpLoginAllowed,
+  recordFailedLoginAttempt,
+  recordSuccessfulLogin,
+} from "@/lib/ip-security";
 
 export async function POST(req: NextRequest) {
   try {
+    const rawIp = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "127.0.0.1";
+    const clientIp = rawIp.split(",")[0].trim();
+
+    // 1. IP Brute-Force Pre-Check
+    const ipCheck = await checkIpLoginAllowed(clientIp);
+    if (!ipCheck.allowed) {
+      return NextResponse.json(
+        {
+          errors: [{ message: ipCheck.reason || "Access blocked due to excessive failed attempts" }],
+          is_blocked: true,
+          is_permanent: ipCheck.isPermanent,
+          remaining_minutes: ipCheck.remainingMinutes,
+        },
+        { status: ipCheck.isPermanent ? 403 : 429 }
+      );
+    }
+
     const body = await req.json();
     const identifier = (body.identifier || body.email || body.username || "").trim().toLowerCase();
     const password = body.password || "";
@@ -19,27 +41,54 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Strictly Query user from Neon DB
+    // 2. Query user from Neon DB
     const user = await findUserByIdentifierAsync(identifier);
 
     if (!user) {
+      const lockResult = await recordFailedLoginAttempt(clientIp, identifier);
+      let errorMsg = "Invalid username/email or password";
+      if (lockResult.isPermanent) {
+        errorMsg = "Invalid credentials. IP address permanently blocked due to repeated failures.";
+      } else if (lockResult.lockedUntil) {
+        const mins = lockResult.attempts >= 6 ? 45 : 10;
+        errorMsg = `Invalid credentials. IP address locked for ${mins} minutes due to failed attempts.`;
+      } else {
+        const remaining = 3 - (lockResult.attempts % 3 || 3);
+        if (remaining > 0) {
+          errorMsg = `Invalid username/email or password (${remaining} attempt${remaining > 1 ? "s" : ""} left before temporary lockout).`;
+        }
+      }
+
       return NextResponse.json(
-        { errors: [{ message: "Invalid username/email or password" }] },
-        { status: 401 }
+        { errors: [{ message: errorMsg }] },
+        { status: lockResult.isPermanent ? 403 : lockResult.lockedUntil ? 429 : 401 }
       );
     }
 
-    // 2. Strictly Verify Password Hash using bcrypt
+    // 3. Strictly Verify Password Hash
     const isValidPassword = verifyPassword(password, user.password_hash);
     if (!isValidPassword) {
+      const lockResult = await recordFailedLoginAttempt(clientIp, identifier);
+      let errorMsg = "Invalid username/email or password";
+      if (lockResult.isPermanent) {
+        errorMsg = "Invalid credentials. IP address permanently blocked due to repeated failures.";
+      } else if (lockResult.lockedUntil) {
+        const mins = lockResult.attempts >= 6 ? 45 : 10;
+        errorMsg = `Invalid credentials. IP address locked for ${mins} minutes due to failed attempts.`;
+      } else {
+        const remaining = 3 - (lockResult.attempts % 3 || 3);
+        if (remaining > 0) {
+          errorMsg = `Invalid username/email or password (${remaining} attempt${remaining > 1 ? "s" : ""} left before temporary lockout).`;
+        }
+      }
+
       return NextResponse.json(
-        { errors: [{ message: "Invalid username/email or password" }] },
-        { status: 401 }
+        { errors: [{ message: errorMsg }] },
+        { status: lockResult.isPermanent ? 403 : lockResult.lockedUntil ? 429 : 401 }
       );
     }
 
-    // 3. Strict Check: Account Suspension / Inactive status
-    // Suspended accounts are completely rejected, even with correct password
+    // 4. Strict Check: Account Suspension / Inactive status
     if (user.status !== "active") {
       return NextResponse.json(
         {
@@ -51,11 +100,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. Generate Cryptographically Signed HMAC-SHA256 Token
+    // 5. Successful Login -> Reset failed attempt counter for this IP
+    await recordSuccessfulLogin(clientIp);
+
+    // 6. Generate Cryptographically Signed HMAC-SHA256 Token
     const sessionToken = createSessionToken(user);
 
-    // 5. Record Login Presence
-    const clientIp = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    // 7. Record Login Presence
     const userAgent = req.headers.get("user-agent") || "Web Browser";
     const session = recordLoginSession(user, clientIp, userAgent);
 
@@ -80,7 +131,6 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Set secure HTTP-only cookie for middleware and edge route verification
     response.cookies.set("axorks_token", sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

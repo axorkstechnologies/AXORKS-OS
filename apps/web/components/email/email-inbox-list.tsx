@@ -18,6 +18,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuthStore } from "@/stores/auth-store";
 import { WORKSPACE_ALIASES, type WorkspaceAlias, type WorkspaceEmailRecord } from "@/lib/email/constants";
 
 interface EmailInboxListProps {
@@ -27,6 +28,17 @@ interface EmailInboxListProps {
 
 export function EmailInboxList({ onSelectEmail, selectedEmailId }: EmailInboxListProps) {
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const isFounder = Boolean(
+    user?.role === "Founder" ||
+      user?.email === "mujahidaryan222149@gmail.com" ||
+      user?.email === "muhammad.mujahid@axorks.com"
+  );
+
+  const visibleAliases = isFounder
+    ? WORKSPACE_ALIASES
+    : WORKSPACE_ALIASES.filter((a) => a !== "muhammad.mujahid@axorks.com");
+
   const [selectedAlias, setSelectedAlias] = useState<string>("all");
   const [directionFilter, setDirectionFilter] = useState<"all" | "inbound" | "outbound">("inbound");
   const [search, setSearch] = useState("");
@@ -103,7 +115,7 @@ export function EmailInboxList({ onSelectEmail, selectedEmailId }: EmailInboxLis
           >
             All Mail
           </button>
-          {WORKSPACE_ALIASES.map((alias) => {
+          {visibleAliases.map((alias) => {
             const isActive = selectedAlias === alias;
             const colorMap: Record<string, { active: string; inactive: string }> = {
               "sales@axorks.com": {
@@ -184,14 +196,16 @@ export function EmailInboxList({ onSelectEmail, selectedEmailId }: EmailInboxLis
             />
           </div>
 
-          <button
-            onClick={() => syncMutation.mutate()}
-            disabled={syncMutation.isPending}
-            title="Sync with Google Workspace"
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${syncMutation.isPending ? "animate-spin text-violet-400" : ""}`} />
-          </button>
+          {isFounder && (
+            <button
+              onClick={() => syncMutation.mutate()}
+              disabled={syncMutation.isPending}
+              title="Sync with Google Workspace"
+              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${syncMutation.isPending ? "animate-spin text-violet-400" : ""}`} />
+            </button>
+          )}
         </div>
       </div>
 

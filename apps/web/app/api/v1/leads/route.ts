@@ -1,64 +1,62 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLeadsAsync, createLeadAsync } from "@/lib/business-repository";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { authenticateRequest } from "@/lib/server-auth";
+import { isFounderOrAdmin } from "@/lib/user-repository";
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-
   try {
-    const authHeader = req.headers.get("authorization");
-    const backendRes = await fetch(`${API_BASE_URL}/api/v1/leads?${searchParams.toString()}`, {
-      headers: { ...(authHeader ? { Authorization: authHeader } : {}) },
+    const user = await authenticateRequest(req);
+    const isFounder = Boolean(
+      user &&
+        (isFounderOrAdmin(user.role) ||
+          user.role === "Founder" ||
+          user.email === "mujahidaryan222149@gmail.com" ||
+          user.email === "muhammad.mujahid@axorks.com")
+    );
+
+    const { searchParams } = new URL(req.url);
+    const search = searchParams.get("search") || undefined;
+    const status = searchParams.get("status") || undefined;
+
+    // Fetch leads respecting lead exclusivity:
+    // Non-founders only see uncontacted leads + leads they have personally contacted/been assigned
+    const leads = await getLeadsAsync({
+      userId: user?.id,
+      isFounder,
+      search,
+      status,
     });
 
-    if (backendRes.ok) {
-      const data = await backendRes.json();
-      if (data?.data && Array.isArray(data.data) && data.data.length > 0) {
-        return NextResponse.json(data);
-      }
-    }
-  } catch {
-    // Fallback directly to Neon DB
+    return NextResponse.json({
+      success: true,
+      data: leads,
+      items: leads,
+      total: leads.length,
+      page: 1,
+      per_page: 100,
+    });
+  } catch (error: any) {
+    console.error("Error retrieving leads:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Failed to load leads" },
+      { status: 500 }
+    );
   }
-
-  const leads = await getLeadsAsync();
-  return NextResponse.json({
-    data: leads,
-    items: leads,
-    total: leads.length,
-    page: 1,
-    per_page: 100,
-  });
 }
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await authenticateRequest(req);
     const body = await req.json();
-
-    try {
-      const authHeader = req.headers.get("authorization");
-      const backendRes = await fetch(`${API_BASE_URL}/api/v1/leads`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(authHeader ? { Authorization: authHeader } : {}),
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (backendRes.ok) {
-        const data = await backendRes.json();
-        if (data?.data) return NextResponse.json(data);
-      }
-    } catch {
-      // Fallback directly to Neon DB
-    }
 
     const newLead = await createLeadAsync(body);
 
-    return NextResponse.json({ data: newLead });
+    return NextResponse.json({
+      success: true,
+      data: newLead,
+    });
   } catch (error: any) {
+    console.error("Error creating lead:", error);
     return NextResponse.json(
       { errors: [{ message: error.message || "Failed to create lead" }] },
       { status: 500 }

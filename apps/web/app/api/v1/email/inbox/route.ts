@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getWorkspaceEmailsAsync } from "@/lib/business-repository";
 import { syncGmailInbox, getGoogleWorkspaceStatus } from "@/lib/email/gmail-service";
+import { authenticateRequest } from "@/lib/server-auth";
 
 export async function GET(req: NextRequest) {
   try {
+    const user = await authenticateRequest(req);
+    const isFounder = Boolean(
+      user &&
+        (user.role === "Founder" ||
+          user.email === "mujahidaryan222149@gmail.com" ||
+          user.email === "muhammad.mujahid@axorks.com")
+    );
+
     const { searchParams } = new URL(req.url);
     const alias = searchParams.get("alias") || undefined;
     const direction = (searchParams.get("direction") as any) || "inbound";
@@ -20,6 +29,7 @@ export async function GET(req: NextRequest) {
       is_read: isRead,
       limit,
       offset,
+      isFounder,
     });
 
     return NextResponse.json({
@@ -38,6 +48,27 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await authenticateRequest(req);
+    if (!user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const isFounder = Boolean(
+      user.role === "Founder" ||
+        user.email === "mujahidaryan222149@gmail.com" ||
+        user.email === "muhammad.mujahid@axorks.com"
+    );
+
+    if (!isFounder) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Forbidden: Only the Founder can sync Gmail Inbox with Google Workspace.",
+        },
+        { status: 403 }
+      );
+    }
+
     const status = await getGoogleWorkspaceStatus();
 
     if (!status.connected) {
