@@ -5,7 +5,7 @@
  * the strict backend-enforced Farhana approval workflow (Founder moderation).
  */
 
-import { sql, DATABASE_URL } from "./db";
+import { sql } from "./db";
 
 export interface InternalMessageAttachment {
   name: string;
@@ -116,7 +116,7 @@ function mapDbRowToMessage(r: any): InternalMessageRecord {
 /**
  * Sends an internal message or file attachment.
  * Strictly enforces that if Farhana is either sender OR recipient, the message
- * MUST be set to requires_approval = TRUE and approval_status = 'pending'.
+ * MUST be set to requires_approval = TRUE and approval_status = 'pending' (unless Founder sent it).
  */
 export async function sendInternalMessageAsync(data: {
   sender_id: string;
@@ -133,6 +133,13 @@ export async function sendInternalMessageAsync(data: {
   attachments?: InternalMessageAttachment[];
   parent_message_id?: string;
 }): Promise<InternalMessageRecord> {
+  const isSenderFounder = isFounderUser({
+    id: data.sender_id,
+    email: data.sender_email,
+    first_name: data.sender_name,
+    role: data.sender_role,
+  });
+
   const isSenderFarhana = isFarhanaUser({
     id: data.sender_id,
     email: data.sender_email,
@@ -147,7 +154,11 @@ export async function sendInternalMessageAsync(data: {
     role: data.recipient_role,
   });
 
-  const requiresApproval = isSenderFarhana || isRecipientFarhana;
+  // If Founder himself sent to Farhana, it does not require approval
+  // If Farhana sends to anyone -> requires approval
+  // If any non-founder sends to Farhana -> requires approval
+  // All other employee messages -> instant delivery
+  const requiresApproval = isSenderFarhana || (!isSenderFounder && isRecipientFarhana);
   const approvalStatus = requiresApproval ? "pending" : "none";
   const hasAttachments = (data.attachments && data.attachments.length > 0) || false;
 
@@ -189,7 +200,7 @@ export async function getReceivedMessagesAsync(userId: string): Promise<Internal
 
 /**
  * Retrieves the sent messages for a user.
- * Users can see their own sent messages along with their approval status (e.g. Pending Founder Approval).
+ * Users can see their own sent messages along with their approval status.
  */
 export async function getSentMessagesAsync(userId: string): Promise<InternalMessageRecord[]> {
   const rows = await sql`
@@ -215,7 +226,7 @@ export async function getPendingApprovalMessagesAsync(): Promise<InternalMessage
 /**
  * Approves a message pending moderation (Founder Only).
  */
-export async function approveMessageAsync(messageId: string, founderId: string = "user_founder_01"): Promise<InternalMessageRecord> {
+export async function approveMessageAsync(messageId: string, founderId: string = "00000000-0000-0000-0000-00000000000a"): Promise<InternalMessageRecord> {
   const rows = await sql`
     UPDATE internal_messages
     SET approval_status = 'approved',
@@ -234,14 +245,13 @@ export async function approveMessageAsync(messageId: string, founderId: string =
  */
 export async function rejectMessageAsync(
   messageId: string,
-  rejectionReason: string = "Rejected by Founder",
-  founderId: string = "user_founder_01"
+  rejectionReason: string = "Rejected by policy",
+  founderId: string = "00000000-0000-0000-0000-00000000000a"
 ): Promise<InternalMessageRecord> {
   const rows = await sql`
     UPDATE internal_messages
     SET approval_status = 'rejected',
         approved_by = ${founderId},
-        approved_at = NOW(),
         rejection_reason = ${rejectionReason},
         updated_at = NOW()
     WHERE id::text = ${messageId}

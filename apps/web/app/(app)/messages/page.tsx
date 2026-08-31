@@ -12,7 +12,6 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
-  AlertTriangle,
   Paperclip,
   ShieldCheck,
   Crown,
@@ -31,7 +30,11 @@ import {
 export default function InternalMessagesPage() {
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuthStore();
-  const isFounder = currentUser?.role === "Founder" || currentUser?.email === "mujahidaryan222149@gmail.com";
+  const isFounder = Boolean(
+    currentUser?.role === "Founder" ||
+      currentUser?.email === "mujahidaryan222149@gmail.com" ||
+      currentUser?.email === "muhammad.mujahid@axorks.com"
+  );
 
   const [activeTab, setActiveTab] = useState<"inbox" | "sent" | "pending" | "compose">("inbox");
   const [search, setSearch] = useState("");
@@ -44,25 +47,26 @@ export default function InternalMessagesPage() {
   const [attachments, setAttachments] = useState<Array<{ name: string; size: number; type: string; url: string }>>([]);
 
   // Fetch Team Users for Recipient Selector
-  const { data: users = [] } = useQuery({
+  const { data: usersResponse } = useQuery<{ success: boolean; data: any[] } | any[]>({
     queryKey: ["team-users-messaging"],
     queryFn: () => apiClient("/api/v1/iam/users"),
   });
 
-  const availableRecipients = (Array.isArray(users) ? users : []).filter(
-    (u: any) => u.id !== currentUser?.id
-  );
+  const availableUsers: any[] = Array.isArray(usersResponse)
+    ? usersResponse
+    : (usersResponse as any)?.data || [];
+
+  const availableRecipients = availableUsers.filter((u: any) => u.id !== currentUser?.id);
 
   // Fetch Messages based on active tab
-  const { data: response, isLoading, refetch } = useQuery({
+  const { data: messagesData, isLoading, refetch } = useQuery<any>({
     queryKey: ["internal-messages", activeTab],
-    queryFn: () =>
-      apiClient(`/api/v1/messages?folder=${activeTab === "compose" ? "inbox" : activeTab}`, {
-        headers: currentUser?.id ? { "x-user-id": currentUser.id } : undefined,
-      }),
+    queryFn: () => apiClient(`/api/v1/messages?folder=${activeTab === "compose" ? "inbox" : activeTab}`),
   });
 
-  const messages: any[] = response?.data || [];
+  const messages: any[] = Array.isArray(messagesData)
+    ? messagesData
+    : (messagesData as any)?.data || [];
 
   // Filter messages by search
   const filteredMessages = messages.filter((m) => {
@@ -81,42 +85,37 @@ export default function InternalMessagesPage() {
       apiClient("/api/v1/messages", {
         method: "POST",
         body: JSON.stringify(payload),
-        headers: currentUser?.id ? { "x-user-id": currentUser.id } : undefined,
       }),
-    onSuccess: (res) => {
-      if (res?.success) {
-        toast.success(res.message || "Message sent successfully!");
-        setRecipientId("");
-        setSubject("");
-        setBody("");
-        setAttachments([]);
-        setActiveTab("sent");
-        queryClient.invalidateQueries({ queryKey: ["internal-messages"] });
+    onSuccess: (res: any) => {
+      const created = res?.data || res;
+      if (created?.requires_approval && created?.approval_status === "pending") {
+        toast.success("Message sent for approval");
       } else {
-        toast.error(res?.error || "Failed to send message");
+        toast.success("Message sent successfully!");
       }
+      setRecipientId("");
+      setSubject("");
+      setBody("");
+      setAttachments([]);
+      setActiveTab("sent");
+      queryClient.invalidateQueries({ queryKey: ["internal-messages"] });
     },
     onError: (err: any) => {
       toast.error(err.message || "Error sending message");
     },
   });
 
-  // Approve / Reject Mutation
+  // Approve / Reject Mutation (Founder Only)
   const actionMutation = useMutation({
     mutationFn: ({ messageId, action, reason }: { messageId: string; action: "approve" | "reject"; reason?: string }) =>
       apiClient(`/api/v1/messages/${messageId}`, {
         method: "PATCH",
         body: JSON.stringify({ action, rejection_reason: reason }),
-        headers: currentUser?.id ? { "x-user-id": currentUser.id } : undefined,
       }),
     onSuccess: (res, vars) => {
-      if (res?.success) {
-        toast.success(vars.action === "approve" ? "Message approved & delivered!" : "Message rejected.");
-        queryClient.invalidateQueries({ queryKey: ["internal-messages"] });
-        setSelectedMessage(null);
-      } else {
-        toast.error(res?.error || "Action failed");
-      }
+      toast.success(vars.action === "approve" ? "Message approved & delivered!" : "Message rejected.");
+      queryClient.invalidateQueries({ queryKey: ["internal-messages"] });
+      setSelectedMessage(null);
     },
     onError: (err: any) => {
       toast.error(err.message || "Action failed");
@@ -173,17 +172,6 @@ export default function InternalMessagesPage() {
     });
   };
 
-  const isFarhanaSelected = () => {
-    const r = availableRecipients.find((u: any) => u.id === recipientId);
-    if (!r) return false;
-    return (
-      r.email === "heyfarii@gmail.com" ||
-      r.email === "farhana.bakht@axorks.com" ||
-      r.first_name === "Farhana" ||
-      r.role === "Co-Founder"
-    );
-  };
-
   return (
     <div className="space-y-6">
       {/* Header Banner */}
@@ -193,14 +181,14 @@ export default function InternalMessagesPage() {
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-xs font-semibold">
               <MessageSquare className="w-3.5 h-3.5" />
-              <span>Encrypted Internal Communication Channel</span>
+              <span>Internal Communication Channel</span>
             </div>
             <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white flex items-center gap-2.5">
               <span>Team Messages & File Exchange</span>
               {isFounder && <Crown className="w-5 h-5 text-amber-400" />}
             </h1>
             <p className="text-slate-400 text-xs md:text-sm max-w-2xl">
-              Secure real-time communication, file sharing, and Founder moderation workflow for all Axorks OS members.
+              Secure internal team messaging, document exchange, and project coordination.
             </p>
           </div>
 
@@ -248,7 +236,7 @@ export default function InternalMessagesPage() {
               }`}
             >
               <ShieldCheck className="w-4 h-4" />
-              <span>Pending Founder Approval</span>
+              <span>Review Queue</span>
             </button>
           )}
 
@@ -294,19 +282,8 @@ export default function InternalMessagesPage() {
             <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
               <MessageSquare className="w-4 h-4 text-violet-400" /> Compose Internal Message
             </h2>
-            <span className="text-xs text-slate-500 font-mono">Neon DB Encrypted Storage</span>
+            <span className="text-xs text-slate-500 font-mono">Secure Direct Dispatch</span>
           </div>
-
-          {/* Farhana Policy Alert */}
-          {(isFarhanaSelected() || currentUser?.role === "Co-Founder" || currentUser?.first_name === "Farhana") && (
-            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-start gap-3">
-              <ShieldCheck className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-              <div>
-                <strong className="font-semibold block text-amber-200">Founder Moderation Policy Enforced</strong>
-                All messages and files sent to or from Farhana (Co-Founder) are automatically queued for Founder approval before delivery.
-              </div>
-            </div>
-          )}
 
           {/* Recipient Selection */}
           <div className="space-y-1.5">
@@ -330,7 +307,7 @@ export default function InternalMessagesPage() {
             <label className="text-xs font-semibold text-slate-300">Subject</label>
             <input
               type="text"
-              placeholder="e.g. Project Specs Review / Design Deliverables"
+              placeholder="e.g. Outreach Strategy / Project Deliverables"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 text-xs focus:outline-hidden focus:border-violet-500"
@@ -409,13 +386,13 @@ export default function InternalMessagesPage() {
       {activeTab !== "compose" && (
         <div className="bg-slate-950/80 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
           {isLoading ? (
-            <div className="p-12 text-center text-slate-400 text-xs">Loading messages...</div>
+            <div className="p-12 text-center text-slate-400 text-xs font-mono">Loading messages...</div>
           ) : filteredMessages.length === 0 ? (
             <div className="p-12 text-center space-y-3">
               <MessageSquare className="w-10 h-10 text-slate-600 mx-auto" />
               <p className="text-sm font-semibold text-slate-300">No messages found in this folder</p>
               <p className="text-xs text-slate-500">
-                {activeTab === "pending" ? "All messages have been approved." : "Start a new conversation with your team."}
+                {activeTab === "pending" ? "Review queue is currently clear." : "Start a new conversation with your team."}
               </p>
             </div>
           ) : (
@@ -431,7 +408,7 @@ export default function InternalMessagesPage() {
                       {msg.sender_name?.[0] || "U"}
                     </div>
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="text-xs font-bold text-slate-200">
                           {activeTab === "sent" ? `To: ${msg.recipient_name}` : `From: ${msg.sender_name}`}
                         </span>
@@ -439,20 +416,25 @@ export default function InternalMessagesPage() {
                           {activeTab === "sent" ? `(${msg.recipient_role || "Team Member"})` : `(${msg.sender_role || "Team Member"})`}
                         </span>
 
-                        {/* Approval Badges */}
+                        {/* Neutral Status Badges */}
                         {msg.requires_approval && msg.approval_status === "pending" && (
                           <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center gap-1">
-                            <Clock className="w-3 h-3" /> Pending Founder Approval
+                            <Clock className="w-3 h-3" /> Pending Approval
                           </span>
                         )}
                         {msg.requires_approval && msg.approval_status === "approved" && (
                           <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> Approved by Founder
+                            <CheckCircle2 className="w-3 h-3" /> Delivered
                           </span>
                         )}
                         {msg.requires_approval && msg.approval_status === "rejected" && (
                           <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/30 flex items-center gap-1">
-                            <XCircle className="w-3 h-3" /> Rejected
+                            <XCircle className="w-3 h-3" /> Not Delivered
+                          </span>
+                        )}
+                        {!msg.requires_approval && activeTab === "sent" && (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> Delivered
                           </span>
                         )}
                       </div>
@@ -474,7 +456,7 @@ export default function InternalMessagesPage() {
                       {new Date(msg.created_at).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                     </span>
 
-                    {/* Pending Actions for Founder in List */}
+                    {/* Review Actions only for Founder in pending tab */}
                     {activeTab === "pending" && isFounder && (
                       <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                         <button
@@ -529,7 +511,7 @@ export default function InternalMessagesPage() {
               </button>
             </div>
 
-            {/* Approval Notice inside viewer */}
+            {/* Neutral Status Notice */}
             {selectedMessage.requires_approval && (
               <div
                 className={`p-3 rounded-xl text-xs flex items-center gap-2 border ${
@@ -540,14 +522,14 @@ export default function InternalMessagesPage() {
                     : "bg-amber-500/10 border-amber-500/30 text-amber-300"
                 }`}
               >
-                <ShieldCheck className="w-4 h-4 shrink-0" />
+                <Clock className="w-4 h-4 shrink-0" />
                 <span>
-                  <strong>Moderation Status:</strong>{" "}
+                  <strong>Status:</strong>{" "}
                   {selectedMessage.approval_status === "approved"
-                    ? "Approved by Founder & Delivered"
+                    ? "Delivered"
                     : selectedMessage.approval_status === "rejected"
-                    ? `Rejected by Founder (${selectedMessage.rejection_reason || "Policy"})`
-                    : "Pending Founder Approval before recipient delivery"}
+                    ? "Message could not be delivered"
+                    : "Pending Approval"}
                 </span>
               </div>
             )}
@@ -595,7 +577,7 @@ export default function InternalMessagesPage() {
                     onClick={() => actionMutation.mutate({ messageId: selectedMessage.id, action: "reject" })}
                     className="px-4 py-2 rounded-xl bg-red-600/80 hover:bg-red-600 text-white text-xs font-bold transition flex items-center gap-1.5"
                   >
-                    <XCircle className="w-4 h-4" /> Reject Message
+                    <XCircle className="w-4 h-4" /> Reject
                   </button>
                   <button
                     onClick={() => actionMutation.mutate({ messageId: selectedMessage.id, action: "approve" })}

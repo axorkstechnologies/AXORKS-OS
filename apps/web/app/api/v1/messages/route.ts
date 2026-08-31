@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     if (folder === "pending") {
       if (!isFounderUser(user)) {
         return NextResponse.json(
-          { success: false, error: "Forbidden: Only Founder can view pending approval queue" },
+          { success: false, error: "Forbidden: Access restricted" },
           { status: 403 }
         );
       }
@@ -89,9 +89,10 @@ export async function POST(req: NextRequest) {
       parent_message_id,
     });
 
-    let statusNote = "Message delivered instantly";
+    // Neutral UX notification message — never reveals internal policy details
+    let statusNote = "Message delivered successfully";
     if (created.requires_approval && created.approval_status === "pending") {
-      statusNote = "Message submitted and queued for Founder approval (Farhana communication policy)";
+      statusNote = "Message sent for approval";
     }
 
     return NextResponse.json({

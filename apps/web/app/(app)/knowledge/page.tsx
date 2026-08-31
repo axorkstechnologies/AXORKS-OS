@@ -3,135 +3,321 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
+import { useAuthStore } from "@/stores/auth-store";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { BookOpen, Plus, FileText, Search, Sparkles, ChevronRight } from "lucide-react";
+import {
+  BookOpen,
+  Plus,
+  FileText,
+  Search,
+  Sparkles,
+  ChevronRight,
+  ShieldCheck,
+  Crown,
+  Pin,
+  Clock,
+  Layers,
+  FolderOpen,
+  CheckCircle2,
+  X,
+  FileCode2,
+} from "lucide-react";
 
-const PAGE_TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  page: { label: "Page", color: "bg-slate-800 text-slate-300" },
-  sop: { label: "SOP", color: "bg-blue-500/10 text-blue-400" },
-  template: { label: "Template", color: "bg-violet-500/10 text-violet-400" },
-  meeting_notes: { label: "Meeting Notes", color: "bg-amber-500/10 text-amber-400" },
-};
+const CATEGORY_TABS = [
+  { id: "all", label: "All Documents" },
+  { id: "sop", label: "Standard Operating Procedures (SOP)" },
+  { id: "marketing", label: "Marketing & Outreach" },
+  { id: "engineering", label: "Engineering Standards" },
+  { id: "template", label: "Process Templates" },
+];
 
 export default function KnowledgeBasePage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const isFounder = Boolean(
+    user?.role === "Founder" ||
+      user?.email === "mujahidaryan222149@gmail.com" ||
+      user?.email === "muhammad.mujahid@axorks.com"
+  );
 
   const [showCreate, setShowCreate] = useState(false);
   const [title, setTitle] = useState("");
-  const [pageType, setPageType] = useState("page");
+  const [category, setCategory] = useState("sop");
+  const [pageType, setPageType] = useState("sop");
+  const [icon, setIcon] = useState("📋");
+  const [initialContent, setInitialContent] = useState("");
+  const [isPinned, setIsPinned] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
-  const { data: pages = [] } = useQuery({
-    queryKey: ["knowledge-pages"],
-    queryFn: () => apiClient("/api/v1/knowledge/pages"),
-  });
-
-  const { data: searchResults } = useQuery({
-    queryKey: ["knowledge-search", searchQuery],
-    queryFn: () => apiClient(`/api/v1/knowledge/pages/search?q=${encodeURIComponent(searchQuery)}`),
-    enabled: searchQuery.length >= 2,
-  });
-
-  const createPage = useMutation({
-    mutationFn: () =>
-      apiClient("/api/v1/knowledge/pages", {
-        method: "POST",
-        body: JSON.stringify({ title, page_type: pageType, icon: "📄", content: "" }),
-      }),
-    onSuccess: (res: any) => {
-      queryClient.invalidateQueries({ queryKey: ["knowledge-pages"] });
-      toast.success("Page created!");
-      setShowCreate(false);
-      setTitle("");
-      router.push(`/knowledge/${res.slug}`);
+  const { data: pagesResponse, isLoading } = useQuery<{ success: boolean; data: any[] } | any[]>({
+    queryKey: ["knowledge-pages", searchQuery, selectedCategory],
+    queryFn: () => {
+      let url = "/api/v1/knowledge/pages";
+      const params = new URLSearchParams();
+      if (searchQuery.trim()) params.append("q", searchQuery.trim());
+      if (selectedCategory !== "all") params.append("category", selectedCategory);
+      if (params.toString()) url += `?${params.toString()}`;
+      return apiClient(url);
     },
   });
 
-  const displayPages = searchQuery.length >= 2 ? (searchResults || []) : pages;
+  const pages: any[] = Array.isArray(pagesResponse)
+    ? pagesResponse
+    : (pagesResponse as any)?.data || [];
+
+  const createPageMutation = useMutation({
+    mutationFn: () =>
+      apiClient("/api/v1/knowledge/pages", {
+        method: "POST",
+        body: JSON.stringify({
+          title: title.trim(),
+          category,
+          page_type: pageType,
+          icon: icon.trim() || "📋",
+          content: initialContent.trim(),
+          is_pinned: isPinned,
+        }),
+      }),
+    onSuccess: (res: any) => {
+      const created = res?.data || res;
+      queryClient.invalidateQueries({ queryKey: ["knowledge-pages"] });
+      toast.success("SOP document created successfully!");
+      setShowCreate(false);
+      setTitle("");
+      setInitialContent("");
+      if (created?.slug) {
+        router.push(`/knowledge/${created.slug}`);
+      }
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to create document");
+    },
+  });
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-white">Knowledge Base</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Internal wiki, SOPs, coding standards, meeting notes & AI prompt library</p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => router.push("/knowledge/prompts")}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition"
-          >
-            <Sparkles className="w-3.5 h-3.5" /> Prompt Library
-          </button>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-medium transition"
-          >
-            <Plus className="w-3.5 h-3.5" /> New Page
-          </button>
+    <div className="space-y-6">
+      {/* Header Banner */}
+      <div className="relative rounded-3xl overflow-hidden border border-slate-800 bg-slate-950 p-6 md:p-8 shadow-2xl">
+        <div className="absolute inset-0 bg-gradient-to-r from-violet-950/40 via-slate-950 to-indigo-950/30" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-xs font-semibold">
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>Standard Operating Procedures & Knowledge Hub</span>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white flex items-center gap-2.5">
+              <span>Axorks OS Knowledge & SOP Center</span>
+              {isFounder && <Crown className="w-5 h-5 text-amber-400" />}
+            </h1>
+            <p className="text-slate-400 text-xs md:text-sm max-w-2xl">
+              Official company SOPs, Marketing & Outreach blueprints, engineering architecture guidelines, and operational standards.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2.5 self-start md:self-auto">
+            {isFounder && (
+              <button
+                onClick={() => setShowCreate(true)}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-violet-600/30 flex items-center gap-2 transition transform active:scale-95"
+              >
+                <Plus className="w-4 h-4" /> Add SOP Document
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
-        <input
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search knowledge base..."
-          className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs focus:outline-none focus:border-violet-500"
-        />
+      {/* Category Pills & Search */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/40 p-2.5 rounded-2xl border border-slate-800 backdrop-blur-sm">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+          {CATEGORY_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setSelectedCategory(tab.id)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
+                selectedCategory === tab.id
+                  ? "bg-violet-600 text-white shadow-sm shadow-violet-600/30 font-bold"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="relative w-full sm:w-72">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <input
+            type="text"
+            placeholder="Search SOPs and guides..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-slate-950 border border-slate-800 text-slate-200 placeholder-slate-500 focus:outline-hidden focus:border-violet-500"
+          />
+        </div>
       </div>
 
-      {/* Create Page Modal */}
+      {/* Create SOP Modal (Founder) */}
       {showCreate && (
-        <div className="p-5 rounded-xl bg-slate-900 border border-slate-800 max-w-md space-y-3">
-          <h2 className="text-sm font-semibold text-white">Create New Page</h2>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Page title" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 placeholder-slate-500" />
-          <select value={pageType} onChange={(e) => setPageType(e.target.value)} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100">
-            <option value="page">Page</option>
-            <option value="sop">SOP (Standard Operating Procedure)</option>
-            <option value="template">Template</option>
-            <option value="meeting_notes">Meeting Notes</option>
-          </select>
-          <div className="flex justify-end gap-2">
-            <button onClick={() => setShowCreate(false)} className="px-4 py-1.5 rounded bg-slate-800 text-slate-400 text-xs">Cancel</button>
-            <button onClick={() => createPage.mutate()} disabled={!title.trim()} className="px-4 py-1.5 rounded bg-violet-600 text-white text-xs disabled:opacity-50">Create</button>
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-950 border border-slate-800 rounded-3xl w-full max-w-xl p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
+                <Plus className="w-4 h-4 text-violet-400" /> Create Standard Operating Procedure (SOP)
+              </h2>
+              <button
+                onClick={() => setShowCreate(false)}
+                className="p-1 rounded-xl text-slate-400 hover:text-slate-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-300">Document Title *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. B2B Client Discovery Call & Qualification SOP"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-hidden focus:border-violet-500 font-medium"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-300">Category</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 text-xs focus:outline-hidden"
+                  >
+                    <option value="sop">SOP (Process)</option>
+                    <option value="marketing">Marketing & Outreach</option>
+                    <option value="engineering">Engineering</option>
+                    <option value="template">Template</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-300">Icon Emoji</label>
+                  <input
+                    type="text"
+                    value={icon}
+                    onChange={(e) => setIcon(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs text-center font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-300">Initial Document Content (Markdown Supported)</label>
+                <textarea
+                  rows={6}
+                  placeholder="# Purpose&#10;&#10;Describe the SOP purpose and step-by-step guidelines..."
+                  value={initialContent}
+                  onChange={(e) => setInitialContent(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 text-xs font-mono focus:outline-hidden"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="pinDoc"
+                  checked={isPinned}
+                  onChange={(e) => setIsPinned(e.target.checked)}
+                  className="rounded border-slate-800 bg-slate-900 text-violet-600 focus:ring-0"
+                />
+                <label htmlFor="pinDoc" className="text-xs text-slate-300 font-medium cursor-pointer">
+                  Pin this document to top of Knowledge Center
+                </label>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
+              <button
+                onClick={() => setShowCreate(false)}
+                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 text-xs font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => createPageMutation.mutate()}
+                disabled={!title.trim() || createPageMutation.isPending}
+                className="px-5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition disabled:opacity-50 shadow-md shadow-violet-600/30"
+              >
+                {createPageMutation.isPending ? "Creating..." : "Save & Open SOP"}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* Pages Grid */}
-      <div className="space-y-2">
-        {displayPages.length === 0 ? (
-          <div className="py-12 text-center text-xs text-slate-500 border border-slate-800 rounded-xl">
-            {searchQuery ? "No results found." : "No knowledge pages yet. Create your first page to get started."}
+      <div className="space-y-3">
+        {isLoading ? (
+          <div className="p-12 text-center text-xs text-slate-500 font-mono">
+            Loading Knowledge Base documents from Neon DB...
+          </div>
+        ) : pages.length === 0 ? (
+          <div className="p-12 text-center border border-slate-800 rounded-3xl bg-slate-950/60 space-y-2">
+            <BookOpen className="w-10 h-10 text-slate-600 mx-auto" />
+            <h3 className="text-sm font-bold text-slate-200">No SOP documents found</h3>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              {searchQuery ? "Try a different search term" : "The Founder will add process guidelines and SOPs here."}
+            </p>
           </div>
         ) : (
-          displayPages.map((page: any) => (
-            <div
-              key={page.id}
-              onClick={() => router.push(`/knowledge/${page.slug}`)}
-              className="flex items-center justify-between p-4 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-violet-500/40 transition cursor-pointer group"
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-lg">{page.icon || "📄"}</span>
-                <div>
-                  <span className="font-medium text-slate-200 text-xs group-hover:text-violet-300 transition block">{page.title}</span>
-                  <span className="text-[10px] text-slate-500 font-mono">/{page.slug}</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {pages.map((page: any) => (
+              <div
+                key={page.id}
+                onClick={() => router.push(`/knowledge/${page.slug}`)}
+                className="p-5 rounded-3xl bg-slate-950/80 border border-slate-800 hover:border-violet-500/50 hover:bg-slate-900/50 transition-all cursor-pointer flex flex-col justify-between space-y-4 shadow-lg group"
+              >
+                <div className="space-y-2.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl p-2 rounded-2xl bg-slate-900 border border-slate-800 group-hover:scale-110 transition-transform shrink-0">
+                        {page.icon || "📋"}
+                      </span>
+                      <div>
+                        <h3 className="font-bold text-sm text-slate-100 group-hover:text-violet-400 transition">
+                          {page.title}
+                        </h3>
+                        <span className="text-[10px] text-slate-500 font-mono">/{page.slug}</span>
+                      </div>
+                    </div>
+
+                    {page.is_pinned && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center gap-1 shrink-0">
+                        <Pin className="w-3 h-3" /> Pinned
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed font-sans">
+                    {page.content ? page.content.replace(/[#*`_\[\]]/g, "").slice(0, 150) + "..." : "No description available."}
+                  </p>
+                </div>
+
+                <div className="pt-3 border-t border-slate-900 flex items-center justify-between text-[11px] text-slate-500">
+                  <span className="capitalize font-semibold text-slate-400">
+                    Category: <strong className="text-violet-400">{page.category || "SOP"}</strong>
+                  </span>
+                  <div className="flex items-center gap-1 text-violet-400 font-bold group-hover:translate-x-0.5 transition-transform">
+                    <span>Read SOP</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${PAGE_TYPE_LABELS[page.page_type]?.color || ""}`}>
-                  {PAGE_TYPE_LABELS[page.page_type]?.label || page.page_type}
-                </span>
-                <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-violet-400 transition" />
-              </div>
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
     </div>
