@@ -873,38 +873,62 @@ export async function updateEmailFollowupAsync(id: string, updates: Partial<Emai
 export interface ScreenRecordingRecord {
   id: string;
   user_id?: string;
-  recorded_by_id?: string;
+  employee_id?: string | null;
+  employee_name?: string | null;
+  recorded_by_id?: string | null;
+  recorded_by_name?: string | null;
   recording_type: "screen" | "call";
+  media_type: "screen_video" | "screenshot" | "call_audio";
   title: string;
   file_url?: string | null;
+  image_data?: string | null;
   duration_seconds: number;
+  file_size_bytes?: number;
+  expires_at: string;
   created_at: string;
 }
 
-export async function getScreenRecordingsAsync(): Promise<ScreenRecordingRecord[]> {
+export async function getScreenRecordingsAsync(filters: {
+  employeeId?: string;
+} = {}): Promise<ScreenRecordingRecord[]> {
   try {
-    const rows = await sql`
-      CREATE TABLE IF NOT EXISTS screen_recordings (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id TEXT,
-        recorded_by_id TEXT,
-        recording_type TEXT NOT NULL,
-        title TEXT NOT NULL,
-        file_url TEXT,
-        duration_seconds INT DEFAULT 0,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      );
-      SELECT * FROM screen_recordings ORDER BY created_at DESC;
+    // 1. Auto-purge expired recordings (> 1 day old) automatically
+    await sql`
+      DELETE FROM screen_recordings 
+      WHERE expires_at IS NOT NULL AND expires_at < NOW();
     `;
+
+    // 2. Fetch active non-expired recordings
+    let rows: any[] = [];
+    if (filters.employeeId) {
+      rows = await sql`
+        SELECT * FROM screen_recordings
+        WHERE employee_id = ${filters.employeeId}
+        ORDER BY created_at DESC;
+      `;
+    } else {
+      rows = await sql`
+        SELECT * FROM screen_recordings
+        ORDER BY created_at DESC;
+      `;
+    }
+
     if (rows && rows.length > 0) {
       return rows.map((r: any) => ({
         id: String(r.id),
         user_id: r.user_id || undefined,
-        recorded_by_id: r.recorded_by_id || "user_founder_01",
+        employee_id: r.employee_id || null,
+        employee_name: r.employee_name || "All Staff",
+        recorded_by_id: r.recorded_by_id || null,
+        recorded_by_name: r.recorded_by_name || "Founder",
         recording_type: r.recording_type === "call" ? "call" : "screen",
+        media_type: (r.media_type as any) || (r.recording_type === "call" ? "call_audio" : "screen_video"),
         title: r.title,
         file_url: r.file_url || null,
+        image_data: r.image_data || null,
         duration_seconds: Number(r.duration_seconds || 0),
+        file_size_bytes: Number(r.file_size_bytes || 0),
+        expires_at: r.expires_at ? new Date(r.expires_at).toISOString() : new Date(Date.now() + 86400000).toISOString(),
         created_at: new Date(r.created_at).toISOString(),
       }));
     }
@@ -917,29 +941,39 @@ export async function getScreenRecordingsAsync(): Promise<ScreenRecordingRecord[
 export async function createScreenRecordingAsync(data: {
   title: string;
   recording_type?: "screen" | "call";
+  media_type?: "screen_video" | "screenshot" | "call_audio";
   file_url?: string | null;
+  image_data?: string | null;
   duration_seconds?: number;
+  file_size_bytes?: number;
   user_id?: string;
+  employee_id?: string | null;
+  employee_name?: string | null;
+  recorded_by_id?: string | null;
+  recorded_by_name?: string | null;
 }): Promise<ScreenRecordingRecord> {
   const title = data.title.trim();
-  const recordingType = data.recording_type || "screen";
+  const recordingType = data.recording_type || (data.media_type === "call_audio" ? "call" : "screen");
+  const mediaType = data.media_type || (recordingType === "call" ? "call_audio" : "screen_video");
   const fileUrl = data.file_url || null;
+  const imageData = data.image_data || null;
   const duration = data.duration_seconds || 0;
-  const userId = data.user_id || "00000000-0000-0000-0000-00000000000a";
+  const fileSizeBytes = data.file_size_bytes || 0;
+  const employeeId = data.employee_id || data.user_id || null;
+  const employeeName = data.employee_name || "Employee";
+  const recordedById = data.recorded_by_id || "00000000-0000-0000-0000-00000000000a";
+  const recordedByName = data.recorded_by_name || "Founder / Co-Founder";
 
   const rows = await sql`
-    CREATE TABLE IF NOT EXISTS screen_recordings (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id TEXT,
-      recorded_by_id TEXT,
-      recording_type TEXT NOT NULL,
-      title TEXT NOT NULL,
-      file_url TEXT,
-      duration_seconds INT DEFAULT 0,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    INSERT INTO screen_recordings (user_id, recorded_by_id, recording_type, title, file_url, duration_seconds, created_at)
-    VALUES (${userId}, '00000000-0000-0000-0000-00000000000a', ${recordingType}, ${title}, ${fileUrl}, ${duration}, NOW())
+    INSERT INTO screen_recordings (
+      employee_id, employee_name, recorded_by_id, recorded_by_name,
+      recording_type, media_type, title, file_url, image_data,
+      duration_seconds, file_size_bytes, expires_at, created_at
+    ) VALUES (
+      ${employeeId}, ${employeeName}, ${recordedById}, ${recordedByName},
+      ${recordingType}, ${mediaType}, ${title}, ${fileUrl}, ${imageData},
+      ${duration}, ${fileSizeBytes}, (NOW() + INTERVAL '1 day'), NOW()
+    )
     RETURNING *;
   `;
 
@@ -947,13 +981,30 @@ export async function createScreenRecordingAsync(data: {
   return {
     id: String(r.id),
     user_id: r.user_id || undefined,
-    recorded_by_id: r.recorded_by_id || "user_founder_01",
+    employee_id: r.employee_id || null,
+    employee_name: r.employee_name || employeeName,
+    recorded_by_id: r.recorded_by_id || recordedById,
+    recorded_by_name: r.recorded_by_name || recordedByName,
     recording_type: r.recording_type === "call" ? "call" : "screen",
+    media_type: (r.media_type as any) || mediaType,
     title: r.title,
     file_url: r.file_url || null,
+    image_data: r.image_data || null,
     duration_seconds: Number(r.duration_seconds || 0),
+    file_size_bytes: Number(r.file_size_bytes || 0),
+    expires_at: r.expires_at ? new Date(r.expires_at).toISOString() : new Date(Date.now() + 86400000).toISOString(),
     created_at: new Date(r.created_at).toISOString(),
   };
+}
+
+export async function deleteScreenRecordingAsync(id: string): Promise<boolean> {
+  try {
+    await sql`DELETE FROM screen_recordings WHERE id::text = ${id};`;
+    return true;
+  } catch (err) {
+    console.error("Error deleting screen recording:", err);
+    return false;
+  }
 }
 
 // ─── Workspace Emails & Google Workspace Repository ─────────────────
