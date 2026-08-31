@@ -14,10 +14,19 @@ export const EmailSendSchema = z.object({
   bcc: z.array(z.string().email("Invalid BCC email address")).optional().default([]),
   subject: z.string().min(1, "Subject is required").max(500, "Subject is too long"),
   html: z.string().min(1, "Email body cannot be empty"),
+  text: z.string().optional(),
+  senderAlias: z.string().optional().default("sales@axorks.com"),
+  senderName: z.string().optional().default("Axorks Technologies"),
   replyTo: z.string().email("Invalid reply-to email").optional(),
+  threadId: z.string().optional(),
+  inReplyTo: z.string().optional(),
+  references: z.string().optional(),
   attachments: z.array(AttachmentSchema).optional().default([]),
   leadId: z.string().optional(),
   templateId: z.string().optional(),
+  sentByUserId: z.string().optional(),
+  sentByUserName: z.string().optional(),
+  isFollowup: z.boolean().optional().default(false),
 });
 
 export type EmailSendInput = z.infer<typeof EmailSendSchema>;

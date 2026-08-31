@@ -23,6 +23,7 @@ import {
   CheckCircle2,
   ArrowRight,
   Database,
+  Mail,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -187,26 +188,42 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Access Operating Hubs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Link
-          href="/iam/recordings"
-          className="glass-card p-6 rounded-2xl group space-y-3.5 relative overflow-hidden"
+          href="/email"
+          className="glass-card p-5 rounded-2xl group space-y-3 relative overflow-hidden border border-violet-500/30 hover:border-violet-500/60 transition"
         >
           <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-violet-500/10 text-violet-500 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-              <Activity className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-violet-500/20 text-violet-400 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+              <Mail className="w-5 h-5" />
             </div>
-            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-violet-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-150" />
+            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-violet-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-150" />
           </div>
           <div>
-            <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">Screen Capture Studio</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">Review live employee activity and screen recordings library</p>
+            <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-violet-400 transition-colors">Workspace Email Center</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">Gmail API 2-way sync & all 4 aliases</p>
+          </div>
+        </Link>
+
+        <Link
+          href="/iam/recordings"
+          className="glass-card p-5 rounded-2xl group space-y-3 relative overflow-hidden"
+        >
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+              <Activity className="w-5 h-5" />
+            </div>
+            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-150" />
+          </div>
+          <div>
+            <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-emerald-400 transition-colors">Screen Capture Studio</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">Review employee screen recordings</p>
           </div>
         </Link>
 
         <Link
           href="/proposals"
-          className="glass-card p-6 rounded-2xl group space-y-3.5 relative overflow-hidden"
+          className="glass-card p-5 rounded-2xl group space-y-3 relative overflow-hidden"
         >
           <div className="flex items-center justify-between">
             <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
@@ -215,14 +232,14 @@ export default function DashboardPage() {
             <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-cyan-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-150" />
           </div>
           <div>
-            <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">Client Proposals</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">Database-driven client proposal generator and contract tracker</p>
+            <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-cyan-400 transition-colors">Client Proposals</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">Proposal generator & contract tracker</p>
           </div>
         </Link>
 
         <Link
           href="/finance"
-          className="glass-card p-6 rounded-2xl group space-y-3.5 relative overflow-hidden"
+          className="glass-card p-5 rounded-2xl group space-y-3 relative overflow-hidden"
         >
           <div className="flex items-center justify-between">
             <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
@@ -231,8 +248,8 @@ export default function DashboardPage() {
             <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-150" />
           </div>
           <div>
-            <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">Finance & Invoicing</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">Live financial dashboard, run-rate forecasting & invoices</p>
+            <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-amber-400 transition-colors">Finance & Invoicing</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">Live run-rate forecasting & invoices</p>
           </div>
         </Link>
       </div>

@@ -1,7 +1,39 @@
 import { neon } from "@neondatabase/serverless";
+import fs from "fs";
+import path from "path";
 
-const DATABASE_URL = process.env.DATABASE_URL || "";
+export function getDatabaseUrl(): string {
+  if (process.env.DATABASE_URL && process.env.DATABASE_URL.trim().length > 0) {
+    return process.env.DATABASE_URL.trim();
+  }
 
+  const possiblePaths = [
+    path.resolve(process.cwd(), ".env.local"),
+    path.resolve(process.cwd(), "..", "..", ".env.local"),
+    "d:/AxorksOS/.env.local",
+    "d:/AxorksOS/apps/web/.env.local",
+  ];
+
+  for (const p of possiblePaths) {
+    try {
+      if (fs.existsSync(p)) {
+        const content = fs.readFileSync(p, "utf-8");
+        const match = content.match(/DATABASE_URL=(.*)/);
+        if (match && match[1]) {
+          const val = match[1].trim().replace(/^["']|["']$/g, "");
+          if (val) {
+            process.env.DATABASE_URL = val;
+            return val;
+          }
+        }
+      }
+    } catch {}
+  }
+
+  return "";
+}
+
+export const DATABASE_URL = getDatabaseUrl();
 export const sql = neon(DATABASE_URL || "postgresql://placeholder:placeholder@localhost:5432/db");
 
 export interface DbUser {

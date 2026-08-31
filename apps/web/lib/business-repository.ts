@@ -5,7 +5,7 @@
  * Invoices, Proposals, and Email Follow-ups.
  */
 
-import { sql } from "@/lib/db";
+import { sql, DATABASE_URL } from "./db";
 
 // ─── Projects Repository ─────────────────────────────────────────────
 
@@ -839,4 +839,344 @@ export async function createScreenRecordingAsync(data: {
     created_at: new Date(r.created_at).toISOString(),
   };
 }
+
+// ─── Workspace Emails & Google Workspace Repository ─────────────────
+
+export interface WorkspaceEmailRecord {
+  id: string;
+  message_id?: string;
+  thread_id?: string;
+  direction: "inbound" | "outbound";
+  sender_email: string;
+  sender_name?: string;
+  sender_alias?: string;
+  recipient_email: string;
+  recipient_name?: string;
+  to_recipients: string[];
+  cc_recipients: string[];
+  bcc_recipients: string[];
+  subject: string;
+  body_html?: string;
+  body_text?: string;
+  snippet?: string;
+  is_read: boolean;
+  is_starred: boolean;
+  has_attachments: boolean;
+  attachments?: any[];
+  lead_id?: string;
+  sent_by_user_id?: string;
+  sent_by_user_name?: string;
+  is_followup: boolean;
+  converted_to_client: boolean;
+  status: "sent" | "delivered" | "failed" | "received" | "draft";
+  provider: "gmail" | "resend";
+  error_message?: string;
+  sent_at?: string;
+  received_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AliasMetric {
+  alias: string;
+  total_sent: number;
+  total_received: number;
+  followups_sent: number;
+  converted_clients: number;
+  conversion_rate: number;
+}
+
+export interface EmployeeEmailMetric {
+  user_id: string;
+  user_name: string;
+  role: string;
+  avatar_url?: string;
+  total_sent: number;
+  followups_sent: number;
+  converted_clients: number;
+  conversion_rate: number;
+  score: number;
+  badge?: string;
+}
+
+export interface EmailAnalyticsReport {
+  overview: {
+    total_emails_sent: number;
+    total_emails_received: number;
+    total_followups_sent: number;
+    total_conversions: number;
+    overall_conversion_rate: number;
+  };
+  aliases: AliasMetric[];
+  employees: EmployeeEmailMetric[];
+  high_performer_day: EmployeeEmailMetric | null;
+  high_performer_month: EmployeeEmailMetric | null;
+}
+
+export async function getWorkspaceEmailsAsync(filters: {
+  direction?: "inbound" | "outbound" | "all";
+  alias?: string;
+  is_read?: boolean;
+  search?: string;
+  thread_id?: string;
+  limit?: number;
+  offset?: number;
+} = {}): Promise<WorkspaceEmailRecord[]> {
+  try {
+    const limit = filters.limit || 50;
+    const offset = filters.offset || 0;
+
+    let rows: any[] = [];
+    if (filters.direction && filters.direction !== "all") {
+      rows = await sql`
+        SELECT * FROM workspace_emails
+        WHERE direction = ${filters.direction}
+          AND (${filters.alias ? sql`LOWER(sender_alias) = ${filters.alias.toLowerCase()} OR LOWER(recipient_email) = ${filters.alias.toLowerCase()}` : sql`TRUE`})
+        ORDER BY created_at DESC
+        LIMIT ${limit} OFFSET ${offset};
+      `;
+    } else {
+      rows = await sql`
+        SELECT * FROM workspace_emails
+        WHERE (${filters.alias ? sql`LOWER(sender_alias) = ${filters.alias.toLowerCase()} OR LOWER(recipient_email) = ${filters.alias.toLowerCase()}` : sql`TRUE`})
+        ORDER BY created_at DESC
+        LIMIT ${limit} OFFSET ${offset};
+      `;
+    }
+
+    if (rows && rows.length > 0) {
+      return rows.map(mapDbRowToWorkspaceEmail);
+    }
+  } catch (err) {
+    console.error("Error fetching workspace emails from Neon DB:", err);
+  }
+  return [];
+}
+
+export async function getWorkspaceEmailByIdAsync(id: string): Promise<WorkspaceEmailRecord | null> {
+  try {
+    const rows = await sql`
+      SELECT * FROM workspace_emails
+      WHERE id::text = ${id} OR message_id = ${id}
+      LIMIT 1;
+    `;
+    if (rows && rows.length > 0) {
+      return mapDbRowToWorkspaceEmail(rows[0]);
+    }
+  } catch (err) {
+    console.error("Error fetching email by ID from Neon DB:", err);
+  }
+  return null;
+}
+
+export async function updateWorkspaceEmailAsync(
+  id: string,
+  updates: Partial<{ is_read: boolean; is_starred: boolean; converted_to_client: boolean; status: string }>
+): Promise<boolean> {
+  try {
+    if (updates.is_read !== undefined) {
+      await sql`UPDATE workspace_emails SET is_read = ${updates.is_read}, updated_at = NOW() WHERE id::text = ${id} OR message_id = ${id};`;
+    }
+    if (updates.is_starred !== undefined) {
+      await sql`UPDATE workspace_emails SET is_starred = ${updates.is_starred}, updated_at = NOW() WHERE id::text = ${id} OR message_id = ${id};`;
+    }
+    if (updates.converted_to_client !== undefined) {
+      await sql`UPDATE workspace_emails SET converted_to_client = ${updates.converted_to_client}, updated_at = NOW() WHERE id::text = ${id} OR message_id = ${id};`;
+    }
+    if (updates.status !== undefined) {
+      await sql`UPDATE workspace_emails SET status = ${updates.status}, updated_at = NOW() WHERE id::text = ${id} OR message_id = ${id};`;
+    }
+    return true;
+  } catch (err) {
+    console.error("Error updating workspace email:", err);
+    return false;
+  }
+}
+
+export async function getEmailAnalyticsAsync(): Promise<EmailAnalyticsReport> {
+  const aliasesList = [
+    "sales@axorks.com",
+    "contact@axorks.com",
+    "hello@axorks.com",
+    "careers@axorks.com",
+    "muhammad.mujahid@axorks.com",
+  ];
+
+  try {
+    // 1. Fetch total counts from DB
+    const totalSentRows = await sql`SELECT COUNT(*)::int AS count FROM workspace_emails WHERE direction = 'outbound';`;
+    const totalRecvRows = await sql`SELECT COUNT(*)::int AS count FROM workspace_emails WHERE direction = 'inbound';`;
+    const totalFollowupRows = await sql`SELECT COUNT(*)::int AS count FROM workspace_emails WHERE is_followup = TRUE;`;
+    const totalConvertRows = await sql`SELECT COUNT(*)::int AS count FROM workspace_emails WHERE converted_to_client = TRUE;`;
+
+    const totalSent = totalSentRows[0]?.count || 0;
+    const totalReceived = totalRecvRows[0]?.count || 0;
+    const totalFollowups = totalFollowupRows[0]?.count || 0;
+    const totalConversions = totalConvertRows[0]?.count || 0;
+
+    // 2. Fetch alias breakdowns
+    const aliasMetrics: AliasMetric[] = [];
+    for (const alias of aliasesList) {
+      const sentRows = await sql`
+        SELECT COUNT(*)::int AS count FROM workspace_emails
+        WHERE direction = 'outbound' AND LOWER(sender_alias) = ${alias.toLowerCase()};
+      `;
+      const recvRows = await sql`
+        SELECT COUNT(*)::int AS count FROM workspace_emails
+        WHERE direction = 'inbound' AND LOWER(sender_alias) = ${alias.toLowerCase()};
+      `;
+      const fRows = await sql`
+        SELECT COUNT(*)::int AS count FROM workspace_emails
+        WHERE direction = 'outbound' AND is_followup = TRUE AND LOWER(sender_alias) = ${alias.toLowerCase()};
+      `;
+      const cRows = await sql`
+        SELECT COUNT(*)::int AS count FROM workspace_emails
+        WHERE converted_to_client = TRUE AND LOWER(sender_alias) = ${alias.toLowerCase()};
+      `;
+
+      const sCount = sentRows[0]?.count || 0;
+      const rCount = recvRows[0]?.count || 0;
+      const fCount = fRows[0]?.count || 0;
+      const cCount = cRows[0]?.count || 0;
+      const rate = sCount > 0 ? Math.round((cCount / sCount) * 1000) / 10 : 0;
+
+      aliasMetrics.push({
+        alias,
+        total_sent: sCount,
+        total_received: rCount,
+        followups_sent: fCount,
+        converted_clients: cCount,
+        conversion_rate: rate,
+      });
+    }
+
+    // 3. Fetch active users and calculate employee metrics
+    const users = await sql`
+      SELECT id, first_name, last_name, role, avatar_url FROM users
+      WHERE deleted_at IS NULL;
+    `;
+
+    const employeeMetrics: EmployeeEmailMetric[] = [];
+
+    for (const u of users) {
+      const uId = String(u.id);
+      const uName = `${u.first_name || ""} ${u.last_name || ""}`.trim() || "Team Member";
+
+      const uSent = await sql`
+        SELECT COUNT(*)::int AS count FROM workspace_emails
+        WHERE direction = 'outbound' AND (sent_by_user_id::text = ${uId} OR sent_by_user_name ILIKE ${`%${u.first_name}%`});
+      `;
+      const uFollow = await sql`
+        SELECT COUNT(*)::int AS count FROM workspace_emails
+        WHERE direction = 'outbound' AND is_followup = TRUE AND (sent_by_user_id::text = ${uId} OR sent_by_user_name ILIKE ${`%${u.first_name}%`});
+      `;
+      const uConv = await sql`
+        SELECT COUNT(*)::int AS count FROM workspace_emails
+        WHERE converted_to_client = TRUE AND (sent_by_user_id::text = ${uId} OR sent_by_user_name ILIKE ${`%${u.first_name}%`});
+      `;
+
+      const s = uSent[0]?.count || 0;
+      const f = uFollow[0]?.count || 0;
+      const c = uConv[0]?.count || 0;
+      const convRate = s > 0 ? Math.round((c / s) * 1000) / 10 : 0;
+      const score = (s * 1) + (f * 2) + (c * 10);
+
+      employeeMetrics.push({
+        user_id: uId,
+        user_name: uName,
+        role: u.role || "Team Member",
+        avatar_url: u.avatar_url || undefined,
+        total_sent: s,
+        followups_sent: f,
+        converted_clients: c,
+        conversion_rate: convRate,
+        score,
+      });
+    }
+
+    // Sort by score descending
+    employeeMetrics.sort((a, b) => b.score - a.score);
+
+    // Assign badges
+    if (employeeMetrics.length > 0) employeeMetrics[0].badge = "Outreach Champion 👑";
+    if (employeeMetrics.length > 1) employeeMetrics[1].badge = "Top Closer 🎯";
+    if (employeeMetrics.length > 2) employeeMetrics[2].badge = "Rising Star 🚀";
+
+    const topPerformer = employeeMetrics.length > 0 ? employeeMetrics[0] : null;
+
+    return {
+      overview: {
+        total_emails_sent: totalSent,
+        total_emails_received: totalReceived,
+        total_followups_sent: totalFollowups,
+        total_conversions: totalConversions,
+        overall_conversion_rate: totalSent > 0 ? Math.round((totalConversions / totalSent) * 1000) / 10 : 0,
+      },
+      aliases: aliasMetrics,
+      employees: employeeMetrics,
+      high_performer_day: topPerformer,
+      high_performer_month: topPerformer,
+    };
+  } catch (err) {
+    console.error("Error generating email analytics report:", err);
+    return {
+      overview: {
+        total_emails_sent: 0,
+        total_emails_received: 0,
+        total_followups_sent: 0,
+        total_conversions: 0,
+        overall_conversion_rate: 0,
+      },
+      aliases: aliasesList.map((a) => ({
+        alias: a,
+        total_sent: 0,
+        total_received: 0,
+        followups_sent: 0,
+        converted_clients: 0,
+        conversion_rate: 0,
+      })),
+      employees: [],
+      high_performer_day: null,
+      high_performer_month: null,
+    };
+  }
+}
+
+function mapDbRowToWorkspaceEmail(r: any): WorkspaceEmailRecord {
+  return {
+    id: String(r.id),
+    message_id: r.message_id || undefined,
+    thread_id: r.thread_id || undefined,
+    direction: r.direction === "inbound" ? "inbound" : "outbound",
+    sender_email: r.sender_email,
+    sender_name: r.sender_name || undefined,
+    sender_alias: r.sender_alias || "sales@axorks.com",
+    recipient_email: r.recipient_email,
+    recipient_name: r.recipient_name || undefined,
+    to_recipients: Array.isArray(r.to_recipients) ? r.to_recipients : (r.to_recipients ? [r.to_recipients] : [r.recipient_email]),
+    cc_recipients: Array.isArray(r.cc_recipients) ? r.cc_recipients : [],
+    bcc_recipients: Array.isArray(r.bcc_recipients) ? r.bcc_recipients : [],
+    subject: r.subject || "(No Subject)",
+    body_html: r.body_html || undefined,
+    body_text: r.body_text || undefined,
+    snippet: r.snippet || "",
+    is_read: Boolean(r.is_read),
+    is_starred: Boolean(r.is_starred),
+    has_attachments: Boolean(r.has_attachments),
+    attachments: Array.isArray(r.attachments) ? r.attachments : [],
+    lead_id: r.lead_id ? String(r.lead_id) : undefined,
+    sent_by_user_id: r.sent_by_user_id ? String(r.sent_by_user_id) : undefined,
+    sent_by_user_name: r.sent_by_user_name || undefined,
+    is_followup: Boolean(r.is_followup),
+    converted_to_client: Boolean(r.converted_to_client),
+    status: r.status || "sent",
+    provider: r.provider || "gmail",
+    error_message: r.error_message || undefined,
+    sent_at: r.sent_at ? new Date(r.sent_at).toISOString() : undefined,
+    received_at: r.received_at ? new Date(r.received_at).toISOString() : undefined,
+    created_at: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
+    updated_at: r.updated_at ? new Date(r.updated_at).toISOString() : new Date().toISOString(),
+  };
+}
+
 

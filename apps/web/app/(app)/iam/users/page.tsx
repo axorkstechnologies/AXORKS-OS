@@ -20,6 +20,10 @@ import {
   Building2,
   Crown,
   Unlock,
+  Trash2,
+  ShieldCheck,
+  AlertTriangle,
+  Users,
 } from "lucide-react";
 
 export default function IAMUsersPage() {
@@ -31,6 +35,7 @@ export default function IAMUsersPage() {
   const [roleFilter, setRoleFilter] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [activeUserMenu, setActiveUserMenu] = useState<string | null>(null);
+  const [deleteTargetUser, setDeleteTargetUser] = useState<any | null>(null);
 
   // Form State
   const [firstName, setFirstName] = useState("");
@@ -44,9 +49,13 @@ export default function IAMUsersPage() {
   const [role, setRole] = useState("Software Engineer");
   const [employmentType, setEmploymentType] = useState("full_time");
 
-  const isFounder = currentUser?.role === "Founder" || currentUser?.role === "Co-Founder" || currentUser?.role === "Admin";
+  const isFounder =
+    currentUser?.role === "Founder" ||
+    currentUser?.role === "Co-Founder" ||
+    currentUser?.role === "Admin" ||
+    currentUser?.email === "mujahidaryan222149@gmail.com";
 
-  const { data: users = [], isLoading } = useQuery({
+  const { data: response = [], isLoading } = useQuery({
     queryKey: ["iam-users", search, statusFilter, roleFilter],
     queryFn: () =>
       apiClient("/api/v1/iam/users", {
@@ -58,6 +67,8 @@ export default function IAMUsersPage() {
       }),
   });
 
+  const users = Array.isArray(response) ? response : response?.data || [];
+
   const createMutation = useMutation({
     mutationFn: (body: any) =>
       apiClient("/api/v1/iam/users", {
@@ -65,7 +76,7 @@ export default function IAMUsersPage() {
         body: JSON.stringify(body),
       }),
     onSuccess: () => {
-      toast.success("Employee profile & credentials created successfully");
+      toast.success("Employee profile & credentials created in Neon DB");
       queryClient.invalidateQueries({ queryKey: ["iam-users"] });
       queryClient.invalidateQueries({ queryKey: ["iam-dashboard"] });
       setCreateOpen(false);
@@ -95,10 +106,47 @@ export default function IAMUsersPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (userId: string) =>
+      apiClient(`/api/v1/iam/users/${userId}`, { method: "DELETE" }),
+    onSuccess: (res) => {
+      toast.success(res?.message || "Employee account deleted permanently from Neon DB");
+      queryClient.invalidateQueries({ queryKey: ["iam-users"] });
+      queryClient.invalidateQueries({ queryKey: ["iam-dashboard"] });
+      setDeleteTargetUser(null);
+      setActiveUserMenu(null);
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to delete account");
+      setDeleteTargetUser(null);
+    },
+  });
+
+  const isProtectedProfile = (u: any) => {
+    const userEmail = (u?.email || "").toLowerCase();
+    const userRole = (u?.role || "").toLowerCase();
+    const userName = (u?.first_name || "").toLowerCase();
+    const userId = String(u?.id || "").toLowerCase();
+
+    return (
+      userEmail === "mujahidaryan222149@gmail.com" ||
+      userEmail === "muhammad.mujahid@axorks.com" ||
+      userRole === "founder" ||
+      userId === "00000000-0000-0000-0000-00000000000a" ||
+      userId === "user_founder_01" ||
+      userEmail === "heyfarii@gmail.com" ||
+      userEmail === "farhana.bakht@axorks.com" ||
+      userRole === "co-founder" ||
+      userName === "farhana" ||
+      userEmail === "farwa@axorks.com" ||
+      userName === "farwa"
+    );
+  };
+
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isFounder) {
-      toast.error("Only Founder / Admin has authorization to create new user accounts");
+      toast.error("Only Founder has authorization to create new employee accounts");
       return;
     }
 
@@ -122,11 +170,11 @@ export default function IAMUsersPage() {
       {/* Header & Quick Action Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-base md:text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            Employee Directory & User Accounts
+          <h2 className="text-base md:text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <Users className="w-5 h-5 text-violet-500" /> Employee Directory & Account Management
           </h2>
           <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
-            Manage employees, roles, departments, suspensions, and account access
+            Founder command for adding/deleting employees with instant Neon PostgreSQL synchronization
           </p>
         </div>
 
@@ -135,7 +183,7 @@ export default function IAMUsersPage() {
             onClick={() => setCreateOpen(true)}
             className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow-lg shadow-violet-600/20 transition"
           >
-            <Plus className="w-4 h-4" /> Create Employee
+            <Plus className="w-4 h-4" /> Create Employee Account
           </button>
         )}
       </div>
@@ -195,128 +243,111 @@ export default function IAMUsersPage() {
       {/* Main Content Area */}
       {isLoading ? (
         <div className="text-center py-12 text-xs text-slate-400 font-mono">
-          Loading employees...
+          Loading employees from Neon DB...
         </div>
       ) : viewMode === "card" ? (
+        /* Mobile / Grid Card View */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {users.map((u: any) => (
-            <div
-              key={u.id}
-              className="glass p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between relative hover:border-violet-500/50 transition shadow-sm"
-            >
-              <div>
+          {users.map((u: any) => {
+            const protectedUser = isProtectedProfile(u);
+            return (
+              <div
+                key={u.id}
+                className="glass-card p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-violet-500/30 transition relative overflow-hidden group"
+              >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    {u.avatar_url ? (
-                      <img
-                        src={u.avatar_url}
-                        alt={u.display_name || u.first_name}
-                        className="w-10 h-10 rounded-xl object-cover border border-violet-500/30"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-violet-600/30">
-                        {u.first_name?.[0] || "E"}
-                      </div>
-                    )}
-
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-md">
+                      {u.first_name[0]}
+                    </div>
                     <div>
-                      <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                        {u.first_name} {u.last_name}
-                        {u.role === "Founder" && (
-                          <span title="Founder"><Crown className="w-3.5 h-3.5 text-amber-400 inline" /></span>
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">
+                          {u.first_name} {u.last_name}
+                        </h3>
+                        {protectedUser && (
+                          <span
+                            className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-0.5"
+                            title="Protected Company Profile (Non-deletable)"
+                          >
+                            <ShieldCheck className="w-2.5 h-2.5" /> Protected
+                          </span>
                         )}
-                      </h3>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                        @{u.username || u.first_name.toLowerCase()} • {u.designation || u.role}
-                      </p>
+                      </div>
+                      <p className="text-[11px] text-slate-500 font-mono">@{u.username || u.first_name.toLowerCase()}</p>
                     </div>
                   </div>
 
                   {/* Actions Dropdown */}
-                  <div className="relative">
-                    <button
-                      onClick={() =>
-                        setActiveUserMenu(activeUserMenu === u.id ? null : u.id)
-                      }
-                      className="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
+                  {isFounder && (
+                    <div className="relative">
+                      <button
+                        onClick={() => setActiveUserMenu(activeUserMenu === u.id ? null : u.id)}
+                        className="p-1 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-800"
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
 
-                    {activeUserMenu === u.id && (
-                      <div className="absolute right-0 top-full mt-1 w-44 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 py-1 text-xs text-slate-100">
-                        {isFounder && (
-                          <button
-                            onClick={() => actionMutation.mutate({ userId: u.id, action: "impersonate" })}
-                            className="w-full text-left px-3 py-2 hover:bg-slate-800 flex items-center gap-2 text-violet-400 font-medium"
-                          >
-                            <KeyRound className="w-3.5 h-3.5" /> Impersonate
-                          </button>
-                        )}
-                        {u.role !== "Founder" && isFounder && (
-                          <>
-                            {u.status === "suspended" ? (
+                      {activeUserMenu === u.id && (
+                        <div className="absolute right-0 top-6 w-44 bg-slate-950 border border-slate-800 rounded-xl shadow-xl z-20 p-1 space-y-0.5 text-xs animate-in fade-in zoom-in-95 duration-100">
+                          {!protectedUser && (
+                            <>
                               <button
-                                onClick={() => actionMutation.mutate({ userId: u.id, action: "reactivate" })}
-                                className="w-full text-left px-3 py-2 hover:bg-slate-800 flex items-center gap-2 text-emerald-400 font-medium"
+                                onClick={() =>
+                                  actionMutation.mutate({
+                                    userId: u.id,
+                                    action: u.status === "suspended" ? "reactivate" : "suspend",
+                                  })
+                                }
+                                className="w-full text-left px-2.5 py-1.5 hover:bg-slate-900 rounded-lg text-slate-300 flex items-center gap-2"
                               >
-                                <UserCheck className="w-3.5 h-3.5" /> Reactivate
+                                {u.status === "suspended" ? <Unlock className="w-3.5 h-3.5 text-emerald-400" /> : <Lock className="w-3.5 h-3.5 text-amber-400" />}
+                                {u.status === "suspended" ? "Reactivate" : "Suspend (Instant)"}
                               </button>
-                            ) : (
-                              <button
-                                onClick={() => actionMutation.mutate({ userId: u.id, action: "suspend" })}
-                                className="w-full text-left px-3 py-2 hover:bg-slate-800 flex items-center gap-2 text-amber-400 font-medium"
-                              >
-                                <Lock className="w-3.5 h-3.5" /> Suspend
-                              </button>
-                            )}
-                            <button
-                              onClick={() => actionMutation.mutate({ userId: u.id, action: "reset-password" })}
-                              className="w-full text-left px-3 py-2 hover:bg-slate-800 flex items-center gap-2 text-slate-300 font-medium"
-                            >
-                              <Unlock className="w-3.5 h-3.5" /> Reset Password
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
 
-                <div className="mt-3 space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
-                  <div className="flex items-center gap-2">
-                    <Mail className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="truncate">{u.email}</span>
-                  </div>
-                  {u.phone && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{u.phone}</span>
+                              <button
+                                onClick={() => actionMutation.mutate({ userId: u.id, action: "reset-password" })}
+                                className="w-full text-left px-2.5 py-1.5 hover:bg-slate-900 rounded-lg text-slate-300 flex items-center gap-2"
+                              >
+                                <KeyRound className="w-3.5 h-3.5 text-violet-400" /> Reset Password
+                              </button>
+
+                              <button
+                                onClick={() => setDeleteTargetUser(u)}
+                                className="w-full text-left px-2.5 py-1.5 hover:bg-red-950/40 rounded-lg text-red-400 flex items-center gap-2"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-red-400" /> Delete Account
+                              </button>
+                            </>
+                          )}
+                          {protectedUser && (
+                            <div className="p-2 text-[11px] text-amber-400/80 font-medium">
+                              Protected profile cannot be deleted or suspended.
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
-                  <div className="flex items-center gap-2">
-                    <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                    <span>{u.department || "General"}</span>
-                  </div>
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-between">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20">
+                    {u.role}
+                  </span>
+                  <span
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                      u.status === "active"
+                        ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                        : "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                    }`}
+                  >
+                    {u.status}
+                  </span>
                 </div>
               </div>
-
-              <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-between">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20">
-                  {u.role}
-                </span>
-                <span
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                    u.status === "active"
-                      ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
-                      : "bg-amber-500/10 text-amber-500 border border-amber-500/20"
-                  }`}
-                >
-                  {u.status}
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         /* Desktop Table View */
@@ -333,56 +364,115 @@ export default function IAMUsersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {users.map((u: any) => (
-                <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
-                  <td className="p-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-full bg-violet-600/20 text-violet-400 font-bold flex items-center justify-center text-xs">
-                        {u.first_name[0]}
+              {users.map((u: any) => {
+                const protectedUser = isProtectedProfile(u);
+                return (
+                  <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                    <td className="p-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-violet-600/20 text-violet-400 font-bold flex items-center justify-center text-xs">
+                          {u.first_name[0]}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                            {u.first_name} {u.last_name}
+                            {protectedUser && (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                Protected
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-slate-500">{u.email}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-semibold text-slate-900 dark:text-slate-100">{u.first_name} {u.last_name}</div>
-                        <div className="text-[11px] text-slate-500">{u.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-3 font-mono text-slate-400">@{u.username || u.first_name.toLowerCase()}</td>
-                  <td className="p-3 text-slate-600 dark:text-slate-400">{u.department || "General"}</td>
-                  <td className="p-3 font-medium text-slate-800 dark:text-slate-200">{u.role}</td>
-                  <td className="p-3">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-500">
-                      {u.status}
-                    </span>
-                  </td>
-                  <td className="p-3 text-right">
-                    {isFounder && (
-                      <div className="flex items-center justify-end gap-1.5">
-                        {u.role !== "Founder" && (
+                    </td>
+                    <td className="p-3 font-mono text-slate-400">@{u.username || u.first_name.toLowerCase()}</td>
+                    <td className="p-3 text-slate-600 dark:text-slate-400">{u.department || "General"}</td>
+                    <td className="p-3 font-medium text-slate-800 dark:text-slate-200">{u.role}</td>
+                    <td className="p-3">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-500">
+                        {u.status}
+                      </span>
+                    </td>
+                    <td className="p-3 text-right">
+                      {isFounder && (
+                        <div className="flex items-center justify-end gap-1.5">
+                          {!protectedUser && (
+                            <>
+                              <button
+                                onClick={() => actionMutation.mutate({ userId: u.id, action: "reset-password" })}
+                                className="px-2.5 py-1 bg-slate-800 text-slate-300 hover:bg-violet-600 hover:text-white rounded text-[11px] font-medium transition"
+                                title="Reset password"
+                              >
+                                Reset Pass
+                              </button>
+                              <button
+                                onClick={() => setDeleteTargetUser(u)}
+                                className="p-1.5 bg-red-500/10 text-red-400 hover:bg-red-600 hover:text-white rounded text-[11px] font-medium transition"
+                                title="Delete account"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          )}
                           <button
-                            onClick={() => actionMutation.mutate({ userId: u.id, action: "reset-password" })}
-                            className="px-2.5 py-1 bg-slate-800 text-slate-300 hover:bg-violet-600 hover:text-white rounded text-[11px] font-medium transition"
-                            title="Reset password to default"
+                            onClick={() => actionMutation.mutate({ userId: u.id, action: "impersonate" })}
+                            className="px-2.5 py-1 bg-violet-600/10 text-violet-400 hover:bg-violet-600 hover:text-white rounded text-[11px] font-medium transition"
                           >
-                            Reset Pass
+                            Impersonate
                           </button>
-                        )}
-                        <button
-                          onClick={() => actionMutation.mutate({ userId: u.id, action: "impersonate" })}
-                          className="px-2.5 py-1 bg-violet-600/10 text-violet-400 hover:bg-violet-600 hover:text-white rounded text-[11px] font-medium transition"
-                        >
-                          Impersonate
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
 
-      {/* Create Employee Modal — Fixed High Contrast & High Visibility */}
+      {/* Delete Confirmation Modal */}
+      {deleteTargetUser && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-slate-950 border border-red-500/40 text-slate-100 p-6 rounded-2xl shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-red-500/20 border border-red-500/40 text-red-400 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-100">Delete Employee Account?</h3>
+                <p className="text-xs text-slate-400">This change persists immediately to Neon PostgreSQL.</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed bg-slate-900 p-3 rounded-xl border border-slate-800">
+              Are you sure you want to permanently delete <strong>{deleteTargetUser.first_name} {deleteTargetUser.last_name}</strong> (<span className="font-mono text-violet-400">{deleteTargetUser.email}</span>)?
+              The user will be immediately logged out and unable to log in again.
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTargetUser(null)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleteMutation.isPending}
+                onClick={() => deleteMutation.mutate(deleteTargetUser.id)}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition shadow-lg shadow-red-600/30 disabled:opacity-50"
+              >
+                {deleteMutation.isPending ? "Deleting from Neon DB..." : "Confirm Permanent Deletion"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Employee Modal */}
       {createOpen && isFounder && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-slate-950 border border-slate-800 text-slate-100 p-6 rounded-2xl shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
@@ -450,19 +540,8 @@ export default function IAMUsersPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter employee password..."
+                  placeholder="e.g. AxorksPass123!"
                   className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 font-mono font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-200 mb-1">Phone Number</label>
-                <input
-                  type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+1 (555) 000-0000"
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 font-medium"
                 />
               </div>
 
@@ -474,49 +553,42 @@ export default function IAMUsersPage() {
                     onChange={(e) => setDepartment(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:border-violet-500 font-medium"
                   >
-                    <option value="Development" className="bg-slate-900 text-slate-100">Development</option>
-                    <option value="AI Department" className="bg-slate-900 text-slate-100">AI Department</option>
-                    <option value="UI/UX" className="bg-slate-900 text-slate-100">UI/UX</option>
-                    <option value="HR" className="bg-slate-900 text-slate-100">HR</option>
-                    <option value="Sales" className="bg-slate-900 text-slate-100">Sales</option>
-                    <option value="Finance" className="bg-slate-900 text-slate-100">Finance</option>
-                    <option value="Management" className="bg-slate-900 text-slate-100">Management</option>
+                    <option value="Development">Development</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Sales">Sales</option>
+                    <option value="Operations">Operations</option>
+                    <option value="HR">HR</option>
                   </select>
                 </div>
-
                 <div>
-                  <label className="block font-semibold text-slate-200 mb-1">Enterprise Role</label>
+                  <label className="block font-semibold text-slate-200 mb-1">Role & Permissions</label>
                   <select
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:border-violet-500 font-medium"
                   >
-                    <option value="Co-Founder" className="bg-slate-900 text-slate-100">Co-Founder</option>
-                    <option value="Software Engineer" className="bg-slate-900 text-slate-100">Software Engineer</option>
-                    <option value="Full Stack Developer" className="bg-slate-900 text-slate-100">Full Stack Developer</option>
-                    <option value="AI Engineer" className="bg-slate-900 text-slate-100">AI Engineer</option>
-                    <option value="Project Manager" className="bg-slate-900 text-slate-100">Project Manager</option>
-                    <option value="HR Manager" className="bg-slate-900 text-slate-100">HR Manager</option>
-                    <option value="Sales Manager" className="bg-slate-900 text-slate-100">Sales Manager</option>
-                    <option value="Marketing & Outreach" className="bg-slate-900 text-slate-100">Marketing & Outreach</option>
+                    <option value="Software Engineer">Software Engineer</option>
+                    <option value="Marketing & Outreach">Marketing & Outreach</option>
+                    <option value="Admin">Admin</option>
+                    <option value="Viewer">Viewer</option>
                   </select>
                 </div>
               </div>
 
-              <div className="pt-3 flex justify-end gap-2 border-t border-slate-800">
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
                 <button
                   type="button"
                   onClick={() => setCreateOpen(false)}
-                  className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 font-medium text-slate-300 transition"
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createMutation.isPending}
-                  className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold shadow-lg shadow-violet-600/30 transition disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold transition shadow-lg shadow-violet-600/30 disabled:opacity-50"
                 >
-                  {createMutation.isPending ? "Creating Account..." : "Create Account"}
+                  {createMutation.isPending ? "Creating in Neon DB..." : "Create Account"}
                 </button>
               </div>
             </form>

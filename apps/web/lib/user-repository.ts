@@ -5,11 +5,8 @@
  * All queries, creations, and updates are 100% driven by Neon PostgreSQL.
  */
 
-import { neon } from "@neondatabase/serverless";
 import bcrypt from "bcryptjs";
-
-const DATABASE_URL = process.env.DATABASE_URL || "";
-export const sql = neon(DATABASE_URL || "postgresql://placeholder:placeholder@localhost:5432/db");
+import { sql, DATABASE_URL } from "./db";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -528,6 +525,92 @@ export function updateUser(id: string, updates: Partial<StoredUser>): StoredUser
   if (idx === -1) return null;
   usersStore[idx] = { ...usersStore[idx], ...updates, updated_at: new Date().toISOString() };
   return usersStore[idx];
+}
+
+// ─── Account Deletion (Strict Rule & Neon DB Driven) ────────────────
+
+export function isProtectedRealProfile(user: { id?: string; email?: string; role?: string; first_name?: string }): boolean {
+  const email = (user.email || "").toLowerCase();
+  const role = (user.role || "").toLowerCase();
+  const name = (user.first_name || "").toLowerCase();
+  const id = (user.id || "").toLowerCase();
+
+  // 1. Founder: Muhammad Mujahid
+  if (
+    email === "mujahidaryan222149@gmail.com" ||
+    email === "muhammad.mujahid@axorks.com" ||
+    role === "founder" ||
+    id === "00000000-0000-0000-0000-00000000000a" ||
+    id === "user_founder_01" ||
+    (name === "muhammad" && role.includes("founder"))
+  ) {
+    return true;
+  }
+
+  // 2. Co-Founder: Farhana Bakht
+  if (
+    email === "heyfarii@gmail.com" ||
+    email === "farhana.bakht@axorks.com" ||
+    role === "co-founder" ||
+    id === "00000000-0000-0000-0000-00000000000b" ||
+    id === "user_cofounder_02" ||
+    name === "farhana"
+  ) {
+    return true;
+  }
+
+  // 3. Marketing & Outreach: Farwa
+  if (
+    email === "farwa@axorks.com" ||
+    id === "a1b2c3d4-e5f6-47a8-b901-23456789abcd" ||
+    name === "farwa"
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+export async function deleteUserAsync(id: string): Promise<{ success: boolean; message: string }> {
+  const targetUser = await findUserByIdAsync(id);
+  if (!targetUser) {
+    throw new Error("Employee account not found");
+  }
+
+  if (isProtectedRealProfile(targetUser)) {
+    throw new Error("STRICT SECURITY RULE: The three protected profiles (Muhammad Mujahid, Farhana Bakht, Farwa) can NEVER be deleted.");
+  }
+
+  const cleanId = id.trim().toLowerCase();
+  const queryId = targetUser.id;
+
+  try {
+    if (DATABASE_URL) {
+      await sql`
+        UPDATE users
+        SET deleted_at = NOW(), status = 'inactive', is_active = FALSE, updated_at = NOW()
+        WHERE (id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId});
+      `;
+    }
+  } catch (err: any) {
+    console.error("Neon DB error in deleteUserAsync:", err);
+    throw new Error(`Database error deleting user: ${err.message}`);
+  }
+
+  // Remove from in-memory cache
+  const idx = usersStore.findIndex((u) => u.id === targetUser.id || u.email === targetUser.email);
+  if (idx !== -1) {
+    usersStore.splice(idx, 1);
+  }
+
+  // Terminate active sessions
+  const filteredSessions = sessionsStore.filter((s) => s.user_id !== targetUser.id && s.email !== targetUser.email);
+  globalUserStore.__axorks_sessions = filteredSessions;
+
+  return {
+    success: true,
+    message: `Account for ${targetUser.display_name} has been permanently deleted from Neon DB.`,
+  };
 }
 
 // ─── Session Management ─────────────────────────────────────────────
