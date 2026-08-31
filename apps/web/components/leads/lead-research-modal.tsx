@@ -25,7 +25,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
-import { LeadResearchResult } from "@/lib/gemini-lead-research";
+import { type LeadResearchResult } from "@/lib/leads-types";
 import { apiClient } from "@/lib/api-client";
 
 interface LeadResearchModalProps {

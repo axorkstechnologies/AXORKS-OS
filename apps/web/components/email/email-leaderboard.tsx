@@ -14,7 +14,7 @@ import {
   ShieldCheck,
   Zap,
 } from "lucide-react";
-import { EmailAnalyticsReport, EmployeeEmailMetric } from "@/lib/business-repository";
+import { type EmailAnalyticsReport, type EmployeeEmailMetric } from "@/lib/email/constants";
 
 export function EmailLeaderboard() {
   const { data: response, isLoading } = useQuery<{ success: boolean; data: EmailAnalyticsReport }>({

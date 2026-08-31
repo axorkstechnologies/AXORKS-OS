@@ -31,7 +31,7 @@ import { EmailThreadViewer } from "@/components/email/email-thread-viewer";
 import { EmailAnalyticsPanel } from "@/components/email/email-analytics-panel";
 import { EmailLeaderboard } from "@/components/email/email-leaderboard";
 import { ComposeEmail } from "@/components/email/ComposeEmail";
-import { WorkspaceEmailRecord } from "@/lib/business-repository";
+import { type WorkspaceEmailRecord } from "@/lib/email/constants";
 
 export default function EmailCenterPage() {
   const queryClient = useQueryClient();

@@ -10,7 +10,7 @@ import { TemplateSelector } from "./TemplateSelector";
 import { EmailPreview } from "./EmailPreview";
 import { RecentRecipients } from "./RecentRecipients";
 import { useAuthStore } from "@/stores/auth-store";
-import { WORKSPACE_ALIASES } from "@/lib/email/gmail-service";
+import { WORKSPACE_ALIASES } from "@/lib/email/constants";
 import { toast } from "sonner";
 import {
   Send,

@@ -17,7 +17,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
-import { WorkspaceEmailRecord } from "@/lib/business-repository";
+import { type WorkspaceEmailRecord } from "@/lib/email/constants";
 
 interface EmailThreadViewerProps {
   email: WorkspaceEmailRecord | null;

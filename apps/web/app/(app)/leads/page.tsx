@@ -9,7 +9,7 @@ import { LeadCreateDialog } from "@/components/leads/lead-create-dialog";
 import { LeadSourcesPanel } from "@/components/leads/lead-sources-panel";
 import { EnrichmentModal } from "@/components/leads/enrichment-modal";
 import { LeadResearchModal } from "@/components/leads/lead-research-modal";
-import { LeadResearchResult } from "@/lib/gemini-lead-research";
+import { type LeadResearchResult } from "@/lib/leads-types";
 import Link from "next/link";
 import { Plus, Upload, LayoutList, Kanban, Search, Sparkles } from "lucide-react";
 import { toast } from "sonner";

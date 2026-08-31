@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useUIStore } from "@/stores/ui-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { cn } from "@/lib/utils";
-import { canAccessRoute } from "@/lib/user-repository";
+import { canAccessRoute } from "@/lib/rbac";
 import { logout } from "@/lib/auth";
 import {
   LayoutDashboard,

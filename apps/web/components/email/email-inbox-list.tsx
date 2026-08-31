@@ -18,8 +18,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
-import { WORKSPACE_ALIASES, WorkspaceAlias } from "@/lib/email/gmail-service";
-import { WorkspaceEmailRecord } from "@/lib/business-repository";
+import { WORKSPACE_ALIASES, type WorkspaceAlias, type WorkspaceEmailRecord } from "@/lib/email/constants";
 
 interface EmailInboxListProps {
   onSelectEmail: (email: WorkspaceEmailRecord) => void;

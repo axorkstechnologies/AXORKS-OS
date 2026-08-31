@@ -16,7 +16,7 @@ import {
   ShieldCheck,
   RefreshCw,
 } from "lucide-react";
-import { EmailAnalyticsReport } from "@/lib/business-repository";
+import { type EmailAnalyticsReport } from "@/lib/email/constants";
 
 export function EmailAnalyticsPanel() {
   const { data: response, isLoading, refetch } = useQuery<{ success: boolean; data: EmailAnalyticsReport }>({

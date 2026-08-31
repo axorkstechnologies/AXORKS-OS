@@ -1,5 +1,5 @@
 /**
- * Axorks OS — Google Workspace & Gmail API Service
+ * Axorks OS — Google Workspace & Gmail API Service (Server Only)
  *
  * Implements Google OAuth 2.0 and Gmail REST API connectivity:
  * - OAuth Authorization URL generation with offline refresh token
@@ -11,55 +11,12 @@
  */
 
 import { sql, DATABASE_URL } from "../db";
-import fs from "fs";
-import path from "path";
+import { PRIMARY_WORKSPACE_EMAIL, WORKSPACE_ALIASES, WorkspaceAlias } from "./constants";
 
-function getGoogleConfig(): { clientId: string; clientSecret: string } {
-  let clientId = process.env.GOOGLE_CLIENT_ID || "";
-  let clientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
+export { PRIMARY_WORKSPACE_EMAIL, WORKSPACE_ALIASES, type WorkspaceAlias };
 
-  if (clientId && clientSecret) return { clientId, clientSecret };
-
-  const possiblePaths = [
-    path.resolve(process.cwd(), ".env.local"),
-    path.resolve(process.cwd(), "..", "..", ".env.local"),
-    "d:/AxorksOS/.env.local",
-    "d:/AxorksOS/apps/web/.env.local",
-  ];
-
-  for (const p of possiblePaths) {
-    try {
-      if (fs.existsSync(p)) {
-        const content = fs.readFileSync(p, "utf-8");
-        if (!clientId) {
-          const m = content.match(/GOOGLE_CLIENT_ID=(.*)/);
-          if (m && m[1]) clientId = m[1].trim().replace(/^["']|["']$/g, "");
-        }
-        if (!clientSecret) {
-          const m = content.match(/GOOGLE_CLIENT_SECRET=(.*)/);
-          if (m && m[1]) clientSecret = m[1].trim().replace(/^["']|["']$/g, "");
-        }
-      }
-    } catch {}
-  }
-
-  return { clientId, clientSecret };
-}
-
-const googleConfig = getGoogleConfig();
-export const GOOGLE_CLIENT_ID = googleConfig.clientId;
-export const GOOGLE_CLIENT_SECRET = googleConfig.clientSecret;
-
-export const PRIMARY_WORKSPACE_EMAIL = "muhammad.mujahid@axorks.com";
-export const WORKSPACE_ALIASES = [
-  "sales@axorks.com",
-  "contact@axorks.com",
-  "hello@axorks.com",
-  "careers@axorks.com",
-  "muhammad.mujahid@axorks.com",
-] as const;
-
-export type WorkspaceAlias = (typeof WORKSPACE_ALIASES)[number];
+export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
+export const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
 
 const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.modify";
 
@@ -88,13 +45,14 @@ export function getGoogleOAuthRedirectUri(): string {
  * Generates the Google OAuth 2.0 consent URL.
  */
 export function generateGoogleAuthUrl(state?: string): string {
-  if (!GOOGLE_CLIENT_ID) {
-    throw new Error("GOOGLE_CLIENT_ID is not configured in .env.local");
+  const clientId = process.env.GOOGLE_CLIENT_ID || "";
+  if (!clientId) {
+    throw new Error("GOOGLE_CLIENT_ID is not configured in environment variables");
   }
 
   const redirectUri = getGoogleOAuthRedirectUri();
   const params = new URLSearchParams({
-    client_id: GOOGLE_CLIENT_ID,
+    client_id: clientId,
     redirect_uri: redirectUri,
     response_type: "code",
     scope: GMAIL_SCOPE,
@@ -122,8 +80,11 @@ export async function exchangeGoogleCodeForTokens(code: string): Promise<{
   scope: string;
   email: string;
 }> {
-  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-    throw new Error("Google OAuth credentials (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET) missing.");
+  const clientId = process.env.GOOGLE_CLIENT_ID || "";
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
+
+  if (!clientId || !clientSecret) {
+    throw new Error("Google OAuth credentials (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET) missing in environment.");
   }
 
   const redirectUri = getGoogleOAuthRedirectUri();
@@ -133,8 +94,8 @@ export async function exchangeGoogleCodeForTokens(code: string): Promise<{
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       code,
-      client_id: GOOGLE_CLIENT_ID,
-      client_secret: GOOGLE_CLIENT_SECRET,
+      client_id: clientId,
+      client_secret: clientSecret,
       redirect_uri: redirectUri,
       grant_type: "authorization_code",
     }),
@@ -235,7 +196,10 @@ export async function getGoogleAccessToken(accountEmail: string = PRIMARY_WORKSP
       return null;
     }
 
-    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    const clientId = process.env.GOOGLE_CLIENT_ID || "";
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
+
+    if (!clientId || !clientSecret) {
       console.error("GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET missing during token refresh.");
       return null;
     }
@@ -244,8 +208,8 @@ export async function getGoogleAccessToken(accountEmail: string = PRIMARY_WORKSP
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
-        client_id: GOOGLE_CLIENT_ID,
-        client_secret: GOOGLE_CLIENT_SECRET,
+        client_id: clientId,
+        client_secret: clientSecret,
         refresh_token: refreshToken,
         grant_type: "refresh_token",
       }),
