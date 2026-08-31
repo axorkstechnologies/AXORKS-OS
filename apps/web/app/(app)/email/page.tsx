@@ -56,14 +56,26 @@ export default function EmailCenterPage() {
   // 2. Google OAuth Connect trigger
   const handleConnectGoogle = async () => {
     try {
-      const res = await apiClient("/api/v1/email/gmail/auth");
-      if (res?.authUrl) {
-        window.location.href = res.authUrl;
-      } else {
-        toast.error("Failed to generate Google authorization URL");
+      const response = await fetch("/api/v1/email/gmail/auth");
+      const json = await response.json().catch(() => ({}));
+      const targetUrl = json?.authUrl || json?.data?.authUrl;
+
+      if (response.ok && targetUrl) {
+        window.location.href = targetUrl;
+        return;
       }
+
+      if (json?.error) {
+        toast.error(`Google Auth Error: ${json.error}`);
+        return;
+      }
+
+      // Fallback: trigger server-side 302 redirect
+      window.location.href = "/api/v1/email/gmail/auth?redirect=true";
     } catch (err: any) {
-      toast.error(err.message || "Failed to initiate Google OAuth");
+      console.error("Error connecting to Google Workspace:", err);
+      // Fallback: trigger server-side 302 redirect
+      window.location.href = "/api/v1/email/gmail/auth?redirect=true";
     }
   };
 

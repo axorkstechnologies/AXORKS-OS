@@ -17,10 +17,15 @@ export { PRIMARY_WORKSPACE_EMAIL, WORKSPACE_ALIASES, type WorkspaceAlias };
 
 /** Read Google credentials lazily at call time so env vars are always resolved */
 export function getGoogleClientId(): string {
-  return process.env.GOOGLE_CLIENT_ID || "";
+  return (
+    process.env.GOOGLE_CLIENT_ID?.trim() ||
+    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim() ||
+    ""
+  );
 }
+
 export function getGoogleClientSecret(): string {
-  return process.env.GOOGLE_CLIENT_SECRET || "";
+  return process.env.GOOGLE_CLIENT_SECRET?.trim() || "";
 }
 
 const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.modify";
@@ -50,7 +55,7 @@ export function getGoogleOAuthRedirectUri(): string {
  * Generates the Google OAuth 2.0 consent URL.
  */
 export function generateGoogleAuthUrl(state?: string): string {
-  const clientId = process.env.GOOGLE_CLIENT_ID || "";
+  const clientId = getGoogleClientId();
   if (!clientId) {
     throw new Error("GOOGLE_CLIENT_ID is not configured in environment variables");
   }
@@ -85,8 +90,8 @@ export async function exchangeGoogleCodeForTokens(code: string): Promise<{
   scope: string;
   email: string;
 }> {
-  const clientId = process.env.GOOGLE_CLIENT_ID || "";
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
+  const clientId = getGoogleClientId();
+  const clientSecret = getGoogleClientSecret();
 
   if (!clientId || !clientSecret) {
     throw new Error("Google OAuth credentials (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET) missing in environment.");
@@ -201,8 +206,8 @@ export async function getGoogleAccessToken(accountEmail: string = PRIMARY_WORKSP
       return null;
     }
 
-    const clientId = process.env.GOOGLE_CLIENT_ID || "";
-    const clientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
+    const clientId = getGoogleClientId();
+    const clientSecret = getGoogleClientSecret();
 
     if (!clientId || !clientSecret) {
       console.error("GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET missing during token refresh.");
