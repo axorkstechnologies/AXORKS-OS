@@ -1,30 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLeadByIdAsync } from "@/lib/business-repository";
 import { sql } from "@/lib/db";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { authenticateRequest } from "@/lib/server-auth";
+import { syncLeadConversionAsync } from "@/lib/performance-repository";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-
-  try {
-    const authHeader = req.headers.get("authorization");
-    const backendRes = await fetch(`${API_BASE_URL}/api/v1/leads/${id}`, {
-      headers: {
-        ...(authHeader ? { Authorization: authHeader } : {}),
-      },
-    });
-
-    if (backendRes.ok) {
-      const data = await backendRes.json();
-      if (data?.data) return NextResponse.json(data);
-    }
-  } catch (err) {
-    // Backend unreachable, fallback to Neon DB
-  }
 
   const dbLead = await getLeadByIdAsync(id);
   if (dbLead) {
@@ -44,26 +28,8 @@ export async function PATCH(
   const { id } = await params;
 
   try {
+    const authUser = await authenticateRequest(req);
     const body = await req.json();
-
-    try {
-      const authHeader = req.headers.get("authorization");
-      const backendRes = await fetch(`${API_BASE_URL}/api/v1/leads/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          ...(authHeader ? { Authorization: authHeader } : {}),
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (backendRes.ok) {
-        const data = await backendRes.json();
-        return NextResponse.json(data);
-      }
-    } catch (err) {
-      // Backend unreachable, fallback to Neon DB
-    }
 
     const businessName = body.business_name || undefined;
     const website = body.website || undefined;
@@ -76,6 +42,9 @@ export async function PATCH(
     const notes = body.notes || undefined;
     const linkedinUrl = body.linkedin_url || undefined;
     const aiResearch = body.ai_research ? JSON.stringify(body.ai_research) : undefined;
+    const dealValue = Number(body.deal_value || body.revenue || body.amount || 0);
+
+    const existingLead = await getLeadByIdAsync(id);
 
     await sql`
       UPDATE leads
@@ -95,6 +64,47 @@ export async function PATCH(
       WHERE id = ${id};
     `;
 
+    // Real-Time KPI Conversion Tracking:
+    // If status transitioned to converted/won, record it in employee_daily_kpis and workspace_emails
+    const isNowConverted =
+      status === "converted" ||
+      status === "won" ||
+      status === "closed_won" ||
+      body.converted_to_client === true;
+
+    const wasAlreadyConverted =
+      existingLead?.status === "converted" ||
+      existingLead?.status === "won" ||
+      existingLead?.status === "closed_won";
+
+    if (isNowConverted && !wasAlreadyConverted) {
+      try {
+        const activeUserId =
+          authUser?.id ||
+          existingLead?.first_contacted_by ||
+          "00000000-0000-0000-0000-00000000000a";
+        const activeUserName =
+          (authUser ? `${authUser.first_name} ${authUser.last_name || ""}`.trim() : null) ||
+          existingLead?.first_contacted_by_name ||
+          "Axorks Team Member";
+        const activeUserEmail = authUser?.email || "sales@axorks.com";
+
+        await syncLeadConversionAsync(activeUserId, activeUserName, activeUserEmail, dealValue);
+
+        // Update workspace_emails to mark related threads converted
+        const leadEmail = (email || existingLead?.email || "").toLowerCase().trim();
+        if (leadEmail) {
+          await sql`
+            UPDATE workspace_emails
+            SET converted_to_client = TRUE, updated_at = NOW()
+            WHERE lead_id::text = ${id} OR LOWER(recipient_email) = ${leadEmail} OR LOWER(sender_email) = ${leadEmail};
+          `;
+        }
+      } catch (kpiErr) {
+        console.error("Failed to sync lead conversion to KPIs:", kpiErr);
+      }
+    }
+
     const updated = await getLeadByIdAsync(id);
     return NextResponse.json({ data: updated });
   } catch (error: any) {
@@ -112,22 +122,6 @@ export async function DELETE(
   const { id } = await params;
 
   try {
-    try {
-      const authHeader = req.headers.get("authorization");
-      const backendRes = await fetch(`${API_BASE_URL}/api/v1/leads/${id}`, {
-        method: "DELETE",
-        headers: {
-          ...(authHeader ? { Authorization: authHeader } : {}),
-        },
-      });
-
-      if (backendRes.ok) {
-        return NextResponse.json({ data: { message: "Lead deleted" } });
-      }
-    } catch (err) {
-      // Backend unreachable, fallback to Neon DB
-    }
-
     await sql`
       UPDATE leads
       SET deleted_at = NOW()

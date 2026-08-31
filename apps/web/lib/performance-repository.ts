@@ -16,6 +16,8 @@ export interface EmployeeDailyKpi {
   date: string;
   emails_sent: number;
   followups_sent: number;
+  clients_converted: number;
+  revenue_brought: number;
   instagram_posts: number;
   youtube_posts: number;
   linkedin_posts: number;
@@ -53,6 +55,8 @@ export interface LeaderboardEntry {
   total_score: number;
   emails_sent: number;
   followups_sent: number;
+  clients_converted: number;
+  revenue_brought: number;
   instagram_posts: number;
   youtube_posts: number;
   linkedin_posts: number;
@@ -67,6 +71,8 @@ export interface LeaderboardEntry {
 // ─── Scoring Formula ──────────────────────────────────────────────────
 // Emails: 2 pts each
 // Follow-ups: 3 pts each
+// Clients Converted: 50 pts each
+// Revenue Brought: 5% bonus pts (e.g. $1000 = 50 pts)
 // Instagram Post: 10 pts each
 // YouTube Video/Post: 20 pts each
 // LinkedIn Post: 15 pts each
@@ -75,6 +81,8 @@ export interface LeaderboardEntry {
 export function calculateScore(m: {
   emails_sent?: number;
   followups_sent?: number;
+  clients_converted?: number;
+  revenue_brought?: number;
   instagram_posts?: number;
   youtube_posts?: number;
   linkedin_posts?: number;
@@ -82,13 +90,15 @@ export function calculateScore(m: {
 }): number {
   const emails = Number(m.emails_sent || 0) * 2;
   const followups = Number(m.followups_sent || 0) * 3;
+  const conversions = Number(m.clients_converted || 0) * 50;
+  const revenuePts = Number(m.revenue_brought || 0) * 0.05;
   const ig = Number(m.instagram_posts || 0) * 10;
   const yt = Number(m.youtube_posts || 0) * 20;
   const linkedin = Number(m.linkedin_posts || 0) * 15;
   const activeHours = Number(m.active_minutes || 0) / 60;
   const timeScore = activeHours * 5;
 
-  const score = emails + followups + ig + yt + linkedin + timeScore;
+  const score = emails + followups + conversions + revenuePts + ig + yt + linkedin + timeScore;
   return Math.round(score * 100) / 100;
 }
 
@@ -101,6 +111,8 @@ export async function getPerformanceLeaderboardAsync(period: "daily" | "monthly"
   summary: {
     total_emails_sent: number;
     total_followups_sent: number;
+    total_clients_converted: number;
+    total_revenue_brought: number;
     total_social_proofs: number;
     total_active_hours: number;
   };
@@ -113,7 +125,14 @@ export async function getPerformanceLeaderboardAsync(period: "daily" | "monthly"
       leaderboard: [],
       top_daily_performer: null,
       top_monthly_performer: null,
-      summary: { total_emails_sent: 0, total_followups_sent: 0, total_social_proofs: 0, total_active_hours: 0 },
+      summary: {
+        total_emails_sent: 0,
+        total_followups_sent: 0,
+        total_clients_converted: 0,
+        total_revenue_brought: 0,
+        total_social_proofs: 0,
+        total_active_hours: 0,
+      },
     };
   }
 
@@ -125,14 +144,16 @@ export async function getPerformanceLeaderboardAsync(period: "daily" | "monthly"
         user_id,
         user_name,
         user_email,
-        SUM(emails_sent) as emails_sent,
-        SUM(followups_sent) as followups_sent,
-        SUM(instagram_posts) as instagram_posts,
-        SUM(youtube_posts) as youtube_posts,
-        SUM(linkedin_posts) as linkedin_posts,
-        SUM(login_minutes) as login_minutes,
-        SUM(active_minutes) as active_minutes,
-        SUM(total_score) as total_score
+        COALESCE(SUM(emails_sent), 0) as emails_sent,
+        COALESCE(SUM(followups_sent), 0) as followups_sent,
+        COALESCE(SUM(clients_converted), 0) as clients_converted,
+        COALESCE(SUM(revenue_brought), 0) as revenue_brought,
+        COALESCE(SUM(instagram_posts), 0) as instagram_posts,
+        COALESCE(SUM(youtube_posts), 0) as youtube_posts,
+        COALESCE(SUM(linkedin_posts), 0) as linkedin_posts,
+        COALESCE(SUM(login_minutes), 0) as login_minutes,
+        COALESCE(SUM(active_minutes), 0) as active_minutes,
+        COALESCE(SUM(total_score), 0) as total_score
       FROM employee_daily_kpis
       WHERE date = CURRENT_DATE
       GROUP BY user_id, user_name, user_email;
@@ -143,14 +164,16 @@ export async function getPerformanceLeaderboardAsync(period: "daily" | "monthly"
         user_id,
         user_name,
         user_email,
-        SUM(emails_sent) as emails_sent,
-        SUM(followups_sent) as followups_sent,
-        SUM(instagram_posts) as instagram_posts,
-        SUM(youtube_posts) as youtube_posts,
-        SUM(linkedin_posts) as linkedin_posts,
-        SUM(login_minutes) as login_minutes,
-        SUM(active_minutes) as active_minutes,
-        SUM(total_score) as total_score
+        COALESCE(SUM(emails_sent), 0) as emails_sent,
+        COALESCE(SUM(followups_sent), 0) as followups_sent,
+        COALESCE(SUM(clients_converted), 0) as clients_converted,
+        COALESCE(SUM(revenue_brought), 0) as revenue_brought,
+        COALESCE(SUM(instagram_posts), 0) as instagram_posts,
+        COALESCE(SUM(youtube_posts), 0) as youtube_posts,
+        COALESCE(SUM(linkedin_posts), 0) as linkedin_posts,
+        COALESCE(SUM(login_minutes), 0) as login_minutes,
+        COALESCE(SUM(active_minutes), 0) as active_minutes,
+        COALESCE(SUM(total_score), 0) as total_score
       FROM employee_daily_kpis
       WHERE date >= DATE_TRUNC('month', CURRENT_DATE)
       GROUP BY user_id, user_name, user_email;
@@ -161,14 +184,16 @@ export async function getPerformanceLeaderboardAsync(period: "daily" | "monthly"
         user_id,
         user_name,
         user_email,
-        SUM(emails_sent) as emails_sent,
-        SUM(followups_sent) as followups_sent,
-        SUM(instagram_posts) as instagram_posts,
-        SUM(youtube_posts) as youtube_posts,
-        SUM(linkedin_posts) as linkedin_posts,
-        SUM(login_minutes) as login_minutes,
-        SUM(active_minutes) as active_minutes,
-        SUM(total_score) as total_score
+        COALESCE(SUM(emails_sent), 0) as emails_sent,
+        COALESCE(SUM(followups_sent), 0) as followups_sent,
+        COALESCE(SUM(clients_converted), 0) as clients_converted,
+        COALESCE(SUM(revenue_brought), 0) as revenue_brought,
+        COALESCE(SUM(instagram_posts), 0) as instagram_posts,
+        COALESCE(SUM(youtube_posts), 0) as youtube_posts,
+        COALESCE(SUM(linkedin_posts), 0) as linkedin_posts,
+        COALESCE(SUM(login_minutes), 0) as login_minutes,
+        COALESCE(SUM(active_minutes), 0) as active_minutes,
+        COALESCE(SUM(total_score), 0) as total_score
       FROM employee_daily_kpis
       GROUP BY user_id, user_name, user_email;
     `;
@@ -210,6 +235,8 @@ export async function getPerformanceLeaderboardAsync(period: "daily" | "monthly"
     const kpi = kpiMap.get(u.id) || kpiMap.get(u.email.toLowerCase()) || {};
     const emailsSent = Number(kpi.emails_sent || 0);
     const followupsSent = Number(kpi.followups_sent || 0);
+    const clientsConverted = Number(kpi.clients_converted || 0);
+    const revenueBrought = Number(kpi.revenue_brought || 0);
     const igPosts = Number(kpi.instagram_posts || 0);
     const ytPosts = Number(kpi.youtube_posts || 0);
     const liPosts = Number(kpi.linkedin_posts || 0);
@@ -219,6 +246,8 @@ export async function getPerformanceLeaderboardAsync(period: "daily" | "monthly"
     const score = Number(kpi.total_score || 0) || calculateScore({
       emails_sent: emailsSent,
       followups_sent: followupsSent,
+      clients_converted: clientsConverted,
+      revenue_brought: revenueBrought,
       instagram_posts: igPosts,
       youtube_posts: ytPosts,
       linkedin_posts: liPosts,
@@ -235,6 +264,8 @@ export async function getPerformanceLeaderboardAsync(period: "daily" | "monthly"
       total_score: score,
       emails_sent: emailsSent,
       followups_sent: followupsSent,
+      clients_converted: clientsConverted,
+      revenue_brought: revenueBrought,
       instagram_posts: igPosts,
       youtube_posts: ytPosts,
       linkedin_posts: liPosts,
@@ -264,6 +295,8 @@ export async function getPerformanceLeaderboardAsync(period: "daily" | "monthly"
 
   const totalEmails = entries.reduce((s, e) => s + e.emails_sent, 0);
   const totalFollowups = entries.reduce((s, e) => s + e.followups_sent, 0);
+  const totalConversions = entries.reduce((s, e) => s + e.clients_converted, 0);
+  const totalRevenue = entries.reduce((s, e) => s + e.revenue_brought, 0);
   const totalSocial = entries.reduce((s, e) => s + e.total_social_posts, 0);
   const totalActive = entries.reduce((s, e) => s + e.active_hours, 0);
 
@@ -274,6 +307,8 @@ export async function getPerformanceLeaderboardAsync(period: "daily" | "monthly"
     summary: {
       total_emails_sent: totalEmails,
       total_followups_sent: totalFollowups,
+      total_clients_converted: totalConversions,
+      total_revenue_brought: Math.round(totalRevenue * 100) / 100,
       total_social_proofs: totalSocial,
       total_active_hours: Math.round(totalActive * 10) / 10,
     },
@@ -444,3 +479,67 @@ export async function getDailyKpiLogsAsync(userId?: string): Promise<EmployeeDai
   }
   return rows as EmployeeDailyKpi[];
 }
+
+// ─── Real-Time Email KPI Sync (called on every email send) ────────────
+// This is the critical function that makes email metrics REAL.
+// It is called from /api/email/send after a successful dispatch.
+
+export async function syncEmailKpiAsync(
+  userId: string,
+  userName: string,
+  userEmail: string,
+  isFollowup: boolean = false
+) {
+  if (!DATABASE_URL) return;
+
+  const emailPts = 2; // 2 points per email
+  const followupPts = isFollowup ? 3 : 0; // 3 bonus points per follow-up
+  const totalPts = emailPts + followupPts;
+
+  await sql`
+    INSERT INTO employee_daily_kpis (
+      user_id, user_name, user_email, date,
+      emails_sent, followups_sent, total_score, updated_at
+    ) VALUES (
+      ${userId}, ${userName}, ${userEmail}, CURRENT_DATE,
+      1, ${isFollowup ? 1 : 0}, ${totalPts}, NOW()
+    )
+    ON CONFLICT (user_id, date) DO UPDATE SET
+      emails_sent = employee_daily_kpis.emails_sent + 1,
+      followups_sent = employee_daily_kpis.followups_sent + ${isFollowup ? 1 : 0},
+      total_score = employee_daily_kpis.total_score + ${totalPts},
+      updated_at = NOW();
+  `;
+}
+
+// ─── Real-Time Lead Conversion Sync (called on client conversion) ─────
+// This function increments clients_converted and revenue_brought in employee_daily_kpis.
+
+export async function syncLeadConversionAsync(
+  userId: string,
+  userName: string,
+  userEmail: string,
+  revenueAmount: number = 0
+) {
+  if (!DATABASE_URL) return;
+
+  const convPts = 50; // 50 points per closed/converted client
+  const revPts = Math.round(revenueAmount * 0.05); // 5% bonus points on deal value
+  const totalPts = convPts + revPts;
+
+  await sql`
+    INSERT INTO employee_daily_kpis (
+      user_id, user_name, user_email, date,
+      clients_converted, revenue_brought, total_score, updated_at
+    ) VALUES (
+      ${userId}, ${userName}, ${userEmail}, CURRENT_DATE,
+      1, ${revenueAmount}, ${totalPts}, NOW()
+    )
+    ON CONFLICT (user_id, date) DO UPDATE SET
+      clients_converted = COALESCE(employee_daily_kpis.clients_converted, 0) + 1,
+      revenue_brought = COALESCE(employee_daily_kpis.revenue_brought, 0) + ${revenueAmount},
+      total_score = employee_daily_kpis.total_score + ${totalPts},
+      updated_at = NOW();
+  `;
+}
+

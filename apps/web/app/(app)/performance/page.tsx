@@ -75,6 +75,8 @@ export default function PerformanceDashboardPage() {
       summary: {
         total_emails_sent: number;
         total_followups_sent: number;
+        total_clients_converted: number;
+        total_revenue_brought: number;
         total_social_proofs: number;
         total_active_hours: number;
       };
@@ -97,7 +99,14 @@ export default function PerformanceDashboardPage() {
     leaderboard: [],
     top_daily_performer: null,
     top_monthly_performer: null,
-    summary: { total_emails_sent: 0, total_followups_sent: 0, total_social_proofs: 0, total_active_hours: 0 },
+    summary: {
+      total_emails_sent: 0,
+      total_followups_sent: 0,
+      total_clients_converted: 0,
+      total_revenue_brought: 0,
+      total_social_proofs: 0,
+      total_active_hours: 0,
+    },
   };
 
   const socialProofs: any[] = socialProofsResponse?.data || [];
@@ -287,58 +296,84 @@ export default function PerformanceDashboardPage() {
         )}
       </div>
 
-      {/* Top 4 Performance Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2 shadow-sm">
+      {/* Top Performance Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="p-4 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1.5 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Outreach Emails Sent</span>
-            <div className="p-2 rounded-xl bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-500/40">
-              <Send className="w-4 h-4" />
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Emails Sent</span>
+            <div className="p-1.5 rounded-xl bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-500/40">
+              <Send className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white">
-            {leaderboardData.summary.total_emails_sent}
+          <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">
+            {leaderboardData.summary.total_emails_sent || 0}
           </div>
-          <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">Daily &amp; periodic outreach tracking</p>
+          <p className="text-[10px] text-slate-500 font-medium">Outreach emails</p>
         </div>
 
-        <div className="p-5 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2 shadow-sm">
+        <div className="p-4 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1.5 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Total Follow-Ups Sent</span>
-            <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/40">
-              <Mail className="w-4 h-4" />
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Follow-Ups</span>
+            <div className="p-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/40">
+              <Mail className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white">
-            {leaderboardData.summary.total_followups_sent}
+          <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">
+            {leaderboardData.summary.total_followups_sent || 0}
           </div>
-          <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">Sequential nurturing campaigns</p>
+          <p className="text-[10px] text-slate-500 font-medium">Nurturing follow-ups</p>
         </div>
 
-        <div className="p-5 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2 shadow-sm">
+        <div className="p-4 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1.5 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Social Proofs (GDrive)</span>
-            <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/40">
-              <Share2 className="w-4 h-4" />
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Clients Converted</span>
+            <div className="p-1.5 rounded-xl bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/40">
+              <CheckCircle2 className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white">
-            {leaderboardData.summary.total_social_proofs}
+          <div className="text-2xl font-black text-amber-600 dark:text-amber-400 font-mono">
+            {leaderboardData.summary.total_clients_converted || 0}
           </div>
-          <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">Instagram, YouTube, LinkedIn posts</p>
+          <p className="text-[10px] text-slate-500 font-medium">Closed deals</p>
         </div>
 
-        <div className="p-5 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2 shadow-sm">
+        <div className="p-4 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1.5 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Logged Working Hours</span>
-            <div className="p-2 rounded-xl bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-500/40">
-              <Clock className="w-4 h-4" />
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Revenue Brought</span>
+            <div className="p-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/40">
+              <TrendingUp className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white">
-            {leaderboardData.summary.total_active_hours}h
+          <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
+            ${(leaderboardData.summary.total_revenue_brought || 0).toLocaleString()}
           </div>
-          <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">Session presence &amp; work time</p>
+          <p className="text-[10px] text-slate-500 font-medium">Total business value</p>
+        </div>
+
+        <div className="p-4 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1.5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Social Proofs</span>
+            <div className="p-1.5 rounded-xl bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/40">
+              <Share2 className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">
+            {leaderboardData.summary.total_social_proofs || 0}
+          </div>
+          <p className="text-[10px] text-slate-500 font-medium">GDrive verified posts</p>
+        </div>
+
+        <div className="p-4 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1.5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Active Hours</span>
+            <div className="p-1.5 rounded-xl bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-500/40">
+              <Clock className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">
+            {leaderboardData.summary.total_active_hours || 0}h
+          </div>
+          <p className="text-[10px] text-slate-500 font-medium">Session work time</p>
         </div>
       </div>
 
@@ -349,27 +384,36 @@ export default function PerformanceDashboardPage() {
             onClick={() => setActiveTab("leaderboard")}
             className={`px-3.5 py-2 rounded-xl text-xs transition border ${
               activeTab === "leaderboard"
-                ? "bg-violet-600 text-white border-violet-500 shadow-xs font-black"
-                : "bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:text-slate-900 dark:hover:text-white font-semibold"
+                ? "bg-violet-600 text-white font-bold border-violet-600 shadow-sm"
+                : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border-transparent"
             }`}
           >
-            <Trophy className="w-4 h-4 inline-block mr-1.5 text-amber-400" /> Employee Performance Scorecards
+            🏆 Leaderboard Rankings
           </button>
-
           <button
             onClick={() => setActiveTab("proofs")}
             className={`px-3.5 py-2 rounded-xl text-xs transition border ${
               activeTab === "proofs"
-                ? "bg-violet-600 text-white border-violet-500 shadow-xs font-black"
-                : "bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:text-slate-900 dark:hover:text-white font-semibold"
+                ? "bg-violet-600 text-white font-bold border-violet-600 shadow-sm"
+                : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border-transparent"
             }`}
           >
-            <FolderOpen className="w-4 h-4 inline-block mr-1.5 text-emerald-400" /> Verified Social Proofs (Google Drive)
+            📸 Social Proofs (GDrive) ({socialProofs.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("time")}
+            className={`px-3.5 py-2 rounded-xl text-xs transition border ${
+              activeTab === "time"
+                ? "bg-violet-600 text-white font-bold border-violet-600 shadow-sm"
+                : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border-transparent"
+            }`}
+          >
+            ⏱️ Work Time Tracking
           </button>
         </div>
 
         {activeTab === "leaderboard" && (
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800 self-end sm:self-auto">
             <button
               onClick={() => setPeriod("daily")}
               className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
@@ -400,28 +444,30 @@ export default function PerformanceDashboardPage() {
 
       {/* LEADERBOARD TABLE TAB */}
       {activeTab === "leaderboard" && (
-        <div className="bg-white dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+        <div className="bg-white dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm flex flex-col">
           <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/40">
             <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
               <Award className="w-4 h-4 text-violet-600 dark:text-violet-400" /> Composite Employee Performance Table
             </h3>
-            <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">
-              Scoring: 2pts/Email • 3pts/Followup • 10pts/IG • 20pts/YT • 15pts/LinkedIn • 5pts/Hour Active
+            <span className="text-xs text-slate-600 dark:text-slate-400 font-medium hidden sm:inline">
+              Scoring: 2pts/Email • 3pts/Followup • 50pts/Client Converted • 5% Rev Pts • 10pts/IG • 20pts/YT • 15pts/LinkedIn • 5pts/Hour Active
             </span>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
-              <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 font-bold uppercase tracking-wider text-[11px]">
+          <div className="w-full overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
+            <table className="w-full min-w-[1100px] text-xs text-left border-collapse">
+              <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 font-bold uppercase tracking-wider text-[11px] sticky top-0 z-10">
                 <tr>
-                  <th className="p-3.5">Rank &amp; Employee</th>
-                  <th className="p-3.5">Role</th>
-                  <th className="p-3.5">Total Score</th>
-                  <th className="p-3.5">Emails Sent</th>
-                  <th className="p-3.5">Follow-ups</th>
-                  <th className="p-3.5">Social Proofs</th>
-                  <th className="p-3.5">Active Time</th>
-                  <th className="p-3.5 text-right">Performance Tier</th>
+                  <th className="p-4 whitespace-nowrap min-w-[220px]">Rank &amp; Employee</th>
+                  <th className="p-4 whitespace-nowrap min-w-[140px]">Role</th>
+                  <th className="p-4 whitespace-nowrap min-w-[120px]">Total Score</th>
+                  <th className="p-4 whitespace-nowrap min-w-[100px]">Emails Sent</th>
+                  <th className="p-4 whitespace-nowrap min-w-[100px]">Follow-ups</th>
+                  <th className="p-4 whitespace-nowrap min-w-[120px]">Converted</th>
+                  <th className="p-4 whitespace-nowrap min-w-[120px]">Revenue</th>
+                  <th className="p-4 whitespace-nowrap min-w-[180px]">Social Proofs</th>
+                  <th className="p-4 whitespace-nowrap min-w-[100px]">Active Time</th>
+                  <th className="p-4 whitespace-nowrap text-right min-w-[160px]">Performance Tier</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -432,11 +478,11 @@ export default function PerformanceDashboardPage() {
                       i === 0 ? "bg-amber-50/40 dark:bg-amber-950/20" : ""
                     }`}
                   >
-                    <td className="p-3.5 font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                    <td className="p-4 whitespace-nowrap font-bold text-slate-900 dark:text-white flex items-center gap-3">
                       <span className="w-6 font-mono font-black text-slate-700 dark:text-slate-300 text-sm">
                         {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
                       </span>
-                      <div className="w-8 h-8 rounded-xl bg-violet-100 dark:bg-violet-600/30 text-violet-800 dark:text-violet-300 font-black flex items-center justify-center text-xs border border-violet-300 dark:border-violet-500/30">
+                      <div className="w-8 h-8 rounded-xl bg-violet-100 dark:bg-violet-600/30 text-violet-800 dark:text-violet-300 font-black flex items-center justify-center text-xs border border-violet-300 dark:border-violet-500/30 shrink-0">
                         {emp.user_name?.[0] || "E"}
                       </div>
                       <div>
@@ -445,34 +491,36 @@ export default function PerformanceDashboardPage() {
                       </div>
                     </td>
 
-                    <td className="p-3.5 text-slate-700 dark:text-slate-300 font-medium">{emp.role}</td>
+                    <td className="p-4 whitespace-nowrap text-slate-700 dark:text-slate-300 font-medium">{emp.role}</td>
 
-                    <td className="p-3.5">
+                    <td className="p-4 whitespace-nowrap">
                       <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-black bg-violet-100 dark:bg-violet-500/20 text-violet-900 dark:text-violet-300 border border-violet-300 dark:border-violet-500/40">
-                        {emp.total_score} pts
+                        {emp.total_score || 0} pts
                       </span>
                     </td>
 
-                    <td className="p-3.5 font-mono font-bold text-slate-900 dark:text-white">{emp.emails_sent}</td>
-                    <td className="p-3.5 font-mono font-bold text-emerald-700 dark:text-emerald-400">{emp.followups_sent}</td>
+                    <td className="p-4 whitespace-nowrap font-mono font-bold text-slate-900 dark:text-white">{emp.emails_sent || 0}</td>
+                    <td className="p-4 whitespace-nowrap font-mono font-bold text-emerald-700 dark:text-emerald-400">{emp.followups_sent || 0}</td>
+                    <td className="p-4 whitespace-nowrap font-mono font-bold text-amber-600 dark:text-amber-400">{emp.clients_converted || 0}</td>
+                    <td className="p-4 whitespace-nowrap font-mono font-bold text-emerald-600 dark:text-emerald-400">${(emp.revenue_brought || 0).toLocaleString()}</td>
 
-                    <td className="p-3.5">
+                    <td className="p-4 whitespace-nowrap">
                       <div className="flex items-center gap-1.5 text-[11px] font-mono">
                         <span title="Instagram Posts" className="px-1.5 py-0.5 rounded bg-pink-100 dark:bg-pink-500/20 text-pink-800 dark:text-pink-300 font-bold border border-pink-300 dark:border-pink-500/30">
-                          IG: {emp.instagram_posts}
+                          IG: {emp.instagram_posts || 0}
                         </span>
                         <span title="YouTube Videos" className="px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-500/20 text-rose-800 dark:text-rose-300 font-bold border border-rose-300 dark:border-rose-500/30">
-                          YT: {emp.youtube_posts}
+                          YT: {emp.youtube_posts || 0}
                         </span>
                         <span title="LinkedIn Posts" className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 font-bold border border-blue-300 dark:border-blue-500/30">
-                          LI: {emp.linkedin_posts}
+                          LI: {emp.linkedin_posts || 0}
                         </span>
                       </div>
                     </td>
 
-                    <td className="p-3.5 font-mono font-bold text-cyan-700 dark:text-cyan-400">{emp.active_hours} hrs</td>
+                    <td className="p-4 whitespace-nowrap font-mono font-bold text-cyan-700 dark:text-cyan-400">{emp.active_hours || 0} hrs</td>
 
-                    <td className="p-3.5 text-right">
+                    <td className="p-4 whitespace-nowrap text-right">
                       <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
                         i === 0
                           ? "bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-500/40"

@@ -4,6 +4,7 @@ import { EmailSendSchema } from "@/lib/validators/email";
 import { addEmailToHistory } from "@/lib/email/store";
 import { sendGmailMessage, getGoogleWorkspaceStatus } from "@/lib/email/gmail-service";
 import { authenticateRequest } from "@/lib/server-auth";
+import { syncEmailKpiAsync } from "@/lib/performance-repository";
 import { neon } from "@neondatabase/serverless";
 
 const DATABASE_URL = process.env.DATABASE_URL || "";
@@ -200,6 +201,16 @@ export async function POST(req: NextRequest) {
         `;
       } catch (crmErr) {
         console.error("Failed to update CRM lead exclusivity in DB:", crmErr);
+      }
+    }
+
+    // 6. REAL-TIME KPI: Increment emails_sent (and followups_sent) in employee_daily_kpis
+    if (status === "Sent") {
+      try {
+        const senderEmail = authUser?.email || "unknown@axorks.com";
+        await syncEmailKpiAsync(activeUserId, activeUserName, senderEmail, Boolean(isFollowup));
+      } catch (kpiErr) {
+        console.error("Failed to sync email KPI in employee_daily_kpis:", kpiErr);
       }
     }
 
