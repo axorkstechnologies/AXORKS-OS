@@ -18,6 +18,7 @@ export interface StoredUser {
   email: string;
   username: string;
   password_hash: string;
+  last_set_password?: string | null;
   first_name: string;
   last_name: string;
   display_name: string;
@@ -72,19 +73,34 @@ export function hashPassword(plaintext: string): string {
   if (!plaintext || typeof plaintext !== "string") {
     throw new Error("Password string is required for hashing");
   }
-  return bcrypt.hashSync(plaintext, BCRYPT_ROUNDS);
+  return bcrypt.hashSync(plaintext.trim(), BCRYPT_ROUNDS);
 }
 
-export function verifyPassword(plaintext: string, hash: string): boolean {
-  if (!plaintext || !hash || typeof plaintext !== "string" || typeof hash !== "string") {
+export function verifyPassword(plaintext: string, hash: string, lastSetPassword?: string | null): boolean {
+  if (!plaintext || typeof plaintext !== "string") {
     return false;
   }
-  try {
-    return bcrypt.compareSync(plaintext, hash);
-  } catch (err) {
-    console.error("Error verifying bcrypt hash:", err);
-    return false;
+  const cleanPlain = plaintext.trim();
+
+  // 1. Direct bcrypt comparison
+  if (hash && typeof hash === "string") {
+    try {
+      if (bcrypt.compareSync(cleanPlain, hash)) {
+        return true;
+      }
+    } catch {
+      // Continue to fallback check
+    }
   }
+
+  // 2. Direct match with recorded last_set_password
+  if (lastSetPassword && typeof lastSetPassword === "string") {
+    if (lastSetPassword.trim() === cleanPlain) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 // ─── Active In-Memory Session Cache (Only for live presence metrics) ──
@@ -108,6 +124,7 @@ export function mapDbUserToStoredUser(row: any): StoredUser {
     email: row.email,
     username: row.username || row.email.split("@")[0],
     password_hash: row.password_hash || "",
+    last_set_password: row.last_set_password || null,
     first_name: row.first_name || "",
     last_name: row.last_name || "",
     display_name: row.first_name
@@ -262,7 +279,10 @@ export async function registerNewUserAsync(data: {
 
 // ─── User Updates (Neon DB Driven) ───────────────────────────────────
 
-export async function updateUserAsync(id: string, updates: Partial<StoredUser> & { password?: string }): Promise<StoredUser | null> {
+export async function updateUserAsync(
+  id: string,
+  updates: Partial<StoredUser> & { password?: string; new_password?: string }
+): Promise<StoredUser | null> {
   const cleanId = id.trim().toLowerCase();
   let queryId = id;
   if (cleanId === "user_founder_01") queryId = "00000000-0000-0000-0000-00000000000a";
@@ -270,17 +290,32 @@ export async function updateUserAsync(id: string, updates: Partial<StoredUser> &
 
   try {
     if (DATABASE_URL) {
+      const pwd = updates.password || updates.new_password || updates.last_set_password;
+
       // 1. Password update (if plaintext password or password_hash supplied)
-      if (updates.password) {
-        const hashed = hashPassword(updates.password);
-        await sql`UPDATE users SET password_hash = ${hashed}, updated_at = NOW() WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId}`;
+      if (pwd && typeof pwd === "string" && pwd.trim().length > 0) {
+        const cleanPwd = pwd.trim();
+        const hashed = hashPassword(cleanPwd);
+        await sql`
+          UPDATE users 
+          SET password_hash = ${hashed}, last_set_password = ${cleanPwd}, updated_at = NOW() 
+          WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId};
+        `;
       } else if (updates.password_hash !== undefined) {
-        await sql`UPDATE users SET password_hash = ${updates.password_hash}, updated_at = NOW() WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId}`;
+        await sql`
+          UPDATE users 
+          SET password_hash = ${updates.password_hash}, updated_at = NOW() 
+          WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId};
+        `;
       }
 
       // 2. Avatar
       if (updates.avatar_url !== undefined) {
-        await sql`UPDATE users SET avatar_url = ${updates.avatar_url}, updated_at = NOW() WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId}`;
+        await sql`
+          UPDATE users 
+          SET avatar_url = ${updates.avatar_url}, updated_at = NOW() 
+          WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId};
+        `;
       }
 
       // 3. Names & Contact
@@ -290,7 +325,7 @@ export async function updateUserAsync(id: string, updates: Partial<StoredUser> &
           last_name = COALESCE(${updates.last_name || null}, last_name),
           phone = COALESCE(${updates.phone || null}, phone),
           updated_at = NOW()
-          WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId}`;
+          WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId};`;
       }
 
       // 4. Role & Permissions (Immediate Neon DB Enforcement)
@@ -303,19 +338,19 @@ export async function updateUserAsync(id: string, updates: Partial<StoredUser> &
           department = COALESCE(${updates.department || null}, department),
           designation = COALESCE(${updates.designation || null}, designation),
           updated_at = NOW()
-          WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId}`;
+          WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId};`;
       } else if (updates.department !== undefined || updates.designation !== undefined) {
         await sql`UPDATE users SET 
           department = COALESCE(${updates.department || null}, department),
           designation = COALESCE(${updates.designation || null}, designation),
           updated_at = NOW()
-          WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId}`;
+          WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId};`;
       }
 
       // 5. Status
       if (updates.status !== undefined) {
         const isActive = updates.status === "active";
-        await sql`UPDATE users SET status = ${updates.status}, is_active = ${isActive}, updated_at = NOW() WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId}`;
+        await sql`UPDATE users SET status = ${updates.status}, is_active = ${isActive}, updated_at = NOW() WHERE id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId};`;
       }
 
       const rows = await sql`SELECT * FROM users WHERE (id::text = ${queryId} OR employee_id = ${id} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId}) AND deleted_at IS NULL LIMIT 1`;
@@ -331,12 +366,32 @@ export async function updateUserAsync(id: string, updates: Partial<StoredUser> &
 }
 
 export async function setEmployeePasswordAsync(userId: string, newPlaintext: string): Promise<boolean> {
-  if (!newPlaintext || newPlaintext.length < 6) {
+  if (!newPlaintext || typeof newPlaintext !== "string" || newPlaintext.trim().length < 6) {
     throw new Error("Password must be at least 6 characters long");
   }
-  const newHash = hashPassword(newPlaintext);
-  const updated = await updateUserAsync(userId, { password_hash: newHash });
-  return !!updated;
+  const cleanPwd = newPlaintext.trim();
+  const newHash = hashPassword(cleanPwd);
+  const cleanId = userId.trim().toLowerCase();
+  let queryId = userId;
+  if (cleanId === "user_founder_01") queryId = "00000000-0000-0000-0000-00000000000a";
+  if (cleanId === "user_cofounder_02") queryId = "00000000-0000-0000-0000-00000000000b";
+
+  try {
+    if (DATABASE_URL) {
+      const result = await sql`
+        UPDATE users 
+        SET password_hash = ${newHash}, last_set_password = ${cleanPwd}, updated_at = NOW()
+        WHERE (id::text = ${queryId} OR employee_id = ${userId} OR LOWER(username) = ${cleanId} OR LOWER(email) = ${cleanId})
+        RETURNING id, email, username, last_set_password;
+      `;
+      if (result && result.length > 0) {
+        return true;
+      }
+    }
+  } catch (err) {
+    console.error("Neon DB error in setEmployeePasswordAsync:", err);
+  }
+  return false;
 }
 
 export async function setEmployeeRoleAsync(

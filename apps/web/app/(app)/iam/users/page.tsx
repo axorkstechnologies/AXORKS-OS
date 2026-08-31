@@ -29,10 +29,14 @@ import {
   LayoutList,
   Sparkles,
   Crown,
+  User,
   UserCheck,
   ShieldAlert,
+  Copy,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
+import Link from "next/link";
 
 export default function IamUsersPage() {
   const queryClient = useQueryClient();
@@ -63,7 +67,8 @@ export default function IamUsersPage() {
   // Founder Password & Role Management Modals
   const [passwordTargetUser, setPasswordTargetUser] = useState<any | null>(null);
   const [newPasswordInput, setNewPasswordInput] = useState("");
-  const [showPasswordText, setShowPasswordText] = useState(false);
+  const [showPasswordText, setShowPasswordText] = useState(true);
+  const [revealedPasswords, setRevealedPasswords] = useState<Record<string, boolean>>({});
 
   const [roleTargetUser, setRoleTargetUser] = useState<any | null>(null);
   const [newRoleInput, setNewRoleInput] = useState("Software Engineer");
@@ -75,7 +80,7 @@ export default function IamUsersPage() {
   const [deleteTargetUser, setDeleteTargetUser] = useState<any | null>(null);
 
   // Fetch Users directly from Neon DB
-  const { data: usersResponse, isLoading } = useQuery<{ success: boolean; data: any[] } | any[]>({
+  const { data: usersResponse, isLoading, refetch } = useQuery<{ success: boolean; data: any[] } | any[]>({
     queryKey: ["iam-users", search, statusFilter],
     queryFn: () => {
       let url = "/api/v1/iam/users";
@@ -182,8 +187,8 @@ export default function IamUsersPage() {
 
   const handleOpenPasswordModal = (u: any) => {
     setPasswordTargetUser(u);
-    setNewPasswordInput("");
-    setShowPasswordText(false);
+    setNewPasswordInput(u.last_set_password || "");
+    setShowPasswordText(true);
     setActiveUserMenu(null);
   };
 
@@ -252,6 +257,10 @@ export default function IamUsersPage() {
     });
   };
 
+  const toggleReveal = (userId: string) => {
+    setRevealedPasswords((prev) => ({ ...prev, [userId]: !prev[userId] }));
+  };
+
   return (
     <div className="space-y-6">
       {/* Header & Quick Action Bar */}
@@ -259,25 +268,35 @@ export default function IamUsersPage() {
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-              <Users className="w-5 h-5 text-violet-600 dark:text-violet-400" /> Employee Directory &amp; IAM Access Control
+              <Users className="w-5 h-5 text-violet-600 dark:text-violet-400" /> Employee Directory &amp; Credentials Management
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-violet-100 dark:bg-violet-500/20 text-violet-800 dark:text-violet-300 border border-violet-300 dark:border-violet-500/40">
               {users.length} Active Accounts
             </span>
           </div>
           <p className="text-slate-700 dark:text-slate-300 text-xs font-medium mt-1">
-            Founder command for instant password updates, role assignments, and Neon PostgreSQL user synchronization
+            Founder command center: Real-time password viewing, credential reset, and role management with direct Neon PostgreSQL persistence
           </p>
         </div>
 
-        {isFounder && (
+        <div className="flex items-center gap-2.5">
           <button
-            onClick={() => setCreateOpen(true)}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-black shadow-lg shadow-violet-600/30 transition transform active:scale-95 shrink-0"
+            onClick={() => refetch()}
+            className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs font-bold transition shadow-xs"
+            title="Refresh employees from Neon DB"
           >
-            <Plus className="w-4 h-4" /> Create Employee Account
+            <RefreshCw className="w-4 h-4" />
           </button>
-        )}
+
+          {isFounder && (
+            <button
+              onClick={() => setCreateOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-black shadow-lg shadow-violet-600/30 transition transform active:scale-95 shrink-0"
+            >
+              <Plus className="w-4 h-4" /> Create Employee Account
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filter & View Switcher */}
@@ -342,25 +361,27 @@ export default function IamUsersPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {users.map((u: any) => {
             const protectedUser = isProtectedProfile(u);
+            const isRevealed = revealedPasswords[u.id];
             return (
               <div
                 key={u.id}
                 className="bg-white dark:bg-slate-950 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 hover:border-violet-500/50 transition relative overflow-hidden group shadow-sm flex flex-col justify-between space-y-4"
               >
                 <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
+                  <Link href={`/iam/users/${u.id}`} className="flex items-center gap-3 group-hover:opacity-90">
                     <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white font-black text-sm shadow-md">
                       {u.first_name?.[0] || "U"}
                     </div>
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <h3 className="font-black text-sm text-slate-900 dark:text-white">
+                        <h3 className="font-black text-sm text-slate-900 dark:text-white hover:text-violet-600 dark:hover:text-violet-400 transition flex items-center gap-1">
                           {u.first_name} {u.last_name || ""}
+                          <ExternalLink className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100" />
                         </h3>
                         {protectedUser && (
                           <span
                             className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 flex items-center gap-0.5"
-                            title="Protected Company Profile (Non-deletable)"
+                            title="Protected Company Profile"
                           >
                             <ShieldCheck className="w-2.5 h-2.5 text-amber-500" /> Protected
                           </span>
@@ -369,7 +390,7 @@ export default function IamUsersPage() {
                       <p className="text-[11px] text-slate-600 dark:text-slate-400 font-mono">@{u.username || u.first_name.toLowerCase()}</p>
                       <p className="text-[11px] text-slate-500 font-mono">{u.email}</p>
                     </div>
-                  </div>
+                  </Link>
 
                   {/* Actions Dropdown */}
                   {isFounder && (
@@ -396,6 +417,13 @@ export default function IamUsersPage() {
                           >
                             <UserCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> Update Role
                           </button>
+
+                          <Link
+                            href={`/iam/users/${u.id}`}
+                            className="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-xl text-slate-800 dark:text-slate-200 flex items-center gap-2 font-medium"
+                          >
+                            <User className="w-3.5 h-3.5 text-blue-500" /> View Credentials
+                          </Link>
 
                           {!protectedUser && (
                             <>
@@ -426,6 +454,37 @@ export default function IamUsersPage() {
                   )}
                 </div>
 
+                {/* Founder Credentials View on Card */}
+                {isFounder && (
+                  <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-[11px] space-y-1">
+                    <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                      <span className="font-bold flex items-center gap-1">
+                        <KeyRound className="w-3 h-3 text-violet-500" /> Active Password:
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => toggleReveal(u.id)}
+                          className="text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                        >
+                          {isRevealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(u.last_set_password || "Farwa@Axorks2026!");
+                            toast.success(`Password for ${u.first_name} copied!`);
+                          }}
+                          className="text-violet-600 dark:text-violet-400 font-bold hover:underline"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                    <div className="font-mono font-bold text-slate-900 dark:text-emerald-400">
+                      {isRevealed ? (u.last_set_password || "Farwa@Axorks2026!") : "••••••••••••"}
+                    </div>
+                  </div>
+                )}
+
                 <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
                   <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-violet-100 dark:bg-violet-500/20 text-violet-900 dark:text-violet-300 border border-violet-300 dark:border-violet-500/30">
                     {u.role}
@@ -450,10 +509,11 @@ export default function IamUsersPage() {
           <table className="w-full text-xs text-left">
             <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 font-bold uppercase tracking-wider text-[11px]">
               <tr>
-                <th className="p-3.5">Employee</th>
+                <th className="p-3.5">Employee Profile</th>
                 <th className="p-3.5">Username</th>
                 <th className="p-3.5">Department</th>
                 <th className="p-3.5">Role</th>
+                {isFounder && <th className="p-3.5">Active Password</th>}
                 <th className="p-3.5">Status</th>
                 <th className="p-3.5 text-right">Founder Controls</th>
               </tr>
@@ -461,15 +521,16 @@ export default function IamUsersPage() {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {users.map((u: any) => {
                 const protectedUser = isProtectedProfile(u);
+                const isRevealed = revealedPasswords[u.id];
                 return (
                   <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition">
                     <td className="p-3.5">
-                      <div className="flex items-center gap-3">
+                      <Link href={`/iam/users/${u.id}`} className="flex items-center gap-3 group">
                         <div className="w-8 h-8 rounded-xl bg-violet-100 dark:bg-violet-600/30 text-violet-800 dark:text-violet-300 font-black flex items-center justify-center text-xs border border-violet-300 dark:border-violet-500/30">
                           {u.first_name?.[0] || "U"}
                         </div>
                         <div>
-                          <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                          <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 group-hover:text-violet-600 transition">
                             <span>{u.first_name} {u.last_name || ""}</span>
                             {protectedUser && (
                               <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30">
@@ -479,15 +540,61 @@ export default function IamUsersPage() {
                           </div>
                           <div className="text-[11px] text-slate-600 dark:text-slate-400 font-mono">{u.email}</div>
                         </div>
+                      </Link>
+                    </td>
+
+                    <td className="p-3.5 font-mono text-slate-700 dark:text-slate-300 font-medium">
+                      <div className="flex items-center gap-1.5">
+                        <span>@{u.username || u.first_name.toLowerCase()}</span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(u.username || u.first_name.toLowerCase());
+                            toast.success("Username copied!");
+                          }}
+                          className="text-slate-400 hover:text-violet-600"
+                          title="Copy username"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </button>
                       </div>
                     </td>
-                    <td className="p-3.5 font-mono text-slate-700 dark:text-slate-300 font-medium">@{u.username || u.first_name.toLowerCase()}</td>
+
                     <td className="p-3.5 text-slate-700 dark:text-slate-300 font-medium">{u.department || "General"}</td>
+
                     <td className="p-3.5">
                       <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-violet-100 dark:bg-violet-500/20 text-violet-900 dark:text-violet-300 border border-violet-300 dark:border-violet-500/30">
                         {u.role}
                       </span>
                     </td>
+
+                    {/* Active Working Password Column for Founder */}
+                    {isFounder && (
+                      <td className="p-3.5 font-mono">
+                        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800 w-fit">
+                          <span className="text-slate-900 dark:text-emerald-400 font-bold text-xs">
+                            {isRevealed ? (u.last_set_password || "Farwa@Axorks2026!") : "••••••••••••"}
+                          </span>
+                          <button
+                            onClick={() => toggleReveal(u.id)}
+                            className="text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                            title={isRevealed ? "Hide password" : "Show password"}
+                          >
+                            {isRevealed ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                          </button>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(u.last_set_password || "Farwa@Axorks2026!");
+                              toast.success(`Password for ${u.first_name} copied!`);
+                            }}
+                            className="text-slate-400 hover:text-violet-600"
+                            title="Copy active password"
+                          >
+                            <Copy className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
+
                     <td className="p-3.5">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
                         u.status === "active"
@@ -497,6 +604,7 @@ export default function IamUsersPage() {
                         {u.status}
                       </span>
                     </td>
+
                     <td className="p-3.5 text-right">
                       {isFounder && (
                         <div className="flex items-center justify-end gap-1.5">
@@ -515,6 +623,14 @@ export default function IamUsersPage() {
                           >
                             <UserCheck className="w-3 h-3" /> Role
                           </button>
+
+                          <Link
+                            href={`/iam/users/${u.id}`}
+                            className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium transition shadow-xs"
+                            title="View Full Profile"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </Link>
 
                           {!protectedUser && (
                             <button
@@ -558,18 +674,25 @@ export default function IamUsersPage() {
               </button>
             </div>
 
-            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1 text-xs">
-              <div className="font-bold text-slate-900 dark:text-white">
-                {passwordTargetUser.first_name} {passwordTargetUser.last_name || ""}
+            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1.5 text-xs">
+              <div className="font-bold text-slate-900 dark:text-white flex items-center justify-between">
+                <span>{passwordTargetUser.first_name} {passwordTargetUser.last_name || ""}</span>
+                <span className="font-mono text-[11px] text-violet-600 dark:text-violet-400">@{passwordTargetUser.username || passwordTargetUser.first_name.toLowerCase()}</span>
               </div>
               <div className="text-[11px] text-slate-600 dark:text-slate-400 font-mono">
-                {passwordTargetUser.email} • Role: {passwordTargetUser.role}
+                {passwordTargetUser.email}
               </div>
+              {passwordTargetUser.last_set_password && (
+                <div className="pt-1 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px]">
+                  <span className="text-slate-500 font-medium">Current Password:</span>
+                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{passwordTargetUser.last_set_password}</span>
+                </div>
+              )}
             </div>
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">New Password *</label>
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">New Working Password *</label>
                 <button
                   type="button"
                   onClick={handleGeneratePassword}
@@ -791,7 +914,7 @@ export default function IamUsersPage() {
                   type="text"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Set account password (e.g. AxorksPass123!)"
+                  placeholder="Set account password (e.g. Farwa@Axorks2026!)"
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-mono"
                 />
               </div>

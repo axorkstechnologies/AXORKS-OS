@@ -1,30 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findUserByIdAsync, updateUserAsync, deleteUserAsync, isProtectedRealProfile } from "@/lib/user-repository";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { authenticateRequest } from "@/lib/server-auth";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-
-  try {
-    const authHeader = req.headers.get("authorization");
-    const backendRes = await fetch(`${API_BASE_URL}/api/v1/iam/users/${id}`, {
-      headers: { ...(authHeader ? { Authorization: authHeader } : {}) },
-    });
-
-    if (backendRes.ok) {
-      const data = await backendRes.json();
-      if (data?.data) return NextResponse.json(data);
-    }
-  } catch {
-    // Fallback directly to Neon DB
-  }
+  const caller = await authenticateRequest(req);
 
   const user = await findUserByIdAsync(id);
-
   if (!user) {
     return NextResponse.json(
       { errors: [{ message: "Employee user not found" }] },
@@ -32,8 +17,20 @@ export async function GET(
     );
   }
 
+  const isCallerFounder =
+    caller?.role?.toLowerCase() === "founder" ||
+    caller?.email === "mujahidaryan222149@gmail.com" ||
+    caller?.email === "muhammad.mujahid@axorks.com";
+
   const { password_hash, ...safeUser } = user;
-  return NextResponse.json({ data: safeUser });
+
+  // STRICT ACCESS CONTROL:
+  // Only the Founder has authorization to view the active employee password/credential
+  if (!isCallerFounder) {
+    delete (safeUser as any).last_set_password;
+  }
+
+  return NextResponse.json({ success: true, data: safeUser });
 }
 
 export async function PATCH(
@@ -43,36 +40,17 @@ export async function PATCH(
   const { id } = await params;
   try {
     const body = await req.json();
-
-    try {
-      const authHeader = req.headers.get("authorization");
-      const backendRes = await fetch(`${API_BASE_URL}/api/v1/iam/users/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          ...(authHeader ? { Authorization: authHeader } : {}),
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (backendRes.ok) {
-        const data = await backendRes.json();
-        if (data?.data) return NextResponse.json(data);
-      }
-    } catch {
-      // Fallback
-    }
-
     const updated = await updateUserAsync(id, body);
 
     if (!updated) {
       return NextResponse.json(
-        { errors: [{ message: "Employee user not found" }] },
+        { errors: [{ message: "Employee user not found in database" }] },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ data: updated });
+    const { password_hash, ...safeUser } = updated;
+    return NextResponse.json({ success: true, data: safeUser });
   } catch (error: any) {
     return NextResponse.json(
       { errors: [{ message: error.message || "Failed to update user" }] },
@@ -99,27 +77,9 @@ export async function DELETE(
     // Protected profiles (Muhammad Mujahid, Farhana Bakht, Farwa) must NEVER be deleted.
     if (isProtectedRealProfile(user)) {
       return NextResponse.json(
-        { errors: [{ message: "STRICT SECURITY RULE: The three protected company profiles (Muhammad Mujahid, Farhana Bakht, Farwa) can NEVER be deleted." }] },
+        { errors: [{ message: "STRICT SECURITY RULE: The protected company profiles (Muhammad Mujahid, Farhana Bakht, Farwa) can NEVER be deleted." }] },
         { status: 403 }
       );
-    }
-
-    // Forward to backend if available
-    try {
-      const authHeader = req.headers.get("authorization");
-      const backendRes = await fetch(`${API_BASE_URL}/api/v1/iam/users/${id}`, {
-        method: "DELETE",
-        headers: {
-          ...(authHeader ? { Authorization: authHeader } : {}),
-        },
-      });
-
-      if (backendRes.ok) {
-        const data = await backendRes.json();
-        if (data) return NextResponse.json(data);
-      }
-    } catch {
-      // Fallback to Neon DB
     }
 
     const result = await deleteUserAsync(id);

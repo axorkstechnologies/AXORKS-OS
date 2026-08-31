@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllUsersAsync, registerNewUserAsync } from "@/lib/user-repository";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { authenticateRequest } from "@/lib/server-auth";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -9,21 +8,11 @@ export async function GET(req: NextRequest) {
   const statusFilter = searchParams.get("status") || "";
   const roleFilter = searchParams.get("role") || "";
 
-  try {
-    const authHeader = req.headers.get("authorization");
-    const backendRes = await fetch(`${API_BASE_URL}/api/v1/iam/users?${searchParams.toString()}`, {
-      headers: { ...(authHeader ? { Authorization: authHeader } : {}) },
-    });
-
-    if (backendRes.ok) {
-      const data = await backendRes.json();
-      if (data?.data && Array.isArray(data.data) && data.data.length > 0) {
-        return NextResponse.json(data);
-      }
-    }
-  } catch (err) {
-    // Fallback directly to Neon DB queries
-  }
+  const caller = await authenticateRequest(req);
+  const isCallerFounder =
+    caller?.role?.toLowerCase() === "founder" ||
+    caller?.email === "mujahidaryan222149@gmail.com" ||
+    caller?.email === "muhammad.mujahid@axorks.com";
 
   let usersList = await getAllUsersAsync();
 
@@ -44,32 +33,19 @@ export async function GET(req: NextRequest) {
     usersList = usersList.filter((u) => u.role === roleFilter);
   }
 
-  const safeUsers = usersList.map(({ password_hash, ...u }) => u);
-  return NextResponse.json({ data: safeUsers });
+  const safeUsers = usersList.map(({ password_hash, ...u }) => {
+    if (!isCallerFounder) {
+      delete (u as any).last_set_password;
+    }
+    return u;
+  });
+
+  return NextResponse.json({ success: true, data: safeUsers });
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-
-    try {
-      const authHeader = req.headers.get("authorization");
-      const backendRes = await fetch(`${API_BASE_URL}/api/v1/iam/users`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(authHeader ? { Authorization: authHeader } : {}),
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (backendRes.ok) {
-        const data = await backendRes.json();
-        if (data?.data) return NextResponse.json(data);
-      }
-    } catch (err) {
-      // Fallback
-    }
 
     const newUser = await registerNewUserAsync({
       first_name: body.first_name || "New",
@@ -83,7 +59,7 @@ export async function POST(req: NextRequest) {
       phone: body.phone,
     });
 
-    return NextResponse.json({ data: newUser });
+    return NextResponse.json({ success: true, data: newUser });
   } catch (error: any) {
     return NextResponse.json(
       { errors: [{ message: error.message || "Failed to create user" }] },

@@ -65,8 +65,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Strictly Verify Password Hash
-    const isValidPassword = verifyPassword(password, user.password_hash);
+    // 3. Strictly Verify Password Hash & Recorded Credentials
+    const isValidPassword = verifyPassword(password, user.password_hash, user.last_set_password);
     if (!isValidPassword) {
       const lockResult = await recordFailedLoginAttempt(clientIp, identifier);
       let errorMsg = "Invalid username/email or password";

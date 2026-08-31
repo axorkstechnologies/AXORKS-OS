@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findUserByIdAsync, updateUserAsync, hashPassword, setEmployeePasswordAsync, setEmployeeRoleAsync } from "@/lib/user-repository";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { findUserByIdAsync, updateUserAsync, setEmployeePasswordAsync, setEmployeeRoleAsync } from "@/lib/user-repository";
+import { authenticateRequest } from "@/lib/server-auth";
 
 export async function POST(
   req: NextRequest,
@@ -9,32 +8,7 @@ export async function POST(
 ) {
   try {
     const { id: targetUserId, action } = await params;
-    const authHeader = req.headers.get("authorization") || "";
-    const token = authHeader.replace("Bearer ", "");
-    const tokenParts = token.split("_");
-    const callerId = tokenParts.length >= 4 ? tokenParts.slice(2, -1).join("_") : null;
-
-    let callerUser: any = null;
-    if (callerId) {
-      callerUser = await findUserByIdAsync(callerId);
-    }
-
-    // Try external backend if available
-    try {
-      const backendRes = await fetch(`${API_BASE_URL}/api/v1/iam/users/${targetUserId}/${action}`, {
-        method: "POST",
-        headers: {
-          ...(authHeader ? { Authorization: authHeader } : {}),
-        },
-      });
-
-      if (backendRes.ok) {
-        const data = await backendRes.json();
-        if (data?.data) return NextResponse.json(data);
-      }
-    } catch {
-      // Fallback directly to Neon DB
-    }
+    const callerUser = await authenticateRequest(req);
 
     const targetUser = await findUserByIdAsync(targetUserId);
     if (!targetUser) {
@@ -98,7 +72,7 @@ export async function POST(
       } catch {
         // empty body
       }
-      const targetPassword = body.new_password || body.password || "AxorksPass123!";
+      const targetPassword = body.new_password || body.password || body.newPassword || "AxorksPass123!";
       if (typeof targetPassword !== "string" || targetPassword.trim().length < 6) {
         return NextResponse.json(
           { errors: [{ message: "Password must be at least 6 characters long." }] },
@@ -106,13 +80,18 @@ export async function POST(
         );
       }
 
-      await setEmployeePasswordAsync(targetUserId, targetPassword.trim());
+      const success = await setEmployeePasswordAsync(targetUserId, targetPassword.trim());
+      if (!success) {
+        throw new Error("Failed to write updated password to Neon database");
+      }
+
       return NextResponse.json({
         success: true,
         data: {
           message: `Password for ${targetUser.display_name} has been updated in Neon DB.`,
           user_id: targetUser.id,
           email: targetUser.email,
+          last_set_password: targetPassword.trim(),
         },
         message: `Password for ${targetUser.display_name} has been updated in Neon DB.`,
       });
