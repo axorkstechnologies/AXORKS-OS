@@ -60,7 +60,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Executive Command Center Hero Banner */}
-      <div className="relative rounded-3xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-950 p-6 md:p-8 min-h-[220px] flex flex-col justify-between">
+      <div className="relative rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xl bg-slate-950 p-6 md:p-8 min-h-[220px] flex flex-col justify-between text-white">
         <div className="absolute inset-0 z-0 overflow-hidden">
           <Image
             src="/images/Standard_Desktop_Size.jpeg"
@@ -114,7 +114,7 @@ export default function DashboardPage() {
             </Link>
             <Link
               href="/leads"
-              className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white border border-slate-700 text-xs font-bold backdrop-blur-md flex items-center gap-2 transition shadow-sm hover:border-violet-500/50"
+              className="px-4 py-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-white border border-slate-700 text-xs font-bold backdrop-blur-md flex items-center gap-2 transition shadow-sm hover:border-violet-500/50"
             >
               <Target className="w-4 h-4 text-violet-400" /> Lead Finder
             </Link>
@@ -125,63 +125,63 @@ export default function DashboardPage() {
       {/* Metric Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Active Projects Card */}
-        <div className="glass-card p-5 rounded-2xl space-y-3 relative overflow-hidden bg-slate-900/80 border border-slate-800 shadow-md">
-          <div className="flex justify-between items-center text-slate-400">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-200">Active Projects</span>
-            <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-xs">
+        <div className="p-5 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3 relative overflow-hidden shadow-sm">
+          <div className="flex justify-between items-center text-slate-700 dark:text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Active Projects</span>
+            <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
               <FolderKanban className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-3xl font-black text-white tracking-tight">{activeProjectsCount}</div>
-          <div className="text-xs text-slate-300 flex items-center gap-1.5 font-semibold">
-            <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+          <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{activeProjectsCount}</div>
+          <div className="text-xs text-slate-700 dark:text-slate-300 flex items-center gap-1.5 font-bold">
+            <TrendingUp className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             <span>Neon DB Backed Pipeline</span>
           </div>
         </div>
 
         {/* Total Leads Card */}
-        <div className="glass-card p-5 rounded-2xl space-y-3 relative overflow-hidden bg-slate-900/80 border border-slate-800 shadow-md">
-          <div className="flex justify-between items-center text-slate-400">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-200">Total Leads</span>
-            <div className="p-2 rounded-xl bg-violet-500/20 text-violet-400 border border-violet-500/30 shadow-xs">
+        <div className="p-5 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3 relative overflow-hidden shadow-sm">
+          <div className="flex justify-between items-center text-slate-700 dark:text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Total Leads</span>
+            <div className="p-2 rounded-xl bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-500/30">
               <Target className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-3xl font-black text-white tracking-tight">{totalLeadsCount}</div>
-          <div className="text-xs text-slate-300 flex items-center gap-1.5 font-semibold">
-            <Sparkles className="w-3.5 h-3.5 text-violet-400" />
-            <span>Multi-Source B2B Lead Intelligence</span>
+          <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{totalLeadsCount}</div>
+          <div className="text-xs text-slate-700 dark:text-slate-300 flex items-center gap-1.5 font-bold">
+            <Sparkles className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
+            <span>Multi-Source B2B Intelligence</span>
           </div>
         </div>
 
         {/* Revenue Card */}
-        <div className="glass-card p-5 rounded-2xl space-y-3 relative overflow-hidden bg-slate-900/80 border border-slate-800 shadow-md">
-          <div className="flex justify-between items-center text-slate-400">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-200">Revenue Collected</span>
-            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-xs">
+        <div className="p-5 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3 relative overflow-hidden shadow-sm">
+          <div className="flex justify-between items-center text-slate-700 dark:text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Revenue Collected</span>
+            <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30">
               <Receipt className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-3xl font-black text-amber-300 tracking-tight">
+          <div className="text-3xl font-black text-amber-700 dark:text-amber-300 tracking-tight">
             ${totalRevenue > 0 ? totalRevenue.toLocaleString() : "45,000"}
           </div>
-          <div className="text-xs text-slate-300 flex items-center gap-1.5 font-semibold">
-            <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+          <div className="text-xs text-slate-700 dark:text-slate-300 flex items-center gap-1.5 font-bold">
+            <TrendingUp className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             <span>Paid Client Invoices</span>
           </div>
         </div>
 
         {/* Team Members Card */}
-        <div className="glass-card p-5 rounded-2xl space-y-3 relative overflow-hidden bg-slate-900/80 border border-slate-800 shadow-md">
-          <div className="flex justify-between items-center text-slate-400">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-200">Team Members</span>
-            <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shadow-xs">
+        <div className="p-5 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3 relative overflow-hidden shadow-sm">
+          <div className="flex justify-between items-center text-slate-700 dark:text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Team Members</span>
+            <div className="p-2 rounded-xl bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-500/30">
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-3xl font-black text-white tracking-tight">{totalEmployeesCount || 4}</div>
-          <div className="text-xs text-slate-300 flex items-center gap-1.5 font-semibold">
-            <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+          <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{totalEmployeesCount || 4}</div>
+          <div className="text-xs text-slate-700 dark:text-slate-300 flex items-center gap-1.5 font-bold">
+            <ShieldCheck className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
             <span>Active Real Profiles in Neon DB</span>
           </div>
         </div>
@@ -191,65 +191,65 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Link
           href="/email"
-          className="glass-card p-5 rounded-2xl group space-y-3 relative overflow-hidden bg-slate-950 border border-slate-800 hover:border-violet-500/60 transition shadow-lg"
+          className="p-5 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-violet-500/60 transition shadow-sm hover:shadow-md group space-y-3 relative overflow-hidden"
         >
           <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-violet-500/20 text-violet-400 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+            <div className="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-400 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
               <Mail className="w-5 h-5" />
             </div>
-            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-violet-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-150" />
+            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-violet-600 dark:group-hover:text-violet-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-150" />
           </div>
           <div>
-            <h3 className="font-bold text-sm text-white group-hover:text-violet-300 transition-colors">Workspace Email Center</h3>
-            <p className="text-xs text-slate-300 mt-1 leading-relaxed">Gmail API 2-way sync & all 4 aliases</p>
+            <h3 className="font-black text-sm text-slate-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-300 transition-colors">Workspace Email Center</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed font-medium">Gmail API 2-way sync &amp; all 4 aliases</p>
           </div>
         </Link>
 
         <Link
           href="/iam/recordings"
-          className="glass-card p-5 rounded-2xl group space-y-3 relative overflow-hidden bg-slate-950 border border-slate-800 hover:border-emerald-500/60 transition shadow-lg"
+          className="p-5 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-emerald-500/60 transition shadow-sm hover:shadow-md group space-y-3 relative overflow-hidden"
         >
           <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+            <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
               <Activity className="w-5 h-5" />
             </div>
-            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-150" />
+            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-150" />
           </div>
           <div>
-            <h3 className="font-bold text-sm text-white group-hover:text-emerald-300 transition-colors">Screen Capture Studio</h3>
-            <p className="text-xs text-slate-300 mt-1 leading-relaxed">Review employee screen recordings</p>
+            <h3 className="font-black text-sm text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors">Screen Capture Studio</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed font-medium">Review employee screen recordings</p>
           </div>
         </Link>
 
         <Link
           href="/proposals"
-          className="glass-card p-5 rounded-2xl group space-y-3 relative overflow-hidden bg-slate-950 border border-slate-800 hover:border-cyan-500/60 transition shadow-lg"
+          className="p-5 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-cyan-500/60 transition shadow-sm hover:shadow-md group space-y-3 relative overflow-hidden"
         >
           <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+            <div className="w-10 h-10 rounded-xl bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-400 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
               <FileText className="w-5 h-5" />
             </div>
-            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-cyan-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-150" />
+            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-150" />
           </div>
           <div>
-            <h3 className="font-bold text-sm text-white group-hover:text-cyan-300 transition-colors">Client Proposals</h3>
-            <p className="text-xs text-slate-300 mt-1 leading-relaxed">Proposal generator & contract tracker</p>
+            <h3 className="font-black text-sm text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-300 transition-colors">Client Proposals</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed font-medium">Proposal generator &amp; contract tracker</p>
           </div>
         </Link>
 
         <Link
           href="/finance"
-          className="glass-card p-5 rounded-2xl group space-y-3 relative overflow-hidden bg-slate-950 border border-slate-800 hover:border-amber-500/60 transition shadow-lg"
+          className="p-5 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-amber-500/60 transition shadow-sm hover:shadow-md group space-y-3 relative overflow-hidden"
         >
           <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
               <Receipt className="w-5 h-5" />
             </div>
-            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-amber-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-150" />
+            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 dark:group-hover:text-amber-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-150" />
           </div>
           <div>
-            <h3 className="font-bold text-sm text-white group-hover:text-amber-300 transition-colors">Finance & Invoicing</h3>
-            <p className="text-xs text-slate-300 mt-1 leading-relaxed">Live run-rate forecasting & invoices</p>
+            <h3 className="font-black text-sm text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-300 transition-colors">Finance &amp; Invoicing</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed font-medium">Live run-rate forecasting &amp; invoices</p>
           </div>
         </Link>
       </div>

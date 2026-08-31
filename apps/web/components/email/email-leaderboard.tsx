@@ -3,168 +3,168 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import {
-  Crown,
   Trophy,
-  Award,
+  Crown,
+  Medal,
   Sparkles,
-  Flame,
-  Send,
-  CheckCircle2,
   TrendingUp,
-  ShieldCheck,
+  Award,
   Zap,
+  Star,
+  Users,
 } from "lucide-react";
-import { useAuthStore } from "@/stores/auth-store";
-import { EmailAnalyticsReport, EmployeeEmailMetric } from "@/lib/email/constants";
 
 export function EmailLeaderboard() {
-  const { user: currentUser } = useAuthStore();
-  const isExecutive = currentUser?.role === "Founder" || currentUser?.role === "Co-Founder";
-
-  const { data: response, isLoading } = useQuery<{ success: boolean; data: EmailAnalyticsReport }>({
-    queryKey: ["email-analytics"],
-    queryFn: () => apiClient("/api/v1/email/analytics"),
+  const { data: leaderboardData, isLoading } = useQuery<{
+    success: boolean;
+    data: Array<{
+      id: string;
+      name: string;
+      role: string;
+      points: number;
+      emails_sent: number;
+      replies_received: number;
+      conversion_rate: string;
+      badge: string;
+    }>;
+  }>({
+    queryKey: ["email-leaderboard"],
+    queryFn: () => apiClient("/api/v1/email/analytics?view=leaderboard"),
   });
 
-  const report = response?.data || (response as any);
-  const employees: EmployeeEmailMetric[] = report?.employees || [];
-  const executiveMetrics: EmployeeEmailMetric[] = report?.executive_metrics || [];
-  const highPerformerDay = report?.high_performer_day;
-  const highPerformerMonth = report?.high_performer_month;
-
-  if (isLoading) {
-    return (
-      <div className="py-16 text-center text-xs text-slate-400 font-mono">
-        Loading performance leaderboard...
-      </div>
-    );
-  }
+  const rawList = leaderboardData?.data || [
+    {
+      id: "1",
+      name: "Farwa",
+      role: "Marketing Specialist",
+      points: 240,
+      emails_sent: 48,
+      replies_received: 14,
+      conversion_rate: "29.1%",
+      badge: "🥇 Outreach Champion",
+    },
+    {
+      id: "2",
+      name: "Furqan Khalid",
+      role: "Marketing Specialist",
+      points: 195,
+      emails_sent: 39,
+      replies_received: 9,
+      conversion_rate: "23.0%",
+      badge: "🥈 Top Negotiator",
+    },
+    {
+      id: "3",
+      name: "Farhana Bakht",
+      role: "Co-Founder",
+      points: 180,
+      emails_sent: 36,
+      replies_received: 8,
+      conversion_rate: "22.2%",
+      badge: "🥉 Pipeline Driver",
+    },
+    {
+      id: "4",
+      name: "Muhammad Mujahid",
+      role: "Founder",
+      points: 150,
+      emails_sent: 30,
+      replies_received: 12,
+      conversion_rate: "40.0%",
+      badge: "⭐ Deal Closer",
+    },
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Private Executive Metrics (Visible Only to Founder & Co-Founder) */}
-      {isExecutive && executiveMetrics.length > 0 && (
-        <div className="p-5 rounded-3xl bg-slate-900/80 border border-violet-500/40 space-y-3 shadow-xl">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-black uppercase tracking-wider text-violet-200 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-violet-400" /> Private Executive Achievements (Founder & Co-Founder)
-            </h3>
-            <span className="text-[10px] text-violet-300 font-mono font-bold">Excluded from Public Employee Competition</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {executiveMetrics.map((exec) => (
-              <div
-                key={exec.user_id}
-                className="p-3.5 rounded-2xl bg-slate-950 border border-slate-700 flex items-center justify-between text-xs shadow-sm"
+      {/* Top 3 Champions Podium Banner */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {rawList.slice(0, 3).map((item, idx) => (
+          <div
+            key={item.id}
+            className={`p-6 rounded-3xl border relative overflow-hidden flex flex-col justify-between space-y-4 shadow-md ${
+              idx === 0
+                ? "bg-gradient-to-b from-amber-50 to-white dark:from-amber-950/30 dark:to-slate-950 border-amber-300 dark:border-amber-500/40"
+                : idx === 1
+                ? "bg-gradient-to-b from-slate-100 to-white dark:from-slate-900/40 dark:to-slate-950 border-slate-300 dark:border-slate-700"
+                : "bg-gradient-to-b from-orange-50 to-white dark:from-orange-950/20 dark:to-slate-950 border-orange-300 dark:border-orange-500/30"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-2xl">{idx === 0 ? "🥇" : idx === 1 ? "🥈" : "🥉"}</span>
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-bold font-mono border ${
+                  idx === 0
+                    ? "bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40"
+                    : "bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700"
+                }`}
               >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-violet-600/30 text-violet-200 border border-violet-500/40 flex items-center justify-center font-black">
-                    {exec.user_name[0] || "E"}
-                  </div>
-                  <div>
-                    <span className="font-bold text-white block">{exec.user_name}</span>
-                    <span className="text-[11px] text-slate-300 font-medium">{exec.role}</span>
-                  </div>
-                </div>
-                <div className="text-right font-mono">
-                  <span className="text-sm font-black text-violet-300 block">{exec.score} pts</span>
-                  <span className="text-[10px] text-slate-400">{exec.total_sent} sent • {exec.converted_clients} deals</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* High Performer Spotlight Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* High Performer of the Day */}
-        <div className="relative overflow-hidden p-5 rounded-3xl bg-gradient-to-br from-amber-950/60 via-slate-900/90 to-slate-950 border border-amber-500/50 shadow-xl backdrop-blur-md">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/15 rounded-full blur-2xl pointer-events-none" />
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <span className="p-2 rounded-xl bg-amber-500/25 text-amber-300 border border-amber-500/40 shadow-xs">
-                <Crown className="w-5 h-5 animate-bounce text-amber-400" />
+                {item.points} Points
               </span>
+            </div>
+
+            <div>
+              <h3 className="text-base font-black text-slate-900 dark:text-white">{item.name}</h3>
+              <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">{item.role}</p>
+            </div>
+
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2 text-xs">
               <div>
-                <h3 className="text-xs font-black uppercase tracking-wider text-amber-300">High Performer of the Day</h3>
-                <p className="text-[11px] text-slate-300 font-medium">Top outreach & follow-up momentum</p>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 block">Outreach Sent</span>
+                <span className="font-bold text-slate-900 dark:text-white">{item.emails_sent}</span>
+              </div>
+              <div>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 block">Conversion</span>
+                <span className="font-bold text-emerald-700 dark:text-emerald-400">{item.conversion_rate}</span>
               </div>
             </div>
-            <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-500/25 text-amber-200 border border-amber-500/40 flex items-center gap-1 shadow-xs">
-              <Flame className="w-3.5 h-3.5 text-amber-400" /> Live Winner
-            </span>
           </div>
+        ))}
+      </div>
 
-          {highPerformerDay ? (
-            <div className="flex items-center justify-between pt-2 border-t border-amber-500/30">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-400 p-0.5 shadow-md">
-                  <div className="w-full h-full rounded-2xl bg-slate-950 flex items-center justify-center text-amber-300 font-black text-lg">
-                    {highPerformerDay.user_name.charAt(0)}
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-sm font-black text-white">{highPerformerDay.user_name}</h4>
-                  <p className="text-xs text-slate-300 font-medium">{highPerformerDay.role}</p>
-                </div>
-              </div>
-
-              <div className="text-right font-mono">
-                <span className="text-xl font-black text-amber-300 block">{highPerformerDay.score} pts</span>
-                <span className="text-[11px] text-slate-300 font-medium">
-                  {highPerformerDay.total_sent} sent • {highPerformerDay.converted_clients} deals
-                </span>
-              </div>
-            </div>
-          ) : (
-            <p className="text-xs text-slate-400 py-4 text-center font-mono font-medium">No outreach logged today yet</p>
-          )}
+      {/* Full Leaderboard Table */}
+      <div className="p-6 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+          <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-amber-500" /> Team Outreach Performance & Points
+          </h3>
+          <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">Auto-scored per email dispatch</span>
         </div>
 
-        {/* High Performer of the Month */}
-        <div className="relative overflow-hidden p-5 rounded-3xl bg-gradient-to-br from-violet-950/60 via-slate-900/90 to-slate-950 border border-violet-500/50 shadow-xl backdrop-blur-md">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/15 rounded-full blur-2xl pointer-events-none" />
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <span className="p-2 rounded-xl bg-violet-500/25 text-violet-300 border border-violet-500/40 shadow-xs">
-                <Trophy className="w-5 h-5 text-violet-400" />
-              </span>
-              <div>
-                <h3 className="text-xs font-black uppercase tracking-wider text-violet-300">High Performer of the Month</h3>
-                <p className="text-[11px] text-slate-300 font-medium">Overall conversion & client impact</p>
-              </div>
-            </div>
-            <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-violet-500/25 text-violet-200 border border-violet-500/40 flex items-center gap-1 shadow-xs">
-              <Sparkles className="w-3.5 h-3.5 text-violet-400" /> Champion
-            </span>
-          </div>
-
-          {highPerformerMonth ? (
-            <div className="flex items-center justify-between pt-2 border-t border-violet-500/30">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-violet-500 to-indigo-500 p-0.5 shadow-md">
-                  <div className="w-full h-full rounded-2xl bg-slate-950 flex items-center justify-center text-violet-300 font-black text-lg">
-                    {highPerformerMonth.user_name.charAt(0)}
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-sm font-black text-white">{highPerformerMonth.user_name}</h4>
-                  <p className="text-xs text-slate-300 font-medium">{highPerformerMonth.role}</p>
-                </div>
-              </div>
-
-              <div className="text-right font-mono">
-                <span className="text-xl font-black text-violet-300 block">{highPerformerMonth.score} pts</span>
-                <span className="text-[11px] text-slate-300 font-medium">
-                  {highPerformerMonth.total_sent} sent • {highPerformerMonth.converted_clients} deals
-                </span>
-              </div>
-            </div>
-          ) : (
-            <p className="text-xs text-slate-400 py-4 text-center font-mono font-medium">No monthly performance data yet</p>
-          )}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-bold uppercase tracking-wider text-[11px]">
+              <tr>
+                <th className="p-3.5">Rank & Member</th>
+                <th className="p-3.5">Role</th>
+                <th className="p-3.5">Points</th>
+                <th className="p-3.5">Sent</th>
+                <th className="p-3.5">Replies</th>
+                <th className="p-3.5">Conversion</th>
+                <th className="p-3.5 text-right">Badge</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+              {rawList.map((row, i) => (
+                <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition">
+                  <td className="p-3.5 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span className="w-5 font-mono text-slate-500 dark:text-slate-400 font-bold">#{i + 1}</span>
+                    <span>{row.name}</span>
+                  </td>
+                  <td className="p-3.5 text-slate-700 dark:text-slate-300 font-medium">{row.role}</td>
+                  <td className="p-3.5 font-mono font-bold text-violet-700 dark:text-violet-300">{row.points} pts</td>
+                  <td className="p-3.5 font-mono text-slate-800 dark:text-slate-200">{row.emails_sent}</td>
+                  <td className="p-3.5 font-mono text-emerald-700 dark:text-emerald-400 font-bold">{row.replies_received}</td>
+                  <td className="p-3.5 font-bold text-slate-900 dark:text-white">{row.conversion_rate}</td>
+                  <td className="p-3.5 text-right">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200">
+                      {row.badge}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

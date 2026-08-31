@@ -24,10 +24,10 @@ export default function ProposalsListPage() {
   const total = proposals.length || data?.meta?.total || 0;
 
   const STATUS_BADGES: Record<string, { label: string; bg: string; text: string; border: string }> = {
-    draft: { label: "Draft", bg: "bg-slate-500/10", text: "text-slate-400", border: "border-slate-500/30" },
-    sent: { label: "Sent / Pending", bg: "bg-cyan-500/10", text: "text-cyan-400", border: "border-cyan-500/30" },
-    accepted: { label: "Accepted / Won", bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/30" },
-    rejected: { label: "Declined", bg: "bg-rose-500/10", text: "text-rose-400", border: "border-rose-500/30" },
+    draft: { label: "Draft", bg: "bg-slate-100 dark:bg-slate-800", text: "text-slate-800 dark:text-slate-200 font-bold", border: "border-slate-300 dark:border-slate-700" },
+    sent: { label: "Sent / Pending", bg: "bg-cyan-100 dark:bg-cyan-500/20", text: "text-cyan-900 dark:text-cyan-300 font-bold", border: "border-cyan-300 dark:border-cyan-500/40" },
+    accepted: { label: "Accepted / Won", bg: "bg-emerald-100 dark:bg-emerald-500/20", text: "text-emerald-900 dark:text-emerald-300 font-bold", border: "border-emerald-300 dark:border-emerald-500/40" },
+    rejected: { label: "Declined", bg: "bg-rose-100 dark:bg-rose-500/20", text: "text-rose-900 dark:text-rose-300 font-bold", border: "border-rose-300 dark:border-rose-500/40" },
   };
 
   return (
@@ -36,28 +36,28 @@ export default function ProposalsListPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-violet-500" /> Client Proposals & Quotations
+            <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+              <FileText className="w-5 h-5 text-violet-600 dark:text-violet-400" /> Client Proposals &amp; Quotations
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-violet-500/10 text-violet-500 dark:text-violet-400 border border-violet-500/20">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-violet-100 dark:bg-violet-500/20 text-violet-800 dark:text-violet-300 border border-violet-300 dark:border-violet-500/40">
               {total} Proposals
             </span>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">
             Database-backed proposal generator, contract milestone pricing, and digital acceptance tracker
           </p>
         </div>
 
         <Link
           href="/proposals/new"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-violet-600/30 transition transform active:scale-95 shrink-0"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-black shadow-lg shadow-violet-600/30 transition transform active:scale-95 shrink-0"
         >
           <Plus className="w-4 h-4" /> Create Proposal
         </Link>
       </div>
 
       {/* Filter Tabs */}
-      <div className="glass p-2 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-1.5 overflow-x-auto">
+      <div className="bg-white dark:bg-slate-900/80 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-1.5 overflow-x-auto shadow-sm">
         {[
           { label: "All Proposals", value: null },
           { label: "Drafts", value: "draft" },
@@ -71,10 +71,10 @@ export default function ProposalsListPage() {
               setStatusFilter(tab.value);
               setPage(1);
             }}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition shrink-0 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition shrink-0 border ${
               statusFilter === tab.value
-                ? "bg-violet-600 text-white shadow-md shadow-violet-600/20"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                ? "bg-violet-600 text-white border-violet-500 shadow-xs"
+                : "bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
             }`}
           >
             {tab.label}
@@ -82,89 +82,55 @@ export default function ProposalsListPage() {
         ))}
       </div>
 
-      {/* Table of Proposals */}
-      <div className="glass rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 bg-slate-100/60 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
-              <tr>
-                <th className="px-5 py-3.5 font-bold">Title & Client</th>
-                <th className="px-5 py-3.5 font-bold">Status</th>
-                <th className="px-5 py-3.5 font-bold">Total Value</th>
-                <th className="px-5 py-3.5 font-bold">Scope Version</th>
-                <th className="px-5 py-3.5 font-bold">Date Created</th>
-                <th className="px-5 py-3.5 font-bold text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200/80 dark:divide-slate-800/80">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={6} className="px-5 py-12 text-center text-slate-400 font-mono">
-                    Loading proposals from Neon DB...
-                  </td>
-                </tr>
-              ) : proposals.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-5 py-12 text-center text-slate-400">
-                    No proposals found in this view.
-                  </td>
-                </tr>
-              ) : (
-                proposals.map((p: any) => {
-                  const cfg = STATUS_BADGES[p.status] || STATUS_BADGES.draft;
+      {/* Proposal Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {isLoading ? (
+          <div className="col-span-full py-12 text-center text-xs text-slate-500 dark:text-slate-400 font-mono">
+            Loading proposals from Neon DB...
+          </div>
+        ) : proposals.length === 0 ? (
+          <div className="col-span-full py-12 text-center bg-white dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-2 shadow-sm">
+            <FileText className="w-8 h-8 text-slate-400 dark:text-slate-600 mx-auto" />
+            <p className="text-sm font-bold text-slate-900 dark:text-white">No proposals found</p>
+            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">Create your first client proposal to track win rates.</p>
+          </div>
+        ) : (
+          proposals.map((p: any) => {
+            const badge = STATUS_BADGES[p.status] || STATUS_BADGES.draft;
+            return (
+              <div
+                key={p.id}
+                onClick={() => router.push(`/proposals/${p.id}`)}
+                className="bg-white dark:bg-slate-950 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 hover:border-violet-500/60 transition cursor-pointer space-y-4 shadow-sm hover:shadow-md group flex flex-col justify-between"
+              >
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-black text-sm text-slate-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-300 transition line-clamp-1">
+                      {p.title || "Untitled Proposal"}
+                    </h3>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-bold border ${badge.bg} ${badge.text} ${badge.border} shrink-0`}>
+                      {badge.label}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                    Client: <strong className="text-slate-900 dark:text-white">{p.client_name || "Enterprise Client"}</strong>
+                  </p>
+                </div>
 
-                  return (
-                    <tr
-                      key={p.id}
-                      onClick={() => router.push(`/proposals/${p.id}`)}
-                      className="hover:bg-slate-100/40 dark:hover:bg-slate-900/40 transition cursor-pointer group"
-                    >
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-violet-500/10 text-violet-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                            <FileText className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <span className="font-bold text-slate-900 dark:text-slate-100 block group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
-                              {p.title || p.client_name || "Enterprise Engagement Proposal"}
-                            </span>
-                            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                              {p.client_name || "Acme Client"} • {(p.type || "Fixed Scope").replace("_", " ")}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="px-5 py-3.5">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
-                          {cfg.label}
-                        </span>
-                      </td>
-
-                      <td className="px-5 py-3.5 font-bold text-slate-900 dark:text-slate-100">
-                        ${Number(p.value || p.total_amount || 18500).toLocaleString()}
-                      </td>
-
-                      <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400 font-mono text-[11px]">
-                        v{p.version || "1.0"}
-                      </td>
-
-                      <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400 text-[11px]">
-                        {new Date(p.created_at || Date.now()).toLocaleDateString()}
-                      </td>
-
-                      <td className="px-5 py-3.5 text-right">
-                        <span className="text-violet-600 dark:text-violet-400 font-bold group-hover:translate-x-1 inline-flex items-center gap-1 transition-transform text-xs">
-                          View <ArrowRight className="w-3 h-3" />
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1 font-black text-slate-900 dark:text-white">
+                    <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>{Number(p.total_amount || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-violet-600 dark:text-violet-400 font-bold group-hover:translate-x-0.5 transition-transform">
+                    <span>View</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );

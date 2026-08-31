@@ -69,28 +69,28 @@ export default function CompaniesListPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-violet-500" /> CRM Companies
+            <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-violet-600 dark:text-violet-400" /> CRM Companies
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-violet-500/10 text-violet-500 dark:text-violet-400 border border-violet-500/20">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-violet-100 dark:bg-violet-500/20 text-violet-800 dark:text-violet-300 border border-violet-300 dark:border-violet-500/40">
               {total} Companies
             </span>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">
             Accounts directory, corporate relationship history, and deal associations
           </p>
         </div>
 
         <button
           onClick={() => setShowCreate(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-violet-600/30 transition transform active:scale-95 shrink-0"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-black shadow-lg shadow-violet-600/30 transition transform active:scale-95 shrink-0"
         >
           <Plus className="w-4 h-4" /> New Company
         </button>
       </div>
 
       {/* Search Bar */}
-      <div className="glass p-3 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
+      <div className="bg-white dark:bg-slate-900/80 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shadow-sm">
         <div className="relative w-full max-w-md">
           <Search className="w-3.5 h-3.5 absolute left-3.5 top-3 text-slate-400" />
           <input
@@ -100,70 +100,70 @@ export default function CompaniesListPage() {
               setPage(1);
             }}
             placeholder="Search companies by name or industry..."
-            className="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-violet-500 transition"
+            className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-violet-500 font-medium transition"
           />
         </div>
       </div>
 
       {/* Create Modal Dialog */}
       {showCreate && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="max-w-md w-full glass p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-950 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 max-w-md w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-              <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-violet-500" /> Create Company
+              <h2 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-violet-600 dark:text-violet-400" /> Add New Company
               </h2>
               <button
                 onClick={() => setShowCreate(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+                className="p-1 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
+            <div className="space-y-3">
               <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Company Name *</label>
+                <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">Company Name *</label>
                 <input
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="e.g. Apex Global Technologies"
-                  className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 focus:outline-none focus:border-violet-500"
+                  className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-medium"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Website URL</label>
+                <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">Website URL</label>
                 <input
                   value={newWebsite}
                   onChange={(e) => setNewWebsite(e.target.value)}
-                  placeholder="https://apextech.com"
-                  className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 focus:outline-none focus:border-violet-500"
+                  placeholder="https://apexglobal.co.uk"
+                  className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-medium"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Industry</label>
+                <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">Industry</label>
                 <input
                   value={newIndustry}
                   onChange={(e) => setNewIndustry(e.target.value)}
-                  placeholder="e.g. Software & Cloud"
-                  className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 focus:outline-none focus:border-violet-500"
+                  placeholder="e.g. Enterprise Software / FinTech"
+                  className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-medium"
                 />
               </div>
             </div>
 
-            <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
               <button
                 onClick={() => setShowCreate(false)}
-                className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
               >
                 Cancel
               </button>
               <button
                 onClick={() => createCompany.mutate()}
                 disabled={!newName.trim() || createCompany.isPending}
-                className="px-5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold shadow-md shadow-violet-600/30 transition disabled:opacity-50"
+                className="px-5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-black shadow-md shadow-violet-600/30 transition disabled:opacity-50"
               >
                 {createCompany.isPending ? "Saving..." : "Create"}
               </button>
@@ -173,29 +173,29 @@ export default function CompaniesListPage() {
       )}
 
       {/* Table */}
-      <div className="glass rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+      <div className="bg-white dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
-            <thead className="text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 bg-slate-100/60 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
+            <thead className="text-[11px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 font-bold">
               <tr>
-                <th className="px-5 py-3.5 font-bold">Company</th>
-                <th className="px-5 py-3.5 font-bold">Industry</th>
-                <th className="px-5 py-3.5 font-bold">Website</th>
-                <th className="px-5 py-3.5 font-bold">Location</th>
-                <th className="px-5 py-3.5 font-bold text-right">Created</th>
+                <th className="px-5 py-3.5">Company</th>
+                <th className="px-5 py-3.5">Industry</th>
+                <th className="px-5 py-3.5">Website</th>
+                <th className="px-5 py-3.5">Location</th>
+                <th className="px-5 py-3.5 text-right">Created</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200/80 dark:divide-slate-800/80">
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-12 text-center text-slate-400 font-mono">
+                  <td colSpan={5} className="px-5 py-12 text-center text-slate-500 dark:text-slate-400 font-mono">
                     Loading companies...
                   </td>
                 </tr>
               ) : companies.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-12 text-center text-slate-400">
-                    No companies found. Click "New Company" to add one.
+                  <td colSpan={5} className="px-5 py-12 text-center text-slate-600 dark:text-slate-400 font-medium">
+                    No companies found. Click &quot;New Company&quot; to add one.
                   </td>
                 </tr>
               ) : (
@@ -203,20 +203,20 @@ export default function CompaniesListPage() {
                   <tr
                     key={c.id}
                     onClick={() => router.push(`/crm/companies/${c.id}`)}
-                    className="hover:bg-slate-100/40 dark:hover:bg-slate-900/40 transition cursor-pointer group"
+                    className="hover:bg-slate-50 dark:hover:bg-slate-900/60 transition cursor-pointer group"
                   >
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-violet-500/10 text-violet-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <div className="w-8 h-8 rounded-xl bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                           <Building2 className="w-4 h-4" />
                         </div>
-                        <span className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
+                        <span className="font-black text-slate-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-300 transition-colors">
                           {c.name}
                         </span>
                       </div>
                     </td>
 
-                    <td className="px-5 py-3.5 text-slate-600 dark:text-slate-300">
+                    <td className="px-5 py-3.5 text-slate-700 dark:text-slate-300 font-medium">
                       {c.industry || "Technology"}
                     </td>
 
@@ -227,22 +227,22 @@ export default function CompaniesListPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="inline-flex items-center gap-1 text-violet-600 dark:text-violet-400 hover:underline"
+                          className="inline-flex items-center gap-1 text-violet-600 dark:text-violet-400 hover:underline font-medium"
                         >
                           <Globe className="w-3.5 h-3.5" />
                           <span className="truncate max-w-[140px]">{c.website.replace(/^https?:\/\//, "")}</span>
                           <ExternalLink className="w-2.5 h-2.5" />
                         </a>
                       ) : (
-                        <span className="text-slate-400">—</span>
+                        <span className="text-slate-400 font-mono">—</span>
                       )}
                     </td>
 
-                    <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400">
+                    <td className="px-5 py-3.5 text-slate-700 dark:text-slate-300 font-medium">
                       {c.country || c.city || "United Kingdom"}
                     </td>
 
-                    <td className="px-5 py-3.5 text-slate-400 text-right text-[11px]">
+                    <td className="px-5 py-3.5 text-slate-600 dark:text-slate-400 text-right text-[11px] font-mono">
                       {new Date(c.created_at || Date.now()).toLocaleDateString()}
                     </td>
                   </tr>

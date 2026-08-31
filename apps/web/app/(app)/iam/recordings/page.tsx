@@ -326,50 +326,50 @@ export default function FounderRecordingsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
-              <Video className="w-5 h-5 text-violet-400" /> Employee Screen & Call Recording Studio
+            <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+              <Video className="w-5 h-5 text-violet-600 dark:text-violet-400" /> Employee Screen &amp; Call Recording Studio
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
-              <Crown className="w-3.5 h-3.5 text-amber-400" /> Executive Surveillance
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 flex items-center gap-1">
+              <Crown className="w-3.5 h-3.5 text-amber-500" /> Executive Surveillance
             </span>
           </div>
-          <p className="text-xs text-slate-300 font-medium mt-1">
+          <p className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">
             Capture employee screens, take instant screenshots, record audio logs • Stored for 1 day max with local download options
           </p>
         </div>
 
         {/* Expiry Policy Badge */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-amber-500/20 border border-amber-500/30 text-xs text-amber-300 font-bold shadow-sm">
-          <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+        <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-amber-100 dark:bg-amber-500/20 border border-amber-300 dark:border-amber-500/30 text-xs text-amber-900 dark:text-amber-300 font-bold shadow-xs">
+          <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
           <span>1-Day Auto-Purge Policy Active</span>
         </div>
       </div>
 
       {/* Main Recording Studio Controller */}
-      <div className="bg-slate-950 p-6 rounded-3xl border border-slate-800 shadow-2xl space-y-6 backdrop-blur-md">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+      <div className="bg-white dark:bg-slate-950 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
           <div className="flex items-center gap-2">
-            <Radio className="w-4 h-4 text-violet-400 animate-pulse" />
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+            <Radio className="w-4 h-4 text-violet-600 dark:text-violet-400 animate-pulse" />
+            <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
               Surveillance Studio Controls
             </h3>
           </div>
 
           {/* Target Employee Selection */}
-          <div className="flex items-center gap-2.5 bg-slate-900 px-3.5 py-1.5 rounded-2xl border border-slate-700">
-            <User className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-            <span className="text-xs font-bold text-slate-300">Target Employee:</span>
+          <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-900 px-3.5 py-1.5 rounded-2xl border border-slate-300 dark:border-slate-700">
+            <User className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400 shrink-0" />
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-300">Target Employee:</span>
             <select
               value={selectedEmployeeId}
               onChange={(e) => setSelectedEmployeeId(e.target.value)}
               disabled={isRecording}
-              className="bg-transparent text-xs font-bold text-violet-300 focus:outline-none cursor-pointer"
+              className="bg-transparent text-xs font-bold text-violet-700 dark:text-violet-300 focus:outline-none cursor-pointer"
             >
-              <option value="all" className="bg-slate-900 text-slate-200">
+              <option value="all" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">
                 All Staff / General
               </option>
               {employees.map((emp) => (
-                <option key={emp.id} value={emp.id} className="bg-slate-900 text-slate-200">
+                <option key={emp.id} value={emp.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">
                   {emp.first_name} {emp.last_name || ""} ({emp.role})
                 </option>
               ))}
@@ -384,13 +384,13 @@ export default function FounderRecordingsPage() {
             onClick={() => setRecordingMode("screen")}
             className={`p-4 rounded-2xl border flex flex-col items-center justify-center gap-2 transition-all ${
               recordingMode === "screen"
-                ? "bg-violet-600/15 border-violet-500 text-violet-300 font-bold shadow-lg shadow-violet-600/20 ring-1 ring-violet-500/50"
-                : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                ? "bg-violet-50 dark:bg-violet-600/15 border-violet-500 text-violet-900 dark:text-violet-300 font-bold shadow-md ring-1 ring-violet-500/50"
+                : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-700"
             }`}
           >
             <Video className="w-6 h-6" />
             <span className="text-xs font-bold">Screen Video Recording</span>
-            <span className="text-[10px] text-slate-500 font-normal">Record live interactive session</span>
+            <span className="text-[10px] text-slate-500 font-medium">Record live interactive session</span>
           </button>
 
           <button
@@ -398,13 +398,13 @@ export default function FounderRecordingsPage() {
             onClick={() => setRecordingMode("screenshot")}
             className={`p-4 rounded-2xl border flex flex-col items-center justify-center gap-2 transition-all ${
               recordingMode === "screenshot"
-                ? "bg-emerald-600/15 border-emerald-500 text-emerald-300 font-bold shadow-lg shadow-emerald-600/20 ring-1 ring-emerald-500/50"
-                : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                ? "bg-emerald-50 dark:bg-emerald-600/15 border-emerald-500 text-emerald-900 dark:text-emerald-300 font-bold shadow-md ring-1 ring-emerald-500/50"
+                : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-700"
             }`}
           >
             <Camera className="w-6 h-6" />
             <span className="text-xs font-bold">Screen Snapshot</span>
-            <span className="text-[10px] text-slate-500 font-normal">Take instant full-res screenshot</span>
+            <span className="text-[10px] text-slate-500 font-medium">Take instant full-res screenshot</span>
           </button>
 
           <button
@@ -412,13 +412,13 @@ export default function FounderRecordingsPage() {
             onClick={() => setRecordingMode("call")}
             className={`p-4 rounded-2xl border flex flex-col items-center justify-center gap-2 transition-all ${
               recordingMode === "call"
-                ? "bg-cyan-600/15 border-cyan-500 text-cyan-300 font-bold shadow-lg shadow-cyan-600/20 ring-1 ring-cyan-500/50"
-                : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                ? "bg-cyan-50 dark:bg-cyan-600/15 border-cyan-500 text-cyan-900 dark:text-cyan-300 font-bold shadow-md ring-1 ring-cyan-500/50"
+                : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-700"
             }`}
           >
             <Mic className="w-6 h-6" />
             <span className="text-xs font-bold">Call Audio Capture</span>
-            <span className="text-[10px] text-slate-500 font-normal">Record meeting / voice channel</span>
+            <span className="text-[10px] text-slate-500 font-medium">Record meeting / voice channel</span>
           </button>
         </div>
 

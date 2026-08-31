@@ -170,10 +170,10 @@ export default function IAMUsersPage() {
       {/* Header & Quick Action Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-base md:text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Users className="w-5 h-5 text-violet-500" /> Employee Directory & Account Management
-          </h2>
-          <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
+          <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+            <Users className="w-5 h-5 text-violet-600 dark:text-violet-400" /> Employee Directory &amp; Account Management
+          </h1>
+          <p className="text-slate-700 dark:text-slate-300 text-xs font-medium mt-0.5">
             Founder command for adding/deleting employees with instant Neon PostgreSQL synchronization
           </p>
         </div>
@@ -181,7 +181,7 @@ export default function IAMUsersPage() {
         {isFounder && (
           <button
             onClick={() => setCreateOpen(true)}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow-lg shadow-violet-600/20 transition"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-black shadow-lg shadow-violet-600/30 transition transform active:scale-95 shrink-0"
           >
             <Plus className="w-4 h-4" /> Create Employee Account
           </button>
@@ -189,7 +189,7 @@ export default function IAMUsersPage() {
       </div>
 
       {/* Filter & View Switcher */}
-      <div className="glass p-3 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-white dark:bg-slate-900/80 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
         <div className="flex flex-1 flex-col sm:flex-row items-center gap-2">
           <div className="relative w-full sm:w-64">
             <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
@@ -198,41 +198,41 @@ export default function IAMUsersPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name, username, email..."
-              className="w-full pl-9 pr-3 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-violet-500"
+              className="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-violet-500 font-medium"
             />
           </div>
 
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full sm:w-auto px-3 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none"
+            className="w-full sm:w-auto px-3 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-bold focus:outline-none"
           >
-            <option value="" className="bg-slate-900 text-slate-100">All Statuses</option>
-            <option value="active" className="bg-slate-900 text-slate-100">Active</option>
-            <option value="suspended" className="bg-slate-900 text-slate-100">Suspended</option>
-            <option value="locked" className="bg-slate-900 text-slate-100">Locked</option>
-            <option value="inactive" className="bg-slate-900 text-slate-100">Inactive</option>
+            <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All Statuses</option>
+            <option value="active" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Active</option>
+            <option value="suspended" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Suspended</option>
+            <option value="locked" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Locked</option>
+            <option value="inactive" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Inactive</option>
           </select>
         </div>
 
         {/* View Switcher Toggle */}
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 self-end sm:self-auto">
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800 self-end sm:self-auto">
           <button
             onClick={() => setViewMode("card")}
-            className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition ${
+            className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold transition ${
               viewMode === "card"
-                ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm font-semibold"
-                : "text-slate-400 hover:text-slate-200"
+                ? "bg-violet-600 text-white shadow-xs"
+                : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
             <Grid className="w-3.5 h-3.5" /> Mobile Cards
           </button>
           <button
             onClick={() => setViewMode("table")}
-            className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition ${
+            className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold transition ${
               viewMode === "table"
-                ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm font-semibold"
-                : "text-slate-400 hover:text-slate-200"
+                ? "bg-violet-600 text-white shadow-xs"
+                : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
             <LayoutList className="w-3.5 h-3.5" /> Table

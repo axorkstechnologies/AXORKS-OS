@@ -93,7 +93,7 @@ export default function KnowledgePageDetail({ params }: { params: Promise<{ slug
 
   if (isLoading || !page) {
     return (
-      <div className="p-12 text-center text-xs text-slate-400 font-mono">
+      <div className="p-12 text-center text-xs text-slate-500 dark:text-slate-400 font-mono">
         Loading SOP document from Neon DB...
       </div>
     );
@@ -102,10 +102,10 @@ export default function KnowledgePageDetail({ params }: { params: Promise<{ slug
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Top Bar Navigation */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
         <button
           onClick={() => router.push("/knowledge")}
-          className="inline-flex items-center gap-2 text-xs font-bold text-slate-300 hover:text-white transition"
+          className="inline-flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Knowledge Center
         </button>
@@ -117,7 +117,7 @@ export default function KnowledgePageDetail({ params }: { params: Promise<{ slug
                 <>
                   <button
                     onClick={() => setIsEditing(false)}
-                    className="px-3.5 py-1.5 rounded-xl bg-slate-800 text-slate-200 text-xs font-bold hover:bg-slate-700 transition"
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
                   >
                     Cancel
                   </button>
@@ -134,9 +134,9 @@ export default function KnowledgePageDetail({ params }: { params: Promise<{ slug
                 <>
                   <button
                     onClick={() => setIsEditing(true)}
-                    className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition flex items-center gap-1.5 border border-slate-700 shadow-sm"
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white text-xs font-bold transition flex items-center gap-1.5 border border-slate-300 dark:border-slate-700 shadow-xs"
                   >
-                    <Edit3 className="w-3.5 h-3.5 text-violet-400" /> Edit SOP
+                    <Edit3 className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" /> Edit SOP
                   </button>
                   <button
                     onClick={() => {
@@ -144,7 +144,7 @@ export default function KnowledgePageDetail({ params }: { params: Promise<{ slug
                         deletePageMutation.mutate();
                       }
                     }}
-                    className="p-2 rounded-xl bg-rose-500/15 text-rose-300 hover:bg-rose-500/25 border border-rose-500/30 text-xs transition shadow-xs"
+                    className="p-2 rounded-xl bg-rose-100 dark:bg-rose-500/15 text-rose-800 dark:text-rose-300 hover:bg-rose-200 dark:hover:bg-rose-500/25 border border-rose-300 dark:border-rose-500/30 text-xs transition shadow-xs"
                     title="Delete document"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -159,7 +159,7 @@ export default function KnowledgePageDetail({ params }: { params: Promise<{ slug
               navigator.clipboard.writeText(window.location.href);
               toast.success("Document link copied to clipboard!");
             }}
-            className="p-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:text-white text-xs transition shadow-xs"
+            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs transition shadow-xs"
             title="Copy link"
           >
             <Share2 className="w-3.5 h-3.5" />
@@ -168,19 +168,19 @@ export default function KnowledgePageDetail({ params }: { params: Promise<{ slug
       </div>
 
       {/* Main Document Container */}
-      <div className="bg-slate-950/90 rounded-3xl border border-slate-800 p-6 md:p-10 space-y-6 shadow-2xl backdrop-blur-md">
+      <div className="bg-white dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 md:p-10 space-y-6 shadow-xl">
         {/* Document Header */}
-        <div className="space-y-3 border-b border-slate-800 pb-6">
-          <div className="flex items-center gap-3">
+        <div className="space-y-3 border-b border-slate-200 dark:border-slate-800 pb-6">
+          <div className="flex items-center gap-3.5">
             {isEditing ? (
               <input
                 type="text"
                 value={icon}
                 onChange={(e) => setIcon(e.target.value)}
-                className="w-12 h-12 text-2xl text-center bg-slate-900 border border-slate-700 rounded-2xl text-white font-bold"
+                className="w-12 h-12 text-2xl text-center bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-white font-bold"
               />
             ) : (
-              <span className="text-3xl p-3 rounded-2xl bg-slate-900 border border-slate-700">
+              <span className="text-3xl p-3 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
                 {page.icon || "📋"}
               </span>
             )}
@@ -191,22 +191,22 @@ export default function KnowledgePageDetail({ params }: { params: Promise<{ slug
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="text-2xl font-black text-white bg-slate-900 border border-slate-700 px-3.5 py-1.5 rounded-xl w-full"
+                  className="text-2xl font-black text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3.5 py-1.5 rounded-xl w-full"
                 />
               ) : (
-                <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
+                <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
                   {page.title}
                 </h1>
               )}
 
-              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300 font-medium mt-2">
-                <span className="font-bold text-violet-300 capitalize">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-700 dark:text-slate-300 font-medium mt-2">
+                <span className="font-bold text-violet-700 dark:text-violet-300 capitalize">
                   Category: {page.category || "SOP"}
                 </span>
                 <span>•</span>
                 <span>Author: {page.author_name || "Muhammad Mujahid (Founder)"}</span>
                 <span>•</span>
-                <span className="font-mono text-slate-400">
+                <span className="font-mono text-slate-500 dark:text-slate-400 font-semibold">
                   Updated: {new Date(page.updated_at).toLocaleDateString()}
                 </span>
               </div>
@@ -217,18 +217,18 @@ export default function KnowledgePageDetail({ params }: { params: Promise<{ slug
         {/* Document Content View / Editor */}
         {isEditing ? (
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-300">
+            <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
               SOP Document Body (Markdown formatted)
             </label>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={28}
-              className="w-full p-4 rounded-2xl bg-slate-900 border border-slate-700 text-slate-100 text-xs font-mono leading-relaxed focus:outline-none focus:border-violet-500"
+              className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-xs font-mono leading-relaxed focus:outline-none focus:border-violet-500"
             />
           </div>
         ) : (
-          <div className="prose prose-invert max-w-none prose-headings:font-black prose-headings:text-white prose-p:text-slate-200 prose-p:leading-relaxed prose-li:text-slate-200 prose-strong:text-white prose-table:border-slate-700 prose-th:bg-slate-900 prose-th:text-white prose-th:font-bold prose-td:border-slate-800 prose-td:text-slate-200 text-sm whitespace-pre-wrap font-sans">
+          <div className="text-slate-900 dark:text-slate-100 text-sm md:text-base leading-relaxed whitespace-pre-wrap font-sans">
             {content}
           </div>
         )}
