@@ -102,7 +102,7 @@ export function calculateScore(m: {
   return Math.round(score * 100) / 100;
 }
 
-// ─── Leaderboard Engine ───────────────────────────────────────────────
+// ─── Leaderboard Engine (Multi-Source Live DB Aggregation) ─────────────
 
 export async function getPerformanceLeaderboardAsync(period: "daily" | "monthly" | "all" = "daily"): Promise<{
   leaderboard: LeaderboardEntry[];
@@ -136,114 +136,220 @@ export async function getPerformanceLeaderboardAsync(period: "daily" | "monthly"
     };
   }
 
-  // 1. Fetch KPI aggregates based on period
-  let kpiRows: any[] = [];
-  if (period === "daily") {
-    kpiRows = await sql`
-      SELECT 
-        user_id,
-        user_name,
-        user_email,
-        COALESCE(SUM(emails_sent), 0) as emails_sent,
-        COALESCE(SUM(followups_sent), 0) as followups_sent,
-        COALESCE(SUM(clients_converted), 0) as clients_converted,
-        COALESCE(SUM(revenue_brought), 0) as revenue_brought,
-        COALESCE(SUM(instagram_posts), 0) as instagram_posts,
-        COALESCE(SUM(youtube_posts), 0) as youtube_posts,
-        COALESCE(SUM(linkedin_posts), 0) as linkedin_posts,
-        COALESCE(SUM(login_minutes), 0) as login_minutes,
-        COALESCE(SUM(active_minutes), 0) as active_minutes,
-        COALESCE(SUM(total_score), 0) as total_score
-      FROM employee_daily_kpis
-      WHERE date = CURRENT_DATE
-      GROUP BY user_id, user_name, user_email;
-    `;
-  } else if (period === "monthly") {
-    kpiRows = await sql`
-      SELECT 
-        user_id,
-        user_name,
-        user_email,
-        COALESCE(SUM(emails_sent), 0) as emails_sent,
-        COALESCE(SUM(followups_sent), 0) as followups_sent,
-        COALESCE(SUM(clients_converted), 0) as clients_converted,
-        COALESCE(SUM(revenue_brought), 0) as revenue_brought,
-        COALESCE(SUM(instagram_posts), 0) as instagram_posts,
-        COALESCE(SUM(youtube_posts), 0) as youtube_posts,
-        COALESCE(SUM(linkedin_posts), 0) as linkedin_posts,
-        COALESCE(SUM(login_minutes), 0) as login_minutes,
-        COALESCE(SUM(active_minutes), 0) as active_minutes,
-        COALESCE(SUM(total_score), 0) as total_score
-      FROM employee_daily_kpis
-      WHERE date >= DATE_TRUNC('month', CURRENT_DATE)
-      GROUP BY user_id, user_name, user_email;
-    `;
-  } else {
-    kpiRows = await sql`
-      SELECT 
-        user_id,
-        user_name,
-        user_email,
-        COALESCE(SUM(emails_sent), 0) as emails_sent,
-        COALESCE(SUM(followups_sent), 0) as followups_sent,
-        COALESCE(SUM(clients_converted), 0) as clients_converted,
-        COALESCE(SUM(revenue_brought), 0) as revenue_brought,
-        COALESCE(SUM(instagram_posts), 0) as instagram_posts,
-        COALESCE(SUM(youtube_posts), 0) as youtube_posts,
-        COALESCE(SUM(linkedin_posts), 0) as linkedin_posts,
-        COALESCE(SUM(login_minutes), 0) as login_minutes,
-        COALESCE(SUM(active_minutes), 0) as active_minutes,
-        COALESCE(SUM(total_score), 0) as total_score
-      FROM employee_daily_kpis
-      GROUP BY user_id, user_name, user_email;
-    `;
+  // 1. Fetch live email counts from workspace_emails table
+  let emailRows: any[] = [];
+  try {
+    if (period === "daily") {
+      emailRows = await sql`
+        SELECT 
+          sent_by_user_id,
+          sent_by_user_name,
+          sender_email,
+          COUNT(*)::int as emails_sent,
+          COUNT(*) FILTER (WHERE is_followup = TRUE)::int as followups_sent,
+          COUNT(*) FILTER (WHERE converted_to_client = TRUE)::int as conversions
+        FROM workspace_emails
+        WHERE direction = 'outbound'
+          AND (created_at >= CURRENT_DATE - INTERVAL '1 day' OR sent_at >= CURRENT_DATE - INTERVAL '1 day')
+        GROUP BY sent_by_user_id, sent_by_user_name, sender_email;
+      `;
+    } else if (period === "monthly") {
+      emailRows = await sql`
+        SELECT 
+          sent_by_user_id,
+          sent_by_user_name,
+          sender_email,
+          COUNT(*)::int as emails_sent,
+          COUNT(*) FILTER (WHERE is_followup = TRUE)::int as followups_sent,
+          COUNT(*) FILTER (WHERE converted_to_client = TRUE)::int as conversions
+        FROM workspace_emails
+        WHERE direction = 'outbound'
+          AND (created_at >= DATE_TRUNC('month', CURRENT_DATE) OR sent_at >= DATE_TRUNC('month', CURRENT_DATE))
+        GROUP BY sent_by_user_id, sent_by_user_name, sender_email;
+      `;
+    } else {
+      emailRows = await sql`
+        SELECT 
+          sent_by_user_id,
+          sent_by_user_name,
+          sender_email,
+          COUNT(*)::int as emails_sent,
+          COUNT(*) FILTER (WHERE is_followup = TRUE)::int as followups_sent,
+          COUNT(*) FILTER (WHERE converted_to_client = TRUE)::int as conversions
+        FROM workspace_emails
+        WHERE direction = 'outbound'
+        GROUP BY sent_by_user_id, sent_by_user_name, sender_email;
+      `;
+    }
+  } catch (err) {
+    console.error("Error aggregating workspace_emails:", err);
   }
 
-  // Monthly top query for top monthly spotlight
-  const monthlyRows = await sql`
-    SELECT 
-      user_id,
-      SUM(total_score) as month_score
-    FROM employee_daily_kpis
-    WHERE date >= DATE_TRUNC('month', CURRENT_DATE)
-    GROUP BY user_id
-    ORDER BY month_score DESC
-    LIMIT 1;
-  `;
-  const topMonthlyUserId = monthlyRows?.[0]?.user_id || null;
+  // 2. Fetch KPI aggregate logs from employee_daily_kpis table
+  let kpiRows: any[] = [];
+  try {
+    if (period === "daily") {
+      kpiRows = await sql`
+        SELECT 
+          user_id,
+          user_name,
+          user_email,
+          COALESCE(SUM(emails_sent), 0)::int as emails_sent,
+          COALESCE(SUM(followups_sent), 0)::int as followups_sent,
+          COALESCE(SUM(clients_converted), 0)::int as clients_converted,
+          COALESCE(SUM(revenue_brought), 0)::numeric as revenue_brought,
+          COALESCE(SUM(instagram_posts), 0)::int as instagram_posts,
+          COALESCE(SUM(youtube_posts), 0)::int as youtube_posts,
+          COALESCE(SUM(linkedin_posts), 0)::int as linkedin_posts,
+          COALESCE(SUM(login_minutes), 0)::int as login_minutes,
+          COALESCE(SUM(active_minutes), 0)::int as active_minutes,
+          COALESCE(SUM(total_score), 0)::numeric as total_score
+        FROM employee_daily_kpis
+        WHERE date >= CURRENT_DATE - INTERVAL '1 day'
+        GROUP BY user_id, user_name, user_email;
+      `;
+    } else if (period === "monthly") {
+      kpiRows = await sql`
+        SELECT 
+          user_id,
+          user_name,
+          user_email,
+          COALESCE(SUM(emails_sent), 0)::int as emails_sent,
+          COALESCE(SUM(followups_sent), 0)::int as followups_sent,
+          COALESCE(SUM(clients_converted), 0)::int as clients_converted,
+          COALESCE(SUM(revenue_brought), 0)::numeric as revenue_brought,
+          COALESCE(SUM(instagram_posts), 0)::int as instagram_posts,
+          COALESCE(SUM(youtube_posts), 0)::int as youtube_posts,
+          COALESCE(SUM(linkedin_posts), 0)::int as linkedin_posts,
+          COALESCE(SUM(login_minutes), 0)::int as login_minutes,
+          COALESCE(SUM(active_minutes), 0)::int as active_minutes,
+          COALESCE(SUM(total_score), 0)::numeric as total_score
+        FROM employee_daily_kpis
+        WHERE date >= DATE_TRUNC('month', CURRENT_DATE)
+        GROUP BY user_id, user_name, user_email;
+      `;
+    } else {
+      kpiRows = await sql`
+        SELECT 
+          user_id,
+          user_name,
+          user_email,
+          COALESCE(SUM(emails_sent), 0)::int as emails_sent,
+          COALESCE(SUM(followups_sent), 0)::int as followups_sent,
+          COALESCE(SUM(clients_converted), 0)::int as clients_converted,
+          COALESCE(SUM(revenue_brought), 0)::numeric as revenue_brought,
+          COALESCE(SUM(instagram_posts), 0)::int as instagram_posts,
+          COALESCE(SUM(youtube_posts), 0)::int as youtube_posts,
+          COALESCE(SUM(linkedin_posts), 0)::int as linkedin_posts,
+          COALESCE(SUM(login_minutes), 0)::int as login_minutes,
+          COALESCE(SUM(active_minutes), 0)::int as active_minutes,
+          COALESCE(SUM(total_score), 0)::numeric as total_score
+        FROM employee_daily_kpis
+        GROUP BY user_id, user_name, user_email;
+      `;
+    }
+  } catch (err) {
+    console.error("Error aggregating employee_daily_kpis:", err);
+  }
 
-  // Daily top query
-  const dailyRows = await sql`
-    SELECT 
-      user_id,
-      SUM(total_score) as day_score
-    FROM employee_daily_kpis
-    WHERE date = CURRENT_DATE
-    GROUP BY user_id
-    ORDER BY day_score DESC
-    LIMIT 1;
-  `;
-  const topDailyUserId = dailyRows?.[0]?.user_id || null;
+  // 3. Fetch approved social proof posts from employee_social_proofs
+  let socialRows: any[] = [];
+  try {
+    socialRows = await sql`
+      SELECT 
+        user_id,
+        user_email,
+        COUNT(*) FILTER (WHERE platform = 'instagram')::int as ig_count,
+        COUNT(*) FILTER (WHERE platform = 'youtube')::int as yt_count,
+        COUNT(*) FILTER (WHERE platform = 'linkedin')::int as li_count,
+        COUNT(*)::int as total_social
+      FROM employee_social_proofs
+      WHERE status = 'approved' OR status = 'submitted'
+      GROUP BY user_id, user_email;
+    `;
+  } catch (err) {
+    console.error("Error aggregating employee_social_proofs:", err);
+  }
 
-  const kpiMap = new Map<string, any>();
-  kpiRows.forEach((r) => {
-    kpiMap.set(r.user_id, r);
-    if (r.user_email) kpiMap.set(r.user_email.toLowerCase(), r);
-  });
+  // 4. Fetch converted leads from leads table
+  let leadRows: any[] = [];
+  try {
+    leadRows = await sql`
+      SELECT 
+        first_contacted_by as user_id,
+        COUNT(*)::int as converted_count
+      FROM leads
+      WHERE status IN ('converted', 'won', 'closed_won') AND first_contacted_by IS NOT NULL
+      GROUP BY first_contacted_by;
+    `;
+  } catch (err) {
+    console.error("Error aggregating leads:", err);
+  }
+
+  // Helper matching functions
+  const findEmailMetric = (userId: string, email: string, firstName: string) => {
+    let sent = 0;
+    let follow = 0;
+    let conv = 0;
+    for (const r of emailRows) {
+      const matchId = r.sent_by_user_id && String(r.sent_by_user_id) === String(userId);
+      const matchEmail = r.sender_email && r.sender_email.toLowerCase() === email.toLowerCase();
+      const matchName = r.sent_by_user_name && firstName && r.sent_by_user_name.toLowerCase().includes(firstName.toLowerCase());
+
+      if (matchId || matchEmail || matchName) {
+        sent += Number(r.emails_sent || 0);
+        follow += Number(r.followups_sent || 0);
+        conv += Number(r.conversions || 0);
+      }
+    }
+    return { sent, follow, conv };
+  };
+
+  const findKpiMetric = (userId: string, email: string) => {
+    for (const r of kpiRows) {
+      if (String(r.user_id) === String(userId) || (r.user_email && r.user_email.toLowerCase() === email.toLowerCase())) {
+        return r;
+      }
+    }
+    return null;
+  };
+
+  const findSocialMetric = (userId: string, email: string) => {
+    for (const r of socialRows) {
+      if (String(r.user_id) === String(userId) || (r.user_email && r.user_email.toLowerCase() === email.toLowerCase())) {
+        return r;
+      }
+    }
+    return null;
+  };
+
+  const findLeadMetric = (userId: string) => {
+    for (const r of leadRows) {
+      if (String(r.user_id) === String(userId)) {
+        return Number(r.converted_count || 0);
+      }
+    }
+    return 0;
+  };
 
   const entries: LeaderboardEntry[] = activeUsers.map((u) => {
-    const kpi = kpiMap.get(u.id) || kpiMap.get(u.email.toLowerCase()) || {};
-    const emailsSent = Number(kpi.emails_sent || 0);
-    const followupsSent = Number(kpi.followups_sent || 0);
-    const clientsConverted = Number(kpi.clients_converted || 0);
-    const revenueBrought = Number(kpi.revenue_brought || 0);
-    const igPosts = Number(kpi.instagram_posts || 0);
-    const ytPosts = Number(kpi.youtube_posts || 0);
-    const liPosts = Number(kpi.linkedin_posts || 0);
-    const activeMins = Number(kpi.active_minutes || 0);
-    const loginMins = Number(kpi.login_minutes || 0);
+    const kpi = findKpiMetric(u.id, u.email);
+    const emailMeta = findEmailMetric(u.id, u.email, u.first_name);
+    const socialMeta = findSocialMetric(u.id, u.email);
+    const leadConversions = findLeadMetric(u.id);
 
-    const score = Number(kpi.total_score || 0) || calculateScore({
+    // Multi-source live consolidation
+    const emailsSent = Math.max(Number(kpi?.emails_sent || 0), emailMeta.sent);
+    const followupsSent = Math.max(Number(kpi?.followups_sent || 0), emailMeta.follow);
+    const clientsConverted = Math.max(Number(kpi?.clients_converted || 0), leadConversions, emailMeta.conv);
+    const revenueBrought = Number(kpi?.revenue_brought || 0);
+    const igPosts = Math.max(Number(kpi?.instagram_posts || 0), Number(socialMeta?.ig_count || 0));
+    const ytPosts = Math.max(Number(kpi?.youtube_posts || 0), Number(socialMeta?.yt_count || 0));
+    const liPosts = Math.max(Number(kpi?.linkedin_posts || 0), Number(socialMeta?.li_count || 0));
+    const activeMins = Number(kpi?.active_minutes || 0);
+    const loginMins = Number(kpi?.login_minutes || 0);
+
+    const score = calculateScore({
       emails_sent: emailsSent,
       followups_sent: followupsSent,
       clients_converted: clientsConverted,
@@ -272,13 +378,13 @@ export async function getPerformanceLeaderboardAsync(period: "daily" | "monthly"
       total_social_posts: igPosts + ytPosts + liPosts,
       login_hours: Math.round((loginMins / 60) * 10) / 10,
       active_hours: Math.round((activeMins / 60) * 10) / 10,
-      is_top_daily: u.id === topDailyUserId,
-      is_top_monthly: u.id === topMonthlyUserId,
+      is_top_daily: false,
+      is_top_monthly: false,
       badge: "Outreach Contributor",
     };
   });
 
-  // Sort descending by score
+  // Sort descending by total score
   entries.sort((a, b) => b.total_score - a.total_score);
 
   // Assign ranks & badges
@@ -290,8 +396,11 @@ export async function getPerformanceLeaderboardAsync(period: "daily" | "monthly"
     else e.badge = "Active Contributor";
   });
 
-  const topDaily = entries.find((e) => e.is_top_daily) || entries[0] || null;
-  const topMonthly = entries.find((e) => e.is_top_monthly) || entries[0] || null;
+  const topDaily = entries[0] || null;
+  const topMonthly = entries[0] || null;
+
+  if (topDaily) topDaily.is_top_daily = true;
+  if (topMonthly) topMonthly.is_top_monthly = true;
 
   const totalEmails = entries.reduce((s, e) => s + e.emails_sent, 0);
   const totalFollowups = entries.reduce((s, e) => s + e.followups_sent, 0);

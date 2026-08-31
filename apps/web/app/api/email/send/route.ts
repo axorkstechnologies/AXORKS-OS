@@ -48,10 +48,56 @@ export async function POST(req: NextRequest) {
       isFollowup = false,
     } = validation.data;
 
-    const activeUserId = authUser?.id || sentByUserId || "00000000-0000-0000-0000-00000000000a";
-    const activeUserName = authUser
-      ? `${authUser.first_name} ${authUser.last_name || ""}`.trim()
-      : sentByUserName || "Axorks Team Member";
+    // Robust Employee Resolution from DB
+    let resolvedUser = authUser;
+    const searchId = sentByUserId || body.sentByUserId || body.userId;
+    const searchEmail = body.sentByUserEmail || body.userEmail;
+
+    if (!resolvedUser && (searchId || searchEmail)) {
+      try {
+        const uRows = await sql`
+          SELECT id, email, first_name, last_name, role 
+          FROM users 
+          WHERE deleted_at IS NULL AND (
+            id::text = ${String(searchId || "")} OR 
+            employee_id = ${String(searchId || "")} OR 
+            LOWER(email) = ${searchEmail ? searchEmail.toLowerCase() : ""} OR
+            LOWER(username) = ${searchId ? String(searchId).toLowerCase() : ""}
+          )
+          LIMIT 1;
+        `;
+        if (uRows.length > 0) {
+          resolvedUser = uRows[0] as any;
+        }
+      } catch (err) {
+        console.error("Error looking up sending employee:", err);
+      }
+    }
+
+    if (!resolvedUser && senderAlias) {
+      try {
+        const aliasMatch = await sql`
+          SELECT id, email, first_name, last_name, role 
+          FROM users 
+          WHERE deleted_at IS NULL AND (
+            LOWER(email) = ${senderAlias.toLowerCase()} OR
+            LOWER(username) = ${senderAlias.split("@")[0].toLowerCase()}
+          )
+          LIMIT 1;
+        `;
+        if (aliasMatch.length > 0) {
+          resolvedUser = aliasMatch[0] as any;
+        }
+      } catch (err) {}
+    }
+
+    const activeUserId = resolvedUser?.id
+      ? String(resolvedUser.id)
+      : (sentByUserId || "00000000-0000-0000-0000-00000000000a");
+    const activeUserName = resolvedUser
+      ? `${resolvedUser.first_name} ${resolvedUser.last_name || ""}`.trim()
+      : (sentByUserName || "Muhammad Mujahid");
+    const activeUserEmail = resolvedUser?.email || senderAlias || "sales@axorks.com";
 
     let status: "Sent" | "Failed" = "Sent";
     let messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(7)}`;
@@ -128,37 +174,42 @@ export async function POST(req: NextRequest) {
         status = "Failed";
         errorDetail = resendErr.message || "Failed to send email via Resend";
       }
+    }
 
-      // Record in Neon DB for Resend / Internal dispatch
-      if (DATABASE_URL) {
-        try {
-          await sql`
-            INSERT INTO workspace_emails (
-              message_id, thread_id, direction, sender_email, sender_name, sender_alias,
-              recipient_email, recipient_name, to_recipients, cc_recipients, bcc_recipients,
-              subject, body_html, body_text, snippet, is_read, has_attachments,
-              lead_id, sent_by_user_id, sent_by_user_name, is_followup, status, provider,
-              sent_at, created_at, updated_at
-            ) VALUES (
-              ${messageId}, ${activeThreadId}, 'outbound', ${senderAlias}, ${senderName}, ${senderAlias},
-              ${to[0] || ""}, ${to[0] || ""}, ${JSON.stringify(to)}::jsonb,
-              ${JSON.stringify(cc || [])}::jsonb, ${JSON.stringify(bcc || [])}::jsonb,
-              ${subject}, ${html || ""}, ${text || ""},
-              ${(text || html || "").substring(0, 160).replace(/<[^>]*>/g, "")},
-              TRUE, ${(attachments?.length || 0) > 0},
-              ${leadId || null}, ${activeUserId}, ${activeUserName},
-              ${Boolean(isFollowup)}, ${status === "Sent" ? "sent" : "failed"}, ${provider === "Resend" ? "resend" : "gmail"},
-              NOW(), NOW(), NOW()
-            )
-            ON CONFLICT (message_id) DO NOTHING;
-          `;
-        } catch (dbErr) {
-          console.error("Failed to save email to Neon DB:", dbErr);
-        }
+    // 4. ALWAYS Persist in Neon DB workspace_emails (with exact sender attribution)
+    if (DATABASE_URL && status === "Sent") {
+      try {
+        await sql`
+          INSERT INTO workspace_emails (
+            message_id, thread_id, direction, sender_email, sender_name, sender_alias,
+            recipient_email, recipient_name, to_recipients, cc_recipients, bcc_recipients,
+            subject, body_html, body_text, snippet, is_read, has_attachments,
+            lead_id, sent_by_user_id, sent_by_user_name, is_followup, status, provider,
+            sent_at, created_at, updated_at
+          ) VALUES (
+            ${messageId}, ${activeThreadId}, 'outbound', ${activeUserEmail}, ${activeUserName}, ${senderAlias},
+            ${to[0] || ""}, ${to[0] || ""}, ${JSON.stringify(to)}::jsonb,
+            ${JSON.stringify(cc || [])}::jsonb, ${JSON.stringify(bcc || [])}::jsonb,
+            ${subject}, ${html || ""}, ${text || ""},
+            ${(text || html || "").substring(0, 160).replace(/<[^>]*>/g, "")},
+            TRUE, ${(attachments?.length || 0) > 0},
+            ${leadId || null}, ${activeUserId}, ${activeUserName},
+            ${Boolean(isFollowup)}, 'sent', ${provider === "Resend" ? "resend" : provider === "Gmail API" ? "gmail" : "internal"},
+            NOW(), NOW(), NOW()
+          )
+          ON CONFLICT (message_id) DO UPDATE SET
+            sent_by_user_id = EXCLUDED.sent_by_user_id,
+            sent_by_user_name = EXCLUDED.sent_by_user_name,
+            sender_email = EXCLUDED.sender_email,
+            status = EXCLUDED.status,
+            updated_at = NOW();
+        `;
+      } catch (dbErr) {
+        console.error("Failed to save email to Neon DB workspace_emails:", dbErr);
       }
     }
 
-    // 4. Record in EmailHistory store
+    // 5. Record in EmailHistory store
     const emailRecord = {
       id: messageId,
       messageId,
@@ -184,7 +235,7 @@ export async function POST(req: NextRequest) {
 
     addEmailToHistory(emailRecord);
 
-    // 5. Update CRM Lead Exclusivity: Mark lead contacted by active employee
+    // 6. Update CRM Lead Exclusivity: Mark lead contacted by active employee
     if (status === "Sent" && DATABASE_URL) {
       try {
         const toEmail = to[0] ? to[0].toLowerCase().trim() : "";
@@ -204,11 +255,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 6. REAL-TIME KPI: Increment emails_sent (and followups_sent) in employee_daily_kpis
+    // 7. REAL-TIME KPI: Increment emails_sent (and followups_sent) in employee_daily_kpis
     if (status === "Sent") {
       try {
-        const senderEmail = authUser?.email || "unknown@axorks.com";
-        await syncEmailKpiAsync(activeUserId, activeUserName, senderEmail, Boolean(isFollowup));
+        await syncEmailKpiAsync(activeUserId, activeUserName, activeUserEmail, Boolean(isFollowup));
       } catch (kpiErr) {
         console.error("Failed to sync email KPI in employee_daily_kpis:", kpiErr);
       }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useAuthStore } from "@/stores/auth-store";
 import {
   Clock,
   Send,
@@ -18,6 +19,7 @@ import {
 import { toast } from "sonner";
 
 export default function EmailFollowupsPage() {
+  const { user: currentUser, accessToken } = useAuthStore();
   const [followups, setFollowups] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sendingId, setSendingId] = useState<string | null>(null);
@@ -47,11 +49,19 @@ export default function EmailFollowupsPage() {
       // 1. Send second email via Resend email send endpoint
       const emailRes = await fetch("/api/email/send", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
         body: JSON.stringify({
-          to: item.recipient_email,
+          to: [item.recipient_email],
           subject: `Re: ${item.subject}`,
           html: `<p>Hi ${item.recipient_name || "there"},</p><p>Wanted to quickly check back in on my previous email. Let us know if you have 10 minutes for a quick demo or conversation this week!</p><p>Best regards,<br/>Axorks OS Team</p>`,
+          isFollowup: true,
+          leadId: item.lead_id || undefined,
+          sentByUserId: currentUser?.id,
+          sentByUserName: currentUser?.first_name ? `${currentUser.first_name} ${currentUser.last_name || ""}`.trim() : "Team Member",
+          sentByUserEmail: currentUser?.email,
         }),
       });
 

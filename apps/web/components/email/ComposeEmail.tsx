@@ -51,7 +51,7 @@ export function ComposeEmail({
   leadId,
   onSuccess,
 }: ComposeEmailProps) {
-  const { user: currentUser } = useAuthStore();
+  const { user: currentUser, accessToken } = useAuthStore();
   const [showCcBcc, setShowCcBcc] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [showAiAccordion, setShowAiAccordion] = useState(false);
@@ -198,11 +198,15 @@ export function ComposeEmail({
     try {
       const res = await fetch("/api/email/send", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
         body: JSON.stringify({
           ...data,
           sentByUserId: currentUser?.id,
           sentByUserName: currentUser?.first_name ? `${currentUser.first_name} ${currentUser.last_name || ""}`.trim() : "Team Member",
+          sentByUserEmail: currentUser?.email,
         }),
       });
 
