@@ -1258,15 +1258,27 @@ export async function getEmailAnalyticsAsync(): Promise<EmailAnalyticsReport> {
 
       const uSent = await sql`
         SELECT COUNT(*)::int AS count FROM workspace_emails
-        WHERE direction = 'outbound' AND (sent_by_user_id::text = ${uId} OR sent_by_user_name ILIKE ${`%${u.first_name}%`});
+        WHERE direction = 'outbound' AND (
+          sent_by_user_id::text = ${uId} OR 
+          (sender_email IS NOT NULL AND LOWER(sender_email) = ${uEmail}) OR
+          sent_by_user_name ILIKE ${`%${u.first_name}%`}
+        );
       `;
       const uFollow = await sql`
         SELECT COUNT(*)::int AS count FROM workspace_emails
-        WHERE direction = 'outbound' AND is_followup = TRUE AND (sent_by_user_id::text = ${uId} OR sent_by_user_name ILIKE ${`%${u.first_name}%`});
+        WHERE direction = 'outbound' AND is_followup = TRUE AND (
+          sent_by_user_id::text = ${uId} OR 
+          (sender_email IS NOT NULL AND LOWER(sender_email) = ${uEmail}) OR
+          sent_by_user_name ILIKE ${`%${u.first_name}%`}
+        );
       `;
       const uConv = await sql`
         SELECT COUNT(*)::int AS count FROM workspace_emails
-        WHERE converted_to_client = TRUE AND (sent_by_user_id::text = ${uId} OR sent_by_user_name ILIKE ${`%${u.first_name}%`});
+        WHERE converted_to_client = TRUE AND (
+          sent_by_user_id::text = ${uId} OR 
+          (sender_email IS NOT NULL AND LOWER(sender_email) = ${uEmail}) OR
+          sent_by_user_name ILIKE ${`%${u.first_name}%`}
+        );
       `;
 
       const s = uSent[0]?.count || 0;
