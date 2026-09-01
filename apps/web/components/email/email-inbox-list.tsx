@@ -37,11 +37,7 @@ export function EmailInboxList({ onSelectEmail }: EmailInboxListProps) {
   const [selectedAlias, setSelectedAlias] = useState<string>("all");
   const [directionFilter, setDirectionFilter] = useState<"all" | "inbound" | "outbound">("all");
 
-  const { data: inboxResponse, isLoading, refetch } = useQuery<{
-    success: boolean;
-    data: WorkspaceEmailRecord[];
-    count: number;
-  }>({
+  const { data: inboxResponse, isLoading, refetch } = useQuery<any>({
     queryKey: ["workspace-inbox", search, selectedAlias, directionFilter],
     queryFn: () => {
       let url = `/api/v1/email/inbox?direction=${directionFilter}`;
@@ -52,7 +48,11 @@ export function EmailInboxList({ onSelectEmail }: EmailInboxListProps) {
     refetchInterval: 30000,
   });
 
-  const emails: WorkspaceEmailRecord[] = inboxResponse?.data || [];
+  const emails: WorkspaceEmailRecord[] = Array.isArray(inboxResponse)
+    ? inboxResponse
+    : Array.isArray((inboxResponse as any)?.data)
+    ? (inboxResponse as any).data
+    : [];
 
   const ALIAS_BUTTONS = isFounder
     ? [

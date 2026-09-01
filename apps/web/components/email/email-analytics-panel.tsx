@@ -18,29 +18,18 @@ import {
 } from "lucide-react";
 
 export function EmailAnalyticsPanel() {
-  const { data: analyticsResponse, isLoading } = useQuery<{
-    success: boolean;
-    data: {
-      stats: {
-        total_inbound: number;
-        total_outbound: number;
-        total_leads_contacted: number;
-        total_replies: number;
-        response_rate: string;
-      };
-      alias_breakdown: Array<{
-        alias: string;
-        sent: number;
-        received: number;
-      }>;
-      recent_outreach: any[];
-    };
-  }>({
+  const { data: analyticsResponse, isLoading } = useQuery<any>({
     queryKey: ["email-analytics"],
     queryFn: () => apiClient("/api/v1/email/analytics"),
   });
 
-  const analytics = analyticsResponse?.data || {
+  const rawStats = (analyticsResponse as any)?.stats
+    ? analyticsResponse
+    : (analyticsResponse as any)?.data?.stats
+    ? (analyticsResponse as any).data
+    : null;
+
+  const analytics = rawStats || {
     stats: {
       total_inbound: 0,
       total_outbound: 0,
@@ -139,7 +128,7 @@ export function EmailAnalyticsPanel() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {analytics.alias_breakdown.map((item) => (
+          {(analytics.alias_breakdown || []).map((item: any) => (
             <div
               key={item.alias}
               className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2"

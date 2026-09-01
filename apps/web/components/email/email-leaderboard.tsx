@@ -15,24 +15,16 @@ import {
 } from "lucide-react";
 
 export function EmailLeaderboard() {
-  const { data: leaderboardData, isLoading } = useQuery<{
-    success: boolean;
-    data: Array<{
-      id: string;
-      name: string;
-      role: string;
-      points: number;
-      emails_sent: number;
-      replies_received: number;
-      conversion_rate: string;
-      badge: string;
-    }>;
-  }>({
+  const { data: leaderboardData, isLoading } = useQuery<any>({
     queryKey: ["email-leaderboard"],
     queryFn: () => apiClient("/api/v1/email/analytics?view=leaderboard"),
   });
 
-  const rawList = leaderboardData?.data || [
+  const rawList = Array.isArray(leaderboardData)
+    ? leaderboardData
+    : Array.isArray((leaderboardData as any)?.data)
+    ? (leaderboardData as any).data
+    : [
     {
       id: "1",
       name: "Farwa",
@@ -79,7 +71,7 @@ export function EmailLeaderboard() {
     <div className="space-y-6">
       {/* Top 3 Champions Podium Banner */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {rawList.slice(0, 3).map((item, idx) => (
+        {rawList.slice(0, 3).map((item: any, idx: number) => (
           <div
             key={item.id}
             className={`p-6 rounded-3xl border relative overflow-hidden flex flex-col justify-between space-y-4 shadow-md ${
@@ -145,7 +137,7 @@ export function EmailLeaderboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {rawList.map((row, i) => (
+              {rawList.map((row: any, i: number) => (
                 <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition">
                   <td className="p-3.5 font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <span className="w-5 font-mono text-slate-500 dark:text-slate-400 font-bold">#{i + 1}</span>

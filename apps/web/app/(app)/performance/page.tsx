@@ -95,7 +95,13 @@ export default function PerformanceDashboardPage() {
     queryFn: () => apiClient("/api/v1/performance/social-proof"),
   });
 
-  const leaderboardData = leaderboardResponse?.data || {
+  const rawLeaderboard = (leaderboardResponse as any)?.leaderboard
+    ? leaderboardResponse
+    : (leaderboardResponse as any)?.data?.leaderboard
+    ? (leaderboardResponse as any).data
+    : null;
+
+  const leaderboardData = rawLeaderboard || {
     leaderboard: [],
     top_daily_performer: null,
     top_monthly_performer: null,
@@ -109,7 +115,11 @@ export default function PerformanceDashboardPage() {
     },
   };
 
-  const socialProofs: any[] = socialProofsResponse?.data || [];
+  const socialProofs: any[] = Array.isArray(socialProofsResponse)
+    ? socialProofsResponse
+    : Array.isArray((socialProofsResponse as any)?.data)
+    ? (socialProofsResponse as any).data
+    : [];
 
   // Submit Social Proof Mutation
   const submitProofMutation = useMutation({

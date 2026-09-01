@@ -176,7 +176,8 @@ export async function POST(req: NextRequest) {
     // 4. ALWAYS Persist in Neon DB workspace_emails (with exact sender attribution)
     if (DATABASE_URL && status === "Sent") {
       try {
-        await sql`
+        console.log(`[EMAIL SEND DB] Writing outbound email ${messageId} to Neon workspace_emails (from: ${activeUserEmail}, to: ${to[0]})...`);
+        const insertRes = await sql`
           INSERT INTO workspace_emails (
             message_id, thread_id, direction, sender_email, sender_name, sender_alias,
             recipient_email, recipient_name, to_recipients, cc_recipients, bcc_recipients,
@@ -187,7 +188,7 @@ export async function POST(req: NextRequest) {
             ${messageId}, ${activeThreadId}, 'outbound', ${activeUserEmail}, ${activeUserName}, ${senderAlias},
             ${to[0] || ""}, ${to[0] || ""}, ${JSON.stringify(to)}::jsonb,
             ${JSON.stringify(cc || [])}::jsonb, ${JSON.stringify(bcc || [])}::jsonb,
-            ${subject}, ${html || ""}, ${text || ""},
+            ${subject || ""}, ${html || ""}, ${text || ""},
             ${(text || html || "").substring(0, 160).replace(/<[^>]*>/g, "")},
             TRUE, ${(attachments?.length || 0) > 0},
             ${leadId || null}, ${activeUserId}, ${activeUserName},
@@ -199,10 +200,12 @@ export async function POST(req: NextRequest) {
             sent_by_user_name = EXCLUDED.sent_by_user_name,
             sender_email = EXCLUDED.sender_email,
             status = EXCLUDED.status,
-            updated_at = NOW();
+            updated_at = NOW()
+          RETURNING id;
         `;
-      } catch (dbErr) {
-        console.error("Failed to save email to Neon DB workspace_emails:", dbErr);
+        console.log(`[EMAIL SEND DB] Successfully inserted into Neon workspace_emails with ID: ${insertRes[0]?.id}`);
+      } catch (dbErr: any) {
+        console.error("[EMAIL SEND DB ERROR] Failed to save email to Neon DB workspace_emails:", dbErr.message || dbErr);
       }
     }
 
@@ -247,8 +250,8 @@ export async function POST(req: NextRequest) {
           WHERE (id::text = ${leadId || null} OR LOWER(email) = ${toEmail})
             AND (first_contacted_by IS NULL OR first_contacted_by = ${activeUserId});
         `;
-      } catch (crmErr) {
-        console.error("Failed to update CRM lead exclusivity in DB:", crmErr);
+      } catch (crmErr: any) {
+        console.error("[EMAIL SEND CRM ERROR] Failed to update CRM lead in DB:", crmErr.message || crmErr);
       }
     }
 
@@ -256,8 +259,9 @@ export async function POST(req: NextRequest) {
     if (status === "Sent") {
       try {
         await syncEmailKpiAsync(activeUserId, activeUserName, activeUserEmail, Boolean(isFollowup));
-      } catch (kpiErr) {
-        console.error("Failed to sync email KPI in employee_daily_kpis:", kpiErr);
+        console.log(`[EMAIL SEND KPI] Synced daily KPI for employee ${activeUserName} (${activeUserId})`);
+      } catch (kpiErr: any) {
+        console.error("[EMAIL SEND KPI ERROR] Failed to sync email KPI in employee_daily_kpis:", kpiErr.message || kpiErr);
       }
     }
 

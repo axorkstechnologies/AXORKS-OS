@@ -109,8 +109,11 @@ export async function apiClient<T = any>(
   options: FetchOptions = {}
 ): Promise<T> {
   const response = await buildRequest(endpoint, options);
-  const json: ApiEnvelope<T> = await response.json();
-  return json.data;
+  const json = await response.json();
+  if (json && typeof json === "object" && "data" in json && json.data !== undefined) {
+    return json.data;
+  }
+  return json;
 }
 
 /** Paginated list endpoints — returns full envelope with meta. */
