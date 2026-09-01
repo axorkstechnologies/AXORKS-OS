@@ -327,7 +327,8 @@ export function EnrichmentModal({
 
   // Save Lead Handler
   const handleSaveAsLead = async (item: any) => {
-    setSavingEmail(item.email);
+    setSavingEmail(item.email || item.business_name);
+    const isVerified = Boolean(item.is_verified || item.verification_status === "verified");
     try {
       await apiClient("/api/v1/leads", {
         method: "POST",
@@ -336,12 +337,17 @@ export function EnrichmentModal({
           website: item.website || (domain ? `https://${domain}` : null),
           decision_maker_name: item.decision_maker_name || (item.first_name ? `${item.first_name} ${item.last_name || ""}`.trim() : "Lead Contact"),
           decision_maker_title: item.decision_maker_title || item.position || item.title || "Decision Maker",
-          email: item.email,
+          email: item.email || "",
           country: item.country || location || null,
           industry: item.industry || businessType || null,
           source: item.source || (searchMode === "location" ? "location_discovery" : activeProvider),
           status: "new",
           score: item.confidence || item.score || 85,
+          verification_status: item.verification_status || (isVerified ? "verified" : "unverified"),
+          verification_score: item.verification_score || item.confidence || (isVerified ? 90 : 50),
+          is_verified: isVerified,
+          mx_valid: Boolean(item.mx_valid || isVerified),
+          verification_notes: item.verification_notes || (isVerified ? "Verified active mail exchange server" : "Discovered lead"),
           notes: searchMode === "location"
             ? `Discovered via Location Search (${businessType || "B2B"} in ${location || "UK/USA/Europe"}).`
             : `Enriched via ${activeProvider.toUpperCase()} domain finder.`,
@@ -561,11 +567,19 @@ export function EnrichmentModal({
                   <div>
                     <div className="font-bold text-xs text-slate-100 flex items-center gap-2">
                       {item.business_name || item.email}
-                      {item.score || item.confidence ? (
-                        <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
-                          {item.score || item.confidence}% match
+                      {item.is_verified || item.verification_status === "verified" ? (
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                          ✓ Verified (MX Server Active)
                         </span>
-                      ) : null}
+                      ) : item.verification_status === "invalid" ? (
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                          ✕ Invalid
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-md text-[10px] bg-slate-800 text-slate-400 border border-slate-700">
+                          Unverified
+                        </span>
+                      )}
                       {item.country && (
                         <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20">
                           {item.country}
@@ -578,19 +592,23 @@ export function EnrichmentModal({
                         {item.decision_maker_name || (item.first_name ? `${item.first_name} ${item.last_name || ""}` : "Verified Decision Maker")}
                       </span>
                       {item.decision_maker_title ? ` (${item.decision_maker_title})` : item.position ? ` (${item.position})` : ""}
-                      {" • "}
-                      <span className="text-violet-300 font-mono font-medium">{item.email}</span>
+                      {item.email ? (
+                        <>
+                          {" • "}
+                          <span className="text-violet-300 font-mono font-medium">{item.email}</span>
+                        </>
+                      ) : null}
                     </div>
                   </div>
                 </div>
 
                 <button
                   onClick={() => handleSaveAsLead(item)}
-                  disabled={savingEmail === item.email}
+                  disabled={savingEmail === (item.email || item.business_name)}
                   className="px-3.5 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-md transition flex items-center gap-1 shrink-0 disabled:opacity-50"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  {savingEmail === item.email ? "Saving..." : "Save as Lead"}
+                  {savingEmail === (item.email || item.business_name) ? "Saving..." : "Save as Lead"}
                 </button>
               </div>
             ))

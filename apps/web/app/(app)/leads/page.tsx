@@ -22,6 +22,9 @@ export default function LeadsPage() {
   const [selectedMode, setSelectedMode] = useState<"domain" | "location">("location");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [verificationFilter, setVerificationFilter] = useState("");
+  const [isVerifyingEmails, setIsVerifyingEmails] = useState(false);
 
   // Gemini AI Research State
   const [researchModalOpen, setResearchModalOpen] = useState(false);
@@ -30,12 +33,14 @@ export default function LeadsPage() {
   const [lastResearchedLeads, setLastResearchedLeads] = useState<any[]>([]);
 
   const { data: leads = [], isLoading, refetch } = useQuery({
-    queryKey: ["leads", search, statusFilter],
+    queryKey: ["leads", search, statusFilter, verifiedOnly, verificationFilter],
     queryFn: () =>
       apiClient("/api/v1/leads", {
         params: {
           search,
           ...(statusFilter ? { status: statusFilter } : {}),
+          ...(verifiedOnly ? { verified_only: "true" } : {}),
+          ...(verificationFilter ? { verification_status: verificationFilter } : {}),
         },
       }),
   });
@@ -89,6 +94,33 @@ export default function LeadsPage() {
     }
   };
 
+  // Instant DNS MX Record Batch Verification for all current leads
+  const handleVerifyAllEmails = async () => {
+    if (!leads || leads.length === 0) {
+      toast.error("No leads available to verify.");
+      return;
+    }
+
+    setIsVerifyingEmails(true);
+    try {
+      const res = await apiClient("/api/v1/email/verify", {
+        method: "POST",
+        body: JSON.stringify({ leads }),
+      });
+
+      if (res.success) {
+        toast.success(`Verified ${res.total} lead emails (${res.verified_count} deliverable MX servers found)`);
+        refetch();
+      } else {
+        toast.error(res.error || "Failed to verify lead emails");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Error running email verification");
+    } finally {
+      setIsVerifyingEmails(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Header */}
@@ -104,20 +136,32 @@ export default function LeadsPage() {
             </span>
           </div>
           <p className="text-slate-700 dark:text-slate-300 text-xs font-medium mt-1">
-            Multi-source API enrichment with one-click Google Gemini commercial verification &amp; bogus lead filtering
+            Multi-source API enrichment with one-click DNS/MX deliverability checks &amp; bogus lead elimination
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           {leads.length > 0 && (
-            <button
-              onClick={() => handleStartResearch(leads)}
-              disabled={isResearching}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black shadow-md shadow-emerald-600/30 transition transform active:scale-95 disabled:opacity-50"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-emerald-200 animate-pulse" />
-              <span>Verify All with Gemini AI</span>
-            </button>
+            <>
+              <button
+                onClick={handleVerifyAllEmails}
+                disabled={isVerifyingEmails}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-md shadow-emerald-600/30 transition transform active:scale-95 disabled:opacity-50"
+                title="Check MX records and deliverability for all leads"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-emerald-200" />
+                <span>{isVerifyingEmails ? "Checking MX..." : "Verify Emails (DNS & MX)"}</span>
+              </button>
+
+              <button
+                onClick={() => handleStartResearch(leads)}
+                disabled={isResearching}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-black shadow-md shadow-violet-600/30 transition transform active:scale-95 disabled:opacity-50"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-violet-200 animate-pulse" />
+                <span>Deep AI Research</span>
+              </button>
+            </>
           )}
 
           <Link
@@ -141,8 +185,8 @@ export default function LeadsPage() {
 
       {/* Filter & View Switcher Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 shadow-sm">
-        <div className="flex items-center gap-2 flex-1 max-w-md">
-          <div className="relative w-full">
+        <div className="flex flex-wrap items-center gap-2 flex-1">
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
             <Search className="w-3.5 h-3.5 absolute left-3.5 top-3 text-slate-400" />
             <input
               type="text"
@@ -166,6 +210,31 @@ export default function LeadsPage() {
             <option value="negotiation">Negotiation</option>
             <option value="won">Won</option>
           </select>
+
+          {/* Verification Status Filter */}
+          <select
+            value={verificationFilter}
+            onChange={(e) => setVerificationFilter(e.target.value)}
+            className="px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none font-bold"
+          >
+            <option value="">All Verification</option>
+            <option value="verified">🟢 Verified Deliverable</option>
+            <option value="unverified">⚪ Unverified</option>
+            <option value="risky">🟡 Risky / Catch-all</option>
+            <option value="invalid">🔴 Invalid / Bounced</option>
+          </select>
+
+          {/* Quick Toggle: Verified Only */}
+          <button
+            onClick={() => setVerifiedOnly(!verifiedOnly)}
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border ${
+              verifiedOnly
+                ? "bg-emerald-600 text-white border-emerald-500 shadow-sm"
+                : "bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            <span>{verifiedOnly ? "✓ Verified Only" : "Show Verified Only"}</span>
+          </button>
         </div>
 
         {/* Table / Board Switcher */}
@@ -202,6 +271,7 @@ export default function LeadsPage() {
         <LeadTableView
           leads={leads}
           onVerifyLeads={handleStartResearch}
+          onRefresh={() => refetch()}
         />
       ) : (
         <LeadKanbanBoard leads={leads} />

@@ -209,6 +209,11 @@ export interface LeadRecord {
   score?: number;
   notes?: string;
   ai_research?: any;
+  verification_status?: "verified" | "risky" | "invalid" | "unverified";
+  verification_score?: number;
+  is_verified?: boolean;
+  mx_valid?: boolean;
+  verification_notes?: string;
   first_contacted_by?: string | null;
   first_contacted_by_name?: string | null;
   contacted_at?: string | null;
@@ -220,12 +225,12 @@ export interface LeadRecord {
 export function mapDbRowToLeadRecord(r: any): LeadRecord {
   return {
     id: String(r.id),
-    business_name: r.business_name || "Prospect Company",
+    business_name: r.business_name || r.company || "Prospect Company",
     website: r.website || "",
     industry: r.industry || "Technology",
     country: r.country || "USA",
-    decision_maker_name: r.decision_maker_name || "Contact",
-    decision_maker_title: r.decision_maker_title || "Director",
+    decision_maker_name: r.decision_maker_name || r.name || "Contact",
+    decision_maker_title: r.decision_maker_title || r.title || "Director",
     email: r.email || "",
     phone: r.phone || "",
     linkedin_url: r.linkedin_url || "",
@@ -234,6 +239,11 @@ export function mapDbRowToLeadRecord(r: any): LeadRecord {
     score: Number(r.score || 75),
     notes: r.notes || "",
     ai_research: r.ai_research || null,
+    verification_status: r.verification_status || (r.is_verified ? "verified" : "unverified"),
+    verification_score: Number(r.verification_score || (r.is_verified ? 90 : 50)),
+    is_verified: Boolean(r.is_verified || r.verification_status === "verified"),
+    mx_valid: Boolean(r.mx_valid),
+    verification_notes: r.verification_notes || "",
     first_contacted_by: r.first_contacted_by || null,
     first_contacted_by_name: r.first_contacted_by_name || null,
     contacted_at: r.contacted_at ? new Date(r.contacted_at).toISOString() : null,
@@ -248,24 +258,28 @@ export async function getLeadsAsync(filters: {
   isFounder?: boolean;
   search?: string;
   status?: string;
+  verifiedOnly?: boolean;
+  verificationStatus?: string;
 } = {}): Promise<LeadRecord[]> {
   try {
     const isFounder = filters.isFounder || false;
     const userId = filters.userId;
+    const search = filters.search?.trim();
+    const status = filters.status?.trim();
+    const verifiedOnly = filters.verifiedOnly;
+    const vStatus = filters.verificationStatus?.trim();
 
     let rows: any[] = [];
 
-    // Lead Exclusivity Logic:
-    // - Founder sees ALL leads.
-    // - Non-founders (employees like Farwa, Furqan) only see:
-    //   1. Uncontacted leads (first_contacted_by IS NULL)
-    //   2. Leads they themselves have contacted (first_contacted_by = userId)
-    //   3. Leads explicitly assigned to them (assigned_to = userId)
-    //   Leads contacted by someone else are completely excluded!
+    // Base query filters
     if (isFounder) {
       rows = await sql`
         SELECT * FROM leads 
-        WHERE deleted_at IS NULL 
+        WHERE deleted_at IS NULL
+          AND (${search ? sql`(LOWER(business_name) ILIKE ${`%${search.toLowerCase()}%`} OR LOWER(email) ILIKE ${`%${search.toLowerCase()}%`} OR LOWER(decision_maker_name) ILIKE ${`%${search.toLowerCase()}%`})` : sql`TRUE`})
+          AND (${status ? sql`status = ${status}` : sql`TRUE`})
+          AND (${verifiedOnly ? sql`(is_verified = TRUE OR verification_status = 'verified')` : sql`TRUE`})
+          AND (${vStatus ? sql`verification_status = ${vStatus}` : sql`TRUE`})
         ORDER BY created_at DESC;
       `;
     } else if (userId) {
@@ -273,41 +287,27 @@ export async function getLeadsAsync(filters: {
         SELECT * FROM leads 
         WHERE deleted_at IS NULL 
           AND (first_contacted_by IS NULL OR first_contacted_by = ${userId} OR assigned_to = ${userId})
+          AND (${search ? sql`(LOWER(business_name) ILIKE ${`%${search.toLowerCase()}%`} OR LOWER(email) ILIKE ${`%${search.toLowerCase()}%`} OR LOWER(decision_maker_name) ILIKE ${`%${search.toLowerCase()}%`})` : sql`TRUE`})
+          AND (${status ? sql`status = ${status}` : sql`TRUE`})
+          AND (${verifiedOnly ? sql`(is_verified = TRUE OR verification_status = 'verified')` : sql`TRUE`})
+          AND (${vStatus ? sql`verification_status = ${vStatus}` : sql`TRUE`})
         ORDER BY created_at DESC;
       `;
     } else {
-      // Unspecified user (public/fallback) -> only uncontacted
       rows = await sql`
         SELECT * FROM leads 
         WHERE deleted_at IS NULL 
           AND first_contacted_by IS NULL
+          AND (${search ? sql`(LOWER(business_name) ILIKE ${`%${search.toLowerCase()}%`} OR LOWER(email) ILIKE ${`%${search.toLowerCase()}%`} OR LOWER(decision_maker_name) ILIKE ${`%${search.toLowerCase()}%`})` : sql`TRUE`})
+          AND (${status ? sql`status = ${status}` : sql`TRUE`})
+          AND (${verifiedOnly ? sql`(is_verified = TRUE OR verification_status = 'verified')` : sql`TRUE`})
+          AND (${vStatus ? sql`verification_status = ${vStatus}` : sql`TRUE`})
         ORDER BY created_at DESC;
       `;
     }
 
     if (rows && rows.length > 0) {
       return rows.map(mapDbRowToLeadRecord);
-    }
-
-    // Seed default lead if empty
-    const seed = await sql`
-      INSERT INTO leads (business_name, website, industry, country, decision_maker_name, decision_maker_title, email, phone, source, status, score)
-      VALUES (
-        'Apex Tech Solutions',
-        'https://apextech.example.com',
-        'Software',
-        'United States',
-        'Alex Vance',
-        'VP of Engineering',
-        'alex.vance@apextech.example.com',
-        '+1 (555) 234-5678',
-        'cold_email',
-        'qualified',
-        85
-      ) RETURNING *;
-    `;
-    if (seed && seed.length > 0) {
-      return seed.map(mapDbRowToLeadRecord);
     }
   } catch (err) {
     console.error("Error fetching leads from Neon DB:", err);
@@ -318,99 +318,109 @@ export async function getLeadsAsync(filters: {
 export async function recordLeadOutreachAsync(
   leadIdOrEmail: string,
   userId: string,
-  userName: string
+  userName: string,
+  action: "email" | "call" | "note" = "email"
 ): Promise<boolean> {
   try {
-    await sql`
-      UPDATE leads
-      SET status = CASE WHEN status = 'new' THEN 'contacted' ELSE status END,
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(leadIdOrEmail);
+
+    let rows: any[] = [];
+    if (isUuid) {
+      rows = await sql`
+        UPDATE leads
+        SET 
+          status = CASE WHEN status = 'new' THEN 'contacted' ELSE status END,
           first_contacted_by = COALESCE(first_contacted_by, ${userId}),
           first_contacted_by_name = COALESCE(first_contacted_by_name, ${userName}),
           contacted_at = COALESCE(contacted_at, NOW()),
           updated_at = NOW()
-      WHERE (id::text = ${leadIdOrEmail} OR LOWER(email) = LOWER(${leadIdOrEmail}))
-        AND (first_contacted_by IS NULL OR first_contacted_by = ${userId});
-    `;
-    return true;
+        WHERE id::text = ${leadIdOrEmail}
+          AND (first_contacted_by IS NULL OR first_contacted_by = ${userId})
+        RETURNING *;
+      `;
+    } else {
+      const emailLower = leadIdOrEmail.toLowerCase().trim();
+      rows = await sql`
+        UPDATE leads
+        SET 
+          status = CASE WHEN status = 'new' THEN 'contacted' ELSE status END,
+          first_contacted_by = COALESCE(first_contacted_by, ${userId}),
+          first_contacted_by_name = COALESCE(first_contacted_by_name, ${userName}),
+          contacted_at = COALESCE(contacted_at, NOW()),
+          updated_at = NOW()
+        WHERE LOWER(email) = ${emailLower}
+          AND (first_contacted_by IS NULL OR first_contacted_by = ${userId})
+        RETURNING *;
+      `;
+    }
+
+    return rows && rows.length > 0;
   } catch (err) {
-    console.error("Error recording lead outreach in Neon DB:", err);
+    console.error("Error claiming lead exclusivity:", err);
     return false;
   }
 }
 
 export async function getLeadByIdAsync(id: string): Promise<LeadRecord | null> {
   try {
-    const rows = await sql`SELECT * FROM leads WHERE id = ${id} AND deleted_at IS NULL LIMIT 1`;
+    const rows = await sql`
+      SELECT * FROM leads 
+      WHERE id::text = ${id} AND deleted_at IS NULL
+      LIMIT 1;
+    `;
     if (rows && rows.length > 0) {
-      const r = rows[0];
-      return {
-        id: String(r.id),
-        business_name: r.business_name || "Prospect Company",
-        website: r.website || "",
-        industry: r.industry || "Technology",
-        country: r.country || "USA",
-        decision_maker_name: r.decision_maker_name || "Contact",
-        decision_maker_title: r.decision_maker_title || "Director",
-        email: r.email || "",
-        phone: r.phone || "",
-        linkedin_url: r.linkedin_url || "",
-        source: r.source || "manual",
-        status: r.status || "new",
-        score: Number(r.score || 75),
-        notes: r.notes || "",
-        ai_research: r.ai_research || null,
-        created_at: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
-        updated_at: r.updated_at ? new Date(r.updated_at).toISOString() : new Date().toISOString(),
-      };
+      return mapDbRowToLeadRecord(rows[0]);
     }
   } catch (err) {
-    console.error("Error fetching lead by id from Neon DB:", err);
+    console.error("Error fetching lead by ID from Neon DB:", err);
   }
   return null;
 }
 
-export async function createLeadAsync(data: Partial<LeadRecord>): Promise<LeadRecord> {
-  const businessName = data.business_name?.trim() || "New Lead";
+export async function createLeadAsync(data: Partial<LeadRecord> & any): Promise<LeadRecord> {
+  const businessName = (data.business_name || data.company || data.company_name || data.name || "New Lead").trim();
   const website = data.website || "";
   const industry = data.industry || "General";
   const country = data.country || "USA";
-  const dmName = data.decision_maker_name || "";
-  const dmTitle = data.decision_maker_title || "";
-  const email = data.email || "";
+  const dmName = data.decision_maker_name || data.name || data.contact_name || "";
+  const dmTitle = data.decision_maker_title || data.title || data.position || "";
+  const email = (data.email || "").trim();
   const phone = data.phone || "";
   const linkedinUrl = data.linkedin_url || "";
   const source = data.source || "manual";
   const status = data.status || "new";
   const score = data.score || 50;
   const notes = data.notes || "";
-  const aiResearch = data.ai_research ? JSON.stringify(data.ai_research) : null;
+  const aiResearch = data.ai_research ? (typeof data.ai_research === "string" ? data.ai_research : JSON.stringify(data.ai_research)) : null;
+  const isVerified = Boolean(data.is_verified || data.verification_status === "verified");
+  const vStatus = data.verification_status || (isVerified ? "verified" : "unverified");
+  const vScore = data.verification_score || (isVerified ? 90 : 50);
+  const mxValid = Boolean(data.mx_valid || isVerified);
+  const vNotes = data.verification_notes || "";
 
   const rows = await sql`
-    INSERT INTO leads (business_name, website, industry, country, decision_maker_name, decision_maker_title, email, phone, linkedin_url, source, status, score, notes, ai_research, created_at, updated_at)
-    VALUES (${businessName}, ${website}, ${industry}, ${country}, ${dmName}, ${dmTitle}, ${email}, ${phone}, ${linkedinUrl}, ${source}, ${status}, ${score}, ${notes}, ${aiResearch}, NOW(), NOW())
+    INSERT INTO leads (
+      business_name, name, company, title,
+      website, industry, country,
+      decision_maker_name, decision_maker_title,
+      email, phone, linkedin_url,
+      source, status, score, notes, ai_research,
+      verification_status, verification_score, is_verified, mx_valid, verification_notes,
+      created_at, updated_at
+    )
+    VALUES (
+      ${businessName}, ${dmName || businessName}, ${businessName}, ${dmTitle},
+      ${website}, ${industry}, ${country},
+      ${dmName}, ${dmTitle},
+      ${email}, ${phone}, ${linkedinUrl},
+      ${source}, ${status}, ${score}, ${notes}, ${aiResearch},
+      ${vStatus}, ${vScore}, ${isVerified}, ${mxValid}, ${vNotes},
+      NOW(), NOW()
+    )
     RETURNING *;
   `;
 
-  const r = rows[0];
-  return {
-    id: String(r.id),
-    business_name: r.business_name,
-    website: r.website,
-    industry: r.industry,
-    country: r.country,
-    decision_maker_name: r.decision_maker_name,
-    decision_maker_title: r.decision_maker_title,
-    email: r.email,
-    phone: r.phone,
-    linkedin_url: r.linkedin_url,
-    source: r.source,
-    status: r.status,
-    score: Number(r.score),
-    notes: r.notes,
-    ai_research: r.ai_research,
-    created_at: new Date(r.created_at).toISOString(),
-    updated_at: new Date(r.updated_at).toISOString(),
-  };
+  return mapDbRowToLeadRecord(rows[0]);
 }
 
 export async function updateLeadResearchAsync(id: string, researchData: any): Promise<boolean> {
@@ -423,6 +433,7 @@ export async function updateLeadResearchAsync(id: string, researchData: any): Pr
     const dmTitle = researchData.decision_maker_role || undefined;
     const linkedinUrl = researchData.decision_maker_linkedin || researchData.social_media?.linkedin_company || undefined;
     const status = researchData.verification_status === "verified_real" ? "qualified" : undefined;
+    const isReal = researchData.verification_status === "verified_real";
 
     await sql`
       UPDATE leads
@@ -435,6 +446,8 @@ export async function updateLeadResearchAsync(id: string, researchData: any): Pr
         decision_maker_title = COALESCE(${dmTitle}, decision_maker_title),
         linkedin_url = COALESCE(${linkedinUrl}, linkedin_url),
         status = COALESCE(${status}, status),
+        is_verified = ${isReal},
+        verification_status = ${isReal ? 'verified' : 'unverified'},
         updated_at = NOW()
       WHERE id = ${id};
     `;
@@ -1030,92 +1043,74 @@ export async function getWorkspaceEmailsAsync(filters: {
   thread_id?: string;
   limit?: number;
   offset?: number;
+  userId?: string;
+  userEmail?: string;
   isFounder?: boolean;
 } = {}): Promise<WorkspaceEmailRecord[]> {
   try {
-    const limit = filters.limit || 50;
+    const limit = filters.limit || 100;
     const offset = filters.offset || 0;
     const isFounder = filters.isFounder || false;
+    const search = filters.search?.trim();
+    const direction = filters.direction;
+    const queryAlias = filters.alias?.toLowerCase();
+    const userId = filters.userId;
+    const userEmail = filters.userEmail?.toLowerCase();
 
-    const BUSINESS_ALIASES = [
-      "sales@axorks.com",
-      "contact@axorks.com",
-      "hello@axorks.com",
-      "careers@axorks.com",
-    ];
-
-    let queryAlias = filters.alias;
-    // Strict Access Control:
-    // If non-founder requests the Founder's personal inbox alias, deny access immediately
-    if (!isFounder && queryAlias && queryAlias.toLowerCase() === "muhammad.mujahid@axorks.com") {
+    // Strict Access Control: Non-founders cannot access Founder's personal inbox alias
+    if (!isFounder && queryAlias && queryAlias === "muhammad.mujahid@axorks.com") {
       return [];
     }
 
     let rows: any[] = [];
 
-    if (!isFounder) {
-      // Non-founders can ONLY see the 4 business aliases (sales@, contact@, hello@, careers@)
-      if (queryAlias && BUSINESS_ALIASES.includes(queryAlias.toLowerCase())) {
-        const targetAlias = queryAlias.toLowerCase();
-        if (filters.direction && filters.direction !== "all") {
-          rows = await sql`
-            SELECT * FROM workspace_emails
-            WHERE direction = ${filters.direction}
-              AND (LOWER(sender_alias) = ${targetAlias} OR LOWER(recipient_email) = ${targetAlias})
-            ORDER BY created_at DESC
-            LIMIT ${limit} OFFSET ${offset};
-          `;
-        } else {
-          rows = await sql`
-            SELECT * FROM workspace_emails
-            WHERE (LOWER(sender_alias) = ${targetAlias} OR LOWER(recipient_email) = ${targetAlias})
-            ORDER BY created_at DESC
-            LIMIT ${limit} OFFSET ${offset};
-          `;
-        }
-      } else {
-        // "All Mail" for non-founders: strictly restricted to any of the 4 business aliases
-        if (filters.direction && filters.direction !== "all") {
-          rows = await sql`
-            SELECT * FROM workspace_emails
-            WHERE direction = ${filters.direction}
-              AND (
-                LOWER(sender_alias) IN ('sales@axorks.com', 'contact@axorks.com', 'hello@axorks.com', 'careers@axorks.com')
-                OR LOWER(recipient_email) IN ('sales@axorks.com', 'contact@axorks.com', 'hello@axorks.com', 'careers@axorks.com')
-              )
-            ORDER BY created_at DESC
-            LIMIT ${limit} OFFSET ${offset};
-          `;
-        } else {
-          rows = await sql`
-            SELECT * FROM workspace_emails
-            WHERE (
-              LOWER(sender_alias) IN ('sales@axorks.com', 'contact@axorks.com', 'hello@axorks.com', 'careers@axorks.com')
-              OR LOWER(recipient_email) IN ('sales@axorks.com', 'contact@axorks.com', 'hello@axorks.com', 'careers@axorks.com')
-            )
-            ORDER BY created_at DESC
-            LIMIT ${limit} OFFSET ${offset};
-          `;
-        }
-      }
+    if (isFounder) {
+      // Founder has full visibility into all emails
+      rows = await sql`
+        SELECT * FROM workspace_emails
+        WHERE (${direction && direction !== "all" ? sql`direction = ${direction}` : sql`TRUE`})
+          AND (${queryAlias && queryAlias !== "all" ? sql`(LOWER(sender_alias) = ${queryAlias} OR LOWER(recipient_email) = ${queryAlias} OR LOWER(sender_email) = ${queryAlias})` : sql`TRUE`})
+          AND (${search ? sql`(
+            LOWER(subject) ILIKE ${`%${search.toLowerCase()}%`} OR
+            LOWER(snippet) ILIKE ${`%${search.toLowerCase()}%`} OR
+            LOWER(sender_email) ILIKE ${`%${search.toLowerCase()}%`} OR
+            LOWER(recipient_email) ILIKE ${`%${search.toLowerCase()}%`} OR
+            LOWER(sender_name) ILIKE ${`%${search.toLowerCase()}%`} OR
+            LOWER(body_text) ILIKE ${`%${search.toLowerCase()}%`}
+          )` : sql`TRUE`})
+          AND (${filters.is_read !== undefined ? sql`is_read = ${filters.is_read}` : sql`TRUE`})
+        ORDER BY created_at DESC
+        LIMIT ${limit} OFFSET ${offset};
+      `;
     } else {
-      // Founder has full visibility into all emails (personal inbox + all aliases)
-      if (filters.direction && filters.direction !== "all") {
-        rows = await sql`
-          SELECT * FROM workspace_emails
-          WHERE direction = ${filters.direction}
-            AND (${filters.alias ? sql`LOWER(sender_alias) = ${filters.alias.toLowerCase()} OR LOWER(recipient_email) = ${filters.alias.toLowerCase()}` : sql`TRUE`})
-          ORDER BY created_at DESC
-          LIMIT ${limit} OFFSET ${offset};
-        `;
-      } else {
-        rows = await sql`
-          SELECT * FROM workspace_emails
-          WHERE (${filters.alias ? sql`LOWER(sender_alias) = ${filters.alias.toLowerCase()} OR LOWER(recipient_email) = ${filters.alias.toLowerCase()}` : sql`TRUE`})
-          ORDER BY created_at DESC
-          LIMIT ${limit} OFFSET ${offset};
-        `;
-      }
+      // Non-founders can see:
+      // 1. All shared business aliases (sales@, contact@, hello@, careers@)
+      // 2. All emails sent by themselves (sent_by_user_id or sender_email)
+      rows = await sql`
+        SELECT * FROM workspace_emails
+        WHERE (${direction && direction !== "all" ? sql`direction = ${direction}` : sql`TRUE`})
+          AND (${queryAlias && queryAlias !== "all" ? sql`(
+            LOWER(sender_alias) = ${queryAlias} OR 
+            LOWER(recipient_email) = ${queryAlias} OR 
+            LOWER(sender_email) = ${queryAlias}
+          )` : sql`(
+            LOWER(sender_alias) IN ('sales@axorks.com', 'contact@axorks.com', 'hello@axorks.com', 'careers@axorks.com') OR
+            LOWER(recipient_email) IN ('sales@axorks.com', 'contact@axorks.com', 'hello@axorks.com', 'careers@axorks.com') OR
+            (${userId ? sql`sent_by_user_id = ${userId}` : sql`FALSE`}) OR
+            (${userEmail ? sql`LOWER(sender_email) = ${userEmail}` : sql`FALSE`})
+          )`})
+          AND (${search ? sql`(
+            LOWER(subject) ILIKE ${`%${search.toLowerCase()}%`} OR
+            LOWER(snippet) ILIKE ${`%${search.toLowerCase()}%`} OR
+            LOWER(sender_email) ILIKE ${`%${search.toLowerCase()}%`} OR
+            LOWER(recipient_email) ILIKE ${`%${search.toLowerCase()}%`} OR
+            LOWER(sender_name) ILIKE ${`%${search.toLowerCase()}%`} OR
+            LOWER(body_text) ILIKE ${`%${search.toLowerCase()}%`}
+          )` : sql`TRUE`})
+          AND (${filters.is_read !== undefined ? sql`is_read = ${filters.is_read}` : sql`TRUE`})
+        ORDER BY created_at DESC
+        LIMIT ${limit} OFFSET ${offset};
+      `;
     }
 
     if (rows && rows.length > 0) {

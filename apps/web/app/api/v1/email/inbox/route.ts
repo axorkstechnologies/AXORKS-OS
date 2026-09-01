@@ -29,6 +29,8 @@ export async function GET(req: NextRequest) {
       is_read: isRead,
       limit,
       offset,
+      userId: user?.id,
+      userEmail: user?.email,
       isFounder,
     });
 

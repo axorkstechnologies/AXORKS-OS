@@ -5,10 +5,7 @@ import { addEmailToHistory } from "@/lib/email/store";
 import { sendGmailMessage, getGoogleWorkspaceStatus } from "@/lib/email/gmail-service";
 import { authenticateRequest } from "@/lib/server-auth";
 import { syncEmailKpiAsync } from "@/lib/performance-repository";
-import { neon } from "@neondatabase/serverless";
-
-const DATABASE_URL = process.env.DATABASE_URL || "";
-const sql = neon(DATABASE_URL || "postgresql://placeholder:placeholder@localhost:5432/db");
+import { sql, DATABASE_URL } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   try {

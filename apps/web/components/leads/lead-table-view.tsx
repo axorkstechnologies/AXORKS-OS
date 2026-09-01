@@ -18,10 +18,12 @@ import {
 interface LeadTableViewProps {
   leads: any[];
   onVerifyLeads?: (leadsToVerify: any[]) => void;
+  onRefresh?: () => void;
 }
 
-export function LeadTableView({ leads, onVerifyLeads }: LeadTableViewProps) {
+export function LeadTableView({ leads, onVerifyLeads, onRefresh }: LeadTableViewProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [verifyingEmail, setVerifyingEmail] = useState<string | null>(null);
 
   if (leads.length === 0) {
     return (
@@ -62,6 +64,26 @@ export function LeadTableView({ leads, onVerifyLeads }: LeadTableViewProps) {
     onVerifyLeads([lead]);
   };
 
+  const handleVerifyEmailDns = async (lead: any) => {
+    if (!lead.email) return;
+    setVerifyingEmail(lead.id);
+    try {
+      const res = await fetch("/api/v1/email/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: lead.email, leadId: lead.id }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (onRefresh) onRefresh();
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setVerifyingEmail(null);
+    }
+  };
+
   return (
     <div className="space-y-3">
       {/* Floating Bulk Action Bar */}
@@ -85,7 +107,7 @@ export function LeadTableView({ leads, onVerifyLeads }: LeadTableViewProps) {
               className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-black shadow-md shadow-violet-600/30 transition flex items-center gap-1.5"
             >
               <Sparkles className="w-3.5 h-3.5 text-violet-200 animate-pulse" />
-              <span>Verify Selected with Gemini AI</span>
+              <span>Verify Selected with AI &amp; MX</span>
             </button>
           </div>
         </div>
@@ -106,7 +128,7 @@ export function LeadTableView({ leads, onVerifyLeads }: LeadTableViewProps) {
                 />
               </th>
               <th className="p-3.5">Business &amp; Website</th>
-              <th className="p-3.5">AI Verification</th>
+              <th className="p-3.5">Email &amp; Deliverability</th>
               <th className="p-3.5">Decision Maker</th>
               <th className="p-3.5">Status</th>
               <th className="p-3.5">Score</th>
@@ -118,8 +140,9 @@ export function LeadTableView({ leads, onVerifyLeads }: LeadTableViewProps) {
             {leads.map((lead) => {
               const isSelected = selectedIds.has(lead.id);
               const aiResearch = lead.ai_research;
-              const isReal = aiResearch?.verification_status === "verified_real";
-              const isBogus = aiResearch?.verification_status === "suspicious_bogus";
+              const isVerified = Boolean(lead.is_verified || lead.verification_status === "verified" || aiResearch?.verification_status === "verified_real");
+              const isInvalid = lead.verification_status === "invalid" || aiResearch?.verification_status === "suspicious_bogus";
+              const isRisky = lead.verification_status === "risky";
 
               return (
                 <tr
@@ -160,34 +183,47 @@ export function LeadTableView({ leads, onVerifyLeads }: LeadTableViewProps) {
                     )}
                   </td>
 
+                  {/* Email & Deliverability Column */}
                   <td className="p-3.5">
-                    {aiResearch ? (
-                      <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                          isReal
-                            ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-900 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/40"
-                            : isBogus
-                            ? "bg-rose-100 dark:bg-rose-500/20 text-rose-900 dark:text-rose-300 border-rose-300 dark:border-rose-500/40"
-                            : "bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-500/40"
-                        }`}
-                        title={aiResearch.verification_notes || "Gemini verified lead"}
-                      >
-                        {isReal ? (
-                          <>
-                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                            Real ({aiResearch.confidence_score}%)
-                          </>
-                        ) : isBogus ? (
-                          <>
-                            <ShieldAlert className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
-                            Bogus ({aiResearch.confidence_score}%)
-                          </>
-                        ) : (
-                          "Uncertain"
-                        )}
-                      </span>
+                    {lead.email ? (
+                      <div className="space-y-1">
+                        <div className="font-mono text-xs text-slate-900 dark:text-slate-100 flex items-center gap-1.5 font-bold">
+                          <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span className="truncate max-w-[200px]">{lead.email}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {isVerified ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-900 border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40">
+                              <ShieldCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                              Verified (Deliverable)
+                            </span>
+                          ) : isInvalid ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-rose-100 text-rose-900 border border-rose-300 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/40">
+                              <ShieldAlert className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                              Invalid / Bounced
+                            </span>
+                          ) : isRisky ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40">
+                              Risky / Catch-all
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
+                              Unverified
+                            </span>
+                          )}
+
+                          <button
+                            onClick={() => handleVerifyEmailDns(lead)}
+                            disabled={verifyingEmail === lead.id}
+                            className="text-[10px] font-bold text-violet-600 hover:underline disabled:opacity-50"
+                            title="Run instant DNS MX record deliverability check"
+                          >
+                            {verifyingEmail === lead.id ? "Checking..." : "Verify MX"}
+                          </button>
+                        </div>
+                      </div>
                     ) : (
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">Unverified</span>
+                      <span className="text-[11px] text-slate-400 italic">No email found</span>
                     )}
                   </td>
 
@@ -196,7 +232,7 @@ export function LeadTableView({ leads, onVerifyLeads }: LeadTableViewProps) {
                       {lead.decision_maker_name || "—"}
                     </div>
                     <div className="text-[11px] text-slate-600 dark:text-slate-300 truncate max-w-xs font-mono font-medium">
-                      {lead.decision_maker_title || lead.email || ""}
+                      {lead.decision_maker_title || ""}
                     </div>
                   </td>
 
@@ -218,7 +254,7 @@ export function LeadTableView({ leads, onVerifyLeads }: LeadTableViewProps) {
                     <button
                       onClick={() => handleSingleVerify(lead)}
                       className="px-2.5 py-1 rounded-lg bg-violet-100 hover:bg-violet-600 text-violet-800 hover:text-white dark:bg-violet-600/25 dark:hover:bg-violet-600 dark:text-violet-200 dark:hover:text-white border border-violet-300 dark:border-violet-500/40 transition text-xs font-bold inline-flex items-center gap-1 shadow-xs"
-                      title="Verify this single lead with Gemini AI"
+                      title="Verify lead with Google Gemini AI &amp; MX"
                     >
                       <Sparkles className="w-3 h-3" />
                       <span>AI Research</span>

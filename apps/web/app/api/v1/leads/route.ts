@@ -17,6 +17,8 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search") || undefined;
     const status = searchParams.get("status") || undefined;
+    const verifiedOnly = searchParams.get("verified_only") === "true";
+    const verificationStatus = searchParams.get("verification_status") || undefined;
 
     // Fetch leads respecting lead exclusivity:
     // Non-founders only see uncontacted leads + leads they have personally contacted/been assigned
@@ -25,6 +27,8 @@ export async function GET(req: NextRequest) {
       isFounder,
       search,
       status,
+      verifiedOnly,
+      verificationStatus,
     });
 
     return NextResponse.json({
