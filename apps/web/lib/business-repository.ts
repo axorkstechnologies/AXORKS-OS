@@ -286,7 +286,7 @@ export async function getLeadsAsync(filters: {
       rows = await sql`
         SELECT * FROM leads 
         WHERE deleted_at IS NULL 
-          AND (first_contacted_by IS NULL OR first_contacted_by = ${userId} OR assigned_to = ${userId})
+          AND (first_contacted_by IS NULL OR first_contacted_by = ${userId} OR (${userId} = ANY(assigned_to)))
           AND (${search ? sql`(LOWER(business_name) ILIKE ${`%${search.toLowerCase()}%`} OR LOWER(email) ILIKE ${`%${search.toLowerCase()}%`} OR LOWER(decision_maker_name) ILIKE ${`%${search.toLowerCase()}%`})` : sql`TRUE`})
           AND (${status ? sql`status = ${status}` : sql`TRUE`})
           AND (${verifiedOnly ? sql`(is_verified = TRUE OR verification_status = 'verified')` : sql`TRUE`})

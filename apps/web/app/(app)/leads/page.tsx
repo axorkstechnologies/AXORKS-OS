@@ -32,7 +32,7 @@ export default function LeadsPage() {
   const [isResearching, setIsResearching] = useState(false);
   const [lastResearchedLeads, setLastResearchedLeads] = useState<any[]>([]);
 
-  const { data: leads = [], isLoading, refetch } = useQuery({
+  const { data: rawLeads = [], isLoading, refetch } = useQuery<any>({
     queryKey: ["leads", search, statusFilter, verifiedOnly, verificationFilter],
     queryFn: () =>
       apiClient("/api/v1/leads", {
@@ -44,6 +44,14 @@ export default function LeadsPage() {
         },
       }),
   });
+
+  const leads: any[] = Array.isArray(rawLeads)
+    ? rawLeads
+    : Array.isArray((rawLeads as any)?.data)
+    ? (rawLeads as any).data
+    : Array.isArray((rawLeads as any)?.items)
+    ? (rawLeads as any).items
+    : [];
 
   const handleOpenEnrichment = (
     provider: "hunter" | "tomba" | "prospeo" | "snov" | "unified",
